@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='kwdetect',
-    version='0.2.0',
+    version='0.3.0',
     description='Simple keyword detection using tensorflow',
     author='Christopher Prohm',
     author_email='mail@cprohm.de',
@@ -23,7 +23,6 @@ setup(
 
         'License :: OSI Approved :: MIT License',
 
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
     ],
 )

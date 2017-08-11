@@ -1,19 +1,23 @@
-# kwdetect - simple keyword detection
+# kwdetect - simple keyword detection using tensorflow
 
 See [the notebook](kwdetect.ipynb) for an overview.
 
-## Detecting keywords with a trained model
+Libraries used to handle audio data:
 
-Run the detect command. Note, it will write out snippets to the given path.
+- sounddevice: recording and playing audio data
+- pysoundfile: saving and reading audio data
+- python-speech-features: compute Mel-frequency cepstrum coefficients
 
-    python -m kwdetect detect ./run/model/model.pickle ./data
+## Usage
 
-## Acquiring data
+To listen for keywords and classify them with a fitted model, run:
 
-First run the record mode:
+    python -m kwdetect detect --model ./run/model/model.pickle ./data
 
-    python -m kwdetect record ./data
+To collect data without a model, just leave out the model argument:
 
-Then label the recorded data:
+    python -m kwdetect detect ./data
+
+To label collected data use:
 
     python -m kwdetect label ./data

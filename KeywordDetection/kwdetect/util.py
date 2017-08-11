@@ -1,8 +1,11 @@
 import fnmatch
 import importlib
 import itertools as it
+import os.path
 import queue as _queue
 import subprocess
+import time
+import uuid
 
 DEFAULT_SAMPLERATE = 44100
 
@@ -200,3 +203,64 @@ def reload(bootstrap=True):
     _reload('kwdetect.io')
     _reload('kwdetect.model')
     _reload('kwdetect')
+
+
+def unique_filename(*p):
+    *tail, head = p
+
+    while True:
+        fname = os.path.join(*tail, head.format(uuid.uuid4()))
+
+        if not os.path.exists(fname):
+            return fname
+
+
+class Loop(object):
+    """Helper to track the status of a long-running loops."""
+
+    def __init__(self):
+        self.idx = 0
+        self.length = None
+        self.start = 0
+        self.current = 0
+        self.expected = None
+
+    def iterate(self, iterable):
+        try:
+            self.length = len(iterable)
+
+        except TypeError:
+            self.length = 1
+
+        self.start = time.time()
+        for self.idx, item in enumerate(iterable):
+            yield item
+            self.expected = (time.time() - self.start) / (self.idx + 1) * self.length
+
+    @property
+    def status(self):
+        total = time.time() - self.start
+
+        if self.expected is None:
+            expected = total / (self.idx + 1) * self.length
+
+        else:
+            expected = self.expected
+
+        l = ((self.idx + 1) * 10) // self.length
+        bar = '#' * l + '.' * (10 - l)
+
+        return '{} [{:.1f}s / {:.1f}s]'.format(bar, total, expected)
+
+    @property
+    def fraction(self):
+        return '{} / {}'.format(self.idx + 1, self.length)
+
+    @property
+    def summary(self):
+        total = time.time() - self.start
+        return 'done {:.1f} s'.format(total)
+
+
+def fit(s, l):
+    return s.ljust(l)[:l]

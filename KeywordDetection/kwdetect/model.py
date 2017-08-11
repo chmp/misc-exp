@@ -115,7 +115,7 @@ def model_fn(features, labels, mode, params):
     return _model_fn(labels=labels, mode=mode, **features, **params)
 
 
-def _model_fn(labels, mode, inputs, lengths, n_layers=2, n_hidden=128, learning_rate=1e-5):
+def _model_fn(labels, mode, inputs, lengths, n_layers=2, n_hidden=64, learning_rate=1e-5):
     logits = predict_logits(inputs, lengths, n_layers=n_layers, n_hidden=n_hidden)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
