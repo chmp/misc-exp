@@ -1,15 +1,12 @@
-import time
 import glob
 import json
 import os
 import os.path
+import pickle
 
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
-
-from .segmentation import StreamProcessor
-from .util import DEFAULT_SAMPLERATE
 
 
 def play_file(fname):
@@ -58,30 +55,10 @@ def get_label_fname(fname):
     return label_fname
 
 
-def record_continuous(q, samplerate=DEFAULT_SAMPLERATE):
-    """Collect audio continuously and put blocks of speech into the queue.
+def load_optional_model(model, session):
+    if model is None:
+        return None
 
-    :param queue.Queue q:
-        a queue collecting detected blocks
-
-    :param int samplerate:
-        the desired sample rate of the results
-    """
-    processor = StreamProcessor(queue=q, samplerate=samplerate)
-
-    def callback(indata, outdata, frames, time, status):
-        indata = np.mean(indata, axis=1)
-        processor.process(indata)
-
-    try:
-        with sd.Stream(
-                samplerate=samplerate,
-                blocksize=(2 * samplerate) // 1,
-                channels=1,
-                callback=callback
-        ):
-            while True:
-                time.sleep(1000)
-
-    finally:
-        processor.finish()
+    with open(model, 'rb') as fobj:
+        restorable = pickle.load(fobj)
+        return restorable.restore(session=session)

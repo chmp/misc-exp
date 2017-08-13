@@ -1,19 +1,17 @@
+import asyncio
 import glob
 import json
 import logging
-import queue as _queue
 import os.path
-import pickle
 import random
-import threading
 
 import click
 import sounddevice as sd
 import soundfile as sf
 
-from kwdetect.io import record_continuous, get_label_fname
-from kwdetect.model import prepare_samples
-from kwdetect.util import DEFAULT_SAMPLERATE, label_decoding, unique_filename
+from kwdetect.aio import detect as _async_detect
+from kwdetect.io import get_label_fname, load_optional_model
+from kwdetect.util import label_decoding
 
 label_decoding = label_decoding.copy()
 label_decoding[-1] = '<repeat>'
@@ -31,58 +29,23 @@ def main():
 @click.option('--model')
 def detect(target, model):
     """Continuously detect keywords and save extracted samples to disk."""
-    queue = _queue.Queue()
-    stop_event = threading.Event()
-    t = threading.Thread(
-        target=detect_thread,
-        kwargs=dict(
-            q=queue,
-            ev=stop_event,
-            target=target,
-            model=model,
-        ),
-    )
-    t.start()
+    loop = asyncio.get_event_loop()
 
-    try:
-        _logger.info('start recording loop')
-        record_continuous(queue)
-
-    finally:
-        queue.put(None)
-        stop_event.set()
-        t.join()
+    # TODO: add better exception handler
+    loop.set_exception_handler(print)
+    loop.run_until_complete(_detect(target, model))
 
 
-def detect_thread(q, ev, target, model, samplerate=DEFAULT_SAMPLERATE):
+async def _detect(target, model):
     import tensorflow as tf
 
     with tf.Session().as_default() as sess:
+        _logger.info('load model')
+        model = load_optional_model(model, session=sess)
 
-        if model is not None:
-            with open(model, 'rb') as fobj:
-                model = pickle.load(fobj).restore(session=sess)
-
-        _logger.info('start detection loop')
-        while not ev.is_set():
-            sample = q.get()
-
-            if sample is None:
-                continue
-
-            if model is not None:
-                padded, lengths = prepare_samples([sample])
-                pred = model.predict({'inputs': padded, 'lengths': lengths}, session=sess)
-
-                label = label_decoding[pred[0]]
-
-            else:
-                label = '<no model>'
-
-            fname = unique_filename(target, '{}.ogg')
-
-            _logger.info('detected as %s, export to %s ', label, fname)
-            sf.write(fname, sample, samplerate=samplerate)
+        _logger.info('enter detection loop')
+        async for label in _async_detect(model, sample_target=target, session=sess):
+            print('detected: ', label)
 
 
 @main.command()
