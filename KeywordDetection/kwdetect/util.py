@@ -1,59 +1,52 @@
 import fnmatch
-import importlib
 import itertools as it
+import os
 import os.path
-import queue as _queue
+import pickle
 import subprocess
-import time
 import uuid
+
+import numpy as np
+import sounddevice as sd
+import soundfile as sf
+
 
 DEFAULT_SAMPLERATE = 44100
 
-labels = ['noise', 'wait', 'stop', 'explain']
+labels = ['noise', 'wait', 'stop', 'explain', 'continue']
 
 label_encoding = {
     'noise': 0,
     'explain': 1,
     'wait': 2,
     'stop': 3,
+    'continue': 4
 }
 
 label_decoding = {v: k for k, v in label_encoding.items()}
 
 
-class PickableTFModel:
-    __params__ = ()
-
-    def to_pickable(self, session=None):
-        if session is None:
-            import tensorflow as tf
-            session = tf.get_default_session()
-
-        init_kwargs = {k: getattr(self, k) for k in self.__params__}
-        variables = {v.name: v.eval(session) for v in self.variables}
-        return PickableWrapper(type(self), init_kwargs, variables)
+def play_file(fname):
+    data, sr = sf.read(fname)
+    sd.play(data, sr, blocking=True)
 
 
-class PickableWrapper:
-    def __init__(self, cls, init_kwargs, variables):
-        self.cls = cls
-        self.init_kwargs = init_kwargs
-        self.variables = variables
+def load_sample(fname):
+    sample, _ = sf.read(fname)
 
-    def restore(self, session):
-        import tensorflow as tf
+    if sample.ndim == 2:
+        sample = np.mean(sample, axis=1)
 
-        if session is None:
-            session = tf.get_default_session()
+    return sample
 
-        model = self.cls(graph=session.graph, **self.init_kwargs)
 
-        session.run(tf.global_variables_initializer())
+def load_optional_model(model, session):
+    if model is None:
+        return None
 
-        for v in model.variables:
-            session.run(v.assign(self.variables[v.name]))
-
-        return model
+    with open(model, 'rb') as fobj:
+        restorable = pickle.load(fobj)
+        return restorable.restore(session=session)
 
 
 # TODO: add support to expand nodes in show_graph
@@ -128,24 +121,6 @@ def get_toplevel_scope(op):
     return scope
 
 
-def caption(s, size=13, strip=True):
-    """Add captions to matplotlib graphs."""
-    import matplotlib.pyplot as plt
-
-    if strip:
-        s = s.splitlines()
-        s = (i.strip() for i in s)
-        s = (i for i in s if i)
-        s = ' '.join(s)
-
-    plt.figtext(0.5, 0, s, wrap=True, size=size, va='bottom', ha='center')
-
-
-def get_color_cycle():
-    import matplotlib as mpl
-    return mpl.rcParams['axes.prop_cycle'].by_key()['color']
-
-
 def as_confusion_matrix(true_column, pred_column):
     """Compute a confusion matrix from a df"""
     return lambda df: (
@@ -179,32 +154,6 @@ def encoding_to_category(label_decoding, column=None):
     return _series_impl if column is None else _df_impl
 
 
-def iter_queue(q):
-    """Helper to iterate a queue."""
-    while True:
-        try:
-            yield q.get(block=False)
-
-        except _queue.Empty:
-            break
-
-
-def reload(bootstrap=True):
-    """helper for interactive development"""
-    def _reload(name):
-        return importlib.reload(importlib.import_module(name))
-
-    if bootstrap:
-        reload = _reload('kwdetect.util').reload
-        return reload(False)
-
-    _reload('kwdetect.util')
-    _reload('kwdetect.segmentation')
-    _reload('kwdetect.io')
-    _reload('kwdetect.model')
-    _reload('kwdetect')
-
-
 def unique_filename(*p):
     *tail, head = p
 
@@ -213,53 +162,6 @@ def unique_filename(*p):
 
         if not os.path.exists(fname):
             return fname
-
-
-class Loop(object):
-    """Helper to track the status of a long-running loops."""
-
-    def __init__(self):
-        self.idx = 0
-        self.length = None
-        self.start = 0
-        self.current = 0
-        self.expected = None
-
-    def iterate(self, iterable):
-        try:
-            self.length = len(iterable)
-
-        except TypeError:
-            self.length = 1
-
-        self.start = time.time()
-        for self.idx, item in enumerate(iterable):
-            yield item
-            self.expected = (time.time() - self.start) / (self.idx + 1) * self.length
-
-    @property
-    def status(self):
-        total = time.time() - self.start
-
-        if self.expected is None:
-            expected = total / (self.idx + 1) * self.length
-
-        else:
-            expected = self.expected
-
-        l = ((self.idx + 1) * 10) // self.length
-        bar = '#' * l + '.' * (10 - l)
-
-        return '{} [{:.1f}s / {:.1f}s]'.format(bar, total, expected)
-
-    @property
-    def fraction(self):
-        return '{} / {}'.format(self.idx + 1, self.length)
-
-    @property
-    def summary(self):
-        total = time.time() - self.start
-        return 'done {:.1f} s'.format(total)
 
 
 def fit(s, l):

@@ -9,9 +9,10 @@ import click
 import sounddevice as sd
 import soundfile as sf
 
+from mlsup.label import write_label, find_unlabelled
+
 from kwdetect.aio import detect as _async_detect
-from kwdetect.io import get_label_fname, load_optional_model
-from kwdetect.util import label_decoding
+from kwdetect.util import label_decoding, load_optional_model
 
 label_decoding = label_decoding.copy()
 label_decoding[-1] = '<repeat>'
@@ -52,11 +53,7 @@ async def _detect(target, model):
 @click.argument('path')
 def label(path):
     """Generate labels in an interactive fashion."""
-    unlabeled_files = [
-        fname
-        for fname in glob.glob(os.path.join(path, '*.ogg'))
-        if not os.path.exists(get_label_fname(fname))
-    ]
+    unlabeled_files = find_unlabelled(os.path.join(path, '*.ogg'))
 
     if not unlabeled_files:
         print('No files to label :)')
@@ -80,7 +77,6 @@ def label(path):
 
 
 def _label_example(fname):
-    label_fname = get_label_fname(fname)
     print(f'Processing: {fname}')
 
     sample, _ = sf.read(fname)
@@ -98,9 +94,7 @@ def _label_example(fname):
             continue
 
         else:
-            print(f'Assign label {label} (write {label_fname})')
-            with open(label_fname, 'w') as fobj:
-                json.dump(dict(label=label, file=os.path.basename(fname)), fobj)
+            write_label(fname, label=label, file=os.path.basename(fname))
             return
 
 

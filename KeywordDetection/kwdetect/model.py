@@ -1,4 +1,5 @@
 import logging
+import os.path
 import random
 import warnings
 
@@ -6,10 +7,12 @@ import numpy as np
 import tensorflow as tf
 
 from python_speech_features import mfcc
+from mlsup.label import listdata
+from mlsup.tf_util import PickableTFModel
 
-from .io import listdata, load_sample
 from .segmentation import compute_speechiness
-from .util import DEFAULT_SAMPLERATE, label_encoding, PickableTFModel, label_decoding
+from .util import DEFAULT_SAMPLERATE, label_encoding, label_decoding, load_sample
+
 
 _logger = logging.getLogger(__name__)
 
@@ -37,7 +40,8 @@ def load_data(data_or_path, batch_size=10, numcep=13, iter=iter):
 
     """
     if isinstance(data_or_path, str):
-        data = [d for d in listdata(data_or_path) if d['label'] in label_encoding]
+        pattern = os.path.join(data_or_path, '*.ogg')
+        data = listdata(pattern, valid_labels=label_encoding)
 
     else:
         data = list(data_or_path)
@@ -111,39 +115,6 @@ def extract_single_block(sample, block=0):
     return sample[blocks[block]]
 
 
-def model_fn(features, labels, mode, params):
-    return _model_fn(labels=labels, mode=mode, **features, **params)
-
-
-def _model_fn(labels, mode, inputs, lengths, n_layers=2, n_hidden=64, learning_rate=1e-5):
-    logits = predict_logits(inputs, lengths, n_layers=n_layers, n_hidden=n_hidden)
-
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        proba = tf.nn.softmax(logits)
-        return tf.estimator.EstimatorSpec(
-            mode=mode,
-            predictions=dict(proba=proba),
-        )
-
-    loss = tf.losses.sparse_softmax_cross_entropy(
-        labels=labels,
-        logits=logits,
-    )
-
-    if mode == tf.estimator.ModeKeys.EVAL:
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops={})
-
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    train = optimizer.minimize(loss)
-
-    return tf.estimator.EstimatorSpec(
-        mode=mode,
-        loss=loss,
-        train_op=train,
-        eval_metric_ops={},
-    )
-
-
 class Model(PickableTFModel):
     __params__ = (
         'kernel_size',
@@ -161,28 +132,23 @@ class Model(PickableTFModel):
             n_hidden=64,
             n_layers=2,
             n_features=13,
+            n_classes=len(label_encoding),
             learning_rate=1e-5,
             graph=None,
     ):
+        super().__init__()
         self.kernel_size = kernel_size
         self.dilation_rate = dilation_rate
         self.n_hidden = n_hidden
         self.n_layers = n_layers
         self.n_features = n_features
         self.learning_rate = learning_rate
+        self.n_classes = n_classes
 
         self._build(graph=graph)
 
     def _build(self, graph=None):
-        if graph is None:
-            graph = tf.get_default_graph()
-
-        with graph.as_default():
-            self.variables = (
-                set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)) |
-                set(tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
-            )
-
+        with self.build_context(graph):
             self.inputs_ = tf.placeholder(tf.float32, [None, None, self.n_features], name='inputs')
             self.lengths_ = tf.placeholder(tf.int64, [None], name='lengths')
             self.labels_ = tf.placeholder(tf.int64, [None], name='labels')
@@ -193,6 +159,7 @@ class Model(PickableTFModel):
                 dilation_rate=self.dilation_rate,
                 n_hidden=self.n_hidden,
                 n_layers=self.n_layers,
+                n_classes=self.n_classes,
             )
 
             with tf.name_scope('loss'):
@@ -215,12 +182,7 @@ class Model(PickableTFModel):
                 self.proba_ = tf.nn.softmax(self.logits_)
 
             with tf.name_scope('predict-class'):
-                self.class_ = tf.argmax(self.logits_, dimension=-1)
-
-            self.variables = (
-                set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)) |
-                set(tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
-            ) - self.variables
+                self.class_ = tf.argmax(self.logits_, axis=-1)
 
     def predict(self, inputs, session=None):
         if session is None:
@@ -245,7 +207,7 @@ class Model(PickableTFModel):
         })
 
 
-def predict_logits(inputs, sequence_length, kernel_size=7, dilation_rate=2, n_hidden=64, n_layers=2):
+def predict_logits(inputs, sequence_length, kernel_size=7, n_classes=5, dilation_rate=2, n_hidden=64, n_layers=2):
     x = inputs
 
     for layer in range(n_layers):
@@ -274,7 +236,7 @@ def predict_logits(inputs, sequence_length, kernel_size=7, dilation_rate=2, n_hi
         )
 
     with tf.name_scope('dense-layer'):
-        x = tf.layers.dense(x, 4)
+        x = tf.layers.dense(x, n_classes)
 
     return x
 
