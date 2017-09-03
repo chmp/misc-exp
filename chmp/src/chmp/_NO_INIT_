@@ -1,0 +1,2 @@
+Note this directory purposefully does not contain a `__init__.py` to render it
+into a namespace package.
