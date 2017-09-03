@@ -51,11 +51,11 @@ def get_label(fname):
         return json.load(fobj)
 
 
-def find_labelled(pattern, recursive=False):
+def find_labeled(pattern, recursive=False):
     return _find_predicate(pattern, recursive, lambda fname: has_label(fname))
 
 
-def find_unlabelled(pattern, recursive=False):
+def find_unlabeled(pattern, recursive=False):
     return _find_predicate(pattern, recursive, lambda fname: not has_label(fname))
 
 
@@ -107,6 +107,24 @@ def get_label_fname(fname):
     label_fname = label_fname + '.label'
 
     return label_fname
+
+
+def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_key='item'):
+    """Write the latest labels added to an annotator.
+    """
+    def unpack(*dict_and_keys):
+        d, *keys = dict_and_keys
+        return tuple(d[k] for k in keys)
+
+    for item in annotator.get_latest():
+        fname = item[fname_key]
+        label = item[label_key]
+
+        if label == skip_class:
+            continue
+
+        kwargs = dict(item, fname=os.path.basename(fname), label=label)
+        write_label(fname, **kwargs)
 
 
 class Annotator:
