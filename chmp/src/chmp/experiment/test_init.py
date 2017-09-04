@@ -1,6 +1,5 @@
 # coding=utf8
-import contextlib
-from chmp.loop import tdformat, bar, Loop
+from chmp.experiment import tdformat, bar, Loop
 
 import pytest
 

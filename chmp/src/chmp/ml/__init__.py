@@ -56,9 +56,9 @@ class PickableTFModel:
 
     @contextlib.contextmanager
     def capture_variables(self):
-        variables = _vars_to_save()
+        variables = vars_to_save()
         yield
-        self.variables = _vars_to_save() - variables
+        self.variables = vars_to_save() - variables
 
     @staticmethod
     def valid_graph(graph=None):
@@ -69,13 +69,21 @@ class PickableTFModel:
         return graph.as_default()
 
 
-def _vars_to_save():
+def vars_to_save():
     import tensorflow as tf
 
     return (
         set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)) |
         set(tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
     )
+
+
+@contextlib.contextmanager
+def capture_variables():
+    result = set()
+    variables = vars_to_save()
+    yield result
+    result.update(vars_to_save() - variables)
 
 
 class PickableWrapper:

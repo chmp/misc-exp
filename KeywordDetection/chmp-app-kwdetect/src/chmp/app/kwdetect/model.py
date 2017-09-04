@@ -7,8 +7,8 @@ import numpy as np
 import tensorflow as tf
 
 from python_speech_features import mfcc
-from mlsup.label import listdata
-from mlsup.tf_util import PickableTFModel
+from chmp.label import listdata
+from chmp.ml import PickableTFModel
 
 from .segmentation import compute_speechiness
 from .util import DEFAULT_SAMPLERATE, label_encoding, label_decoding, load_sample

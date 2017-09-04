@@ -1,6 +1,6 @@
 """Build custom parsers fast using parser combinators.
 """
-# distributed as chmp.parser_combinators
+# distributed as chmp.parser
 import functools as ft
 import inspect
 import operator as op
@@ -245,7 +245,11 @@ def ignore(parser):
     """
 
     def ignore_parser(tokens, offset):
-        rest, result, d = parser(tokens, offset)
+        try:
+            rest, result, d = parser(tokens, offset)
+
+        except Exception as e:
+            raise ParseError('could not run parser {}'.format(parser)) from e
 
         if result is None:
             return tokens, None, _fail(offset, 0, children=[d])
@@ -301,8 +305,6 @@ def map(transform, parser):
 @parameters()
 def end_of_sequence():
     def end_of_sequence_parser(tokens, offset):
-        status = 'success' if not tokens else 'error'
-
         if not tokens:
             return tokens, [], _ok(offset, 0)
 
@@ -312,5 +314,6 @@ def end_of_sequence():
     return end_of_sequence_parser
 
 
-def _excerpt(s, n=20):
+def _excerpt(s, n=40):
+    s = str(s)
     return (s[:n - 3] + '...') if len(s) > n else s

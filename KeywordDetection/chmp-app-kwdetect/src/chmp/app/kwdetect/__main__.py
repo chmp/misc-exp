@@ -1,6 +1,4 @@
 import asyncio
-import glob
-import json
 import logging
 import os.path
 import random
@@ -8,11 +6,9 @@ import random
 import click
 import sounddevice as sd
 import soundfile as sf
-
-from mlsup.label import write_label, find_unlabelled
-
-from kwdetect.aio import detect as _async_detect
-from kwdetect.util import label_decoding, load_optional_model
+from chmp.label import write_label, find_unlabeled
+from chmp.app.kwdetect.aio import detect as _async_detect
+from chmp.app.kwdetect.util import label_decoding, load_optional_model
 
 label_decoding = label_decoding.copy()
 label_decoding[-1] = '<repeat>'
@@ -53,7 +49,7 @@ async def _detect(target, model):
 @click.argument('path')
 def label(path):
     """Generate labels in an interactive fashion."""
-    unlabeled_files = find_unlabelled(os.path.join(path, '*.ogg'))
+    unlabeled_files = find_unlabeled(os.path.join(path, '*.ogg'))
 
     if not unlabeled_files:
         print('No files to label :)')

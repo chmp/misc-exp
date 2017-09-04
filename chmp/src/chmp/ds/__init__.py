@@ -1,8 +1,45 @@
+"""Helper for data science.
+"""
+
+import importlib
 import itertools as it
+
+
+def notebook_preamble():
+    """Add common code
+    """
+    from IPython import get_ipython
+
+    get_ipython().set_next_input(_notebook_preamble, replace=True)
+
+
+_notebook_preamble = '''# from chmp.ds import notebook_preamble; notebook_preamble()
+
+%matplotlib inline
+# disable rescaling the figure, to gain tighter control over the result
+%config InlineBackend.print_figure_kwargs = {'bbox_inches':None}
+
+import logging
+logging.basicConfig(level=logging.INFO)
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+'''.strip()
+
+
+def reload(module_or_module_name):
+    if isinstance(module_or_module_name, str):
+        module_or_module_name = importlib.import_module(module_or_module_name)
+
+    return importlib.reload(module_or_module_name)
 
 
 def get_color_cycle():
     import matplotlib as mpl
+
     return mpl.rcParams['axes.prop_cycle'].by_key()['color']
 
 
@@ -18,6 +55,7 @@ def mpl_set(
     """Set various style related options of MPL.
     """
     import matplotlib.pyplot as plt
+
     if subplot is not None:
         ax = plt.gca()
         plt.subplot(*subplot)

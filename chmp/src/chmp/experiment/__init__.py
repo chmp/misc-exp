@@ -1,10 +1,69 @@
-"""Helpers to track the status of long-running loops.
-"""
 import enum
+import hashlib
 import itertools as it
+import json
 import math
 import time
 
+maximum_15_digit_hex = float(0xFFF_FFFF_FFFF_FFFF)
+max_32_bit_integer = 0xFFFF_FFFF
+
+
+def sha1(obj):
+    """Create a hash for a json-encode-able object
+    """
+    return int(str_sha1(obj)[:15], 16)
+
+
+def str_sha1(obj):
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(',', ':'))
+    s = s.encode('utf8')
+    return hashlib.sha1(s).hexdigest()
+
+
+def random(obj):
+    """Return a random float in the range [0, 1)"""
+    return max(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
+
+
+def uniform(obj, a, b):
+    return a + (b - a) * random(obj)
+
+
+def randrange(obj, *range_args):
+    r = range(*range_args)
+    # works up to a len of 9007199254749999, rounds down afterwards
+    i = int(random(obj) * len(r))
+    return r[i]
+
+
+def randint(obj, a, b):
+    return randrange(obj, a, b + 1)
+
+
+def np_seed(obj):
+    """Return a seed usable by numpy.
+    """
+    return [randrange((obj, i), max_32_bit_integer) for i in range(10)]
+
+
+def tf_seed(obj):
+    """Return a seed usable by tensorflow.
+    """
+    return randrange(obj, max_32_bit_integer)
+
+
+def std_seed(obj):
+    """Return a seed usable by python random module.
+    """
+    return str_sha1(obj)
+
+
+# ########################################################################### #
+# #                                                                         # #
+# #                            Loops                                        # #
+# #                                                                         # #
+# ########################################################################### #
 
 status_characters = it.accumulate([64, 128, 4, 32, 2, 16, 1, 8])
 status_characters = [chr(ord('\u2800') + v) for v in status_characters]

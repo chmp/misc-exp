@@ -1,13 +1,14 @@
 from setuptools import setup
 
 setup(
-    name='kwdetect',
-    version='0.3.0',
+    name='chmp-app-kwdetect',
+    version='0.4.0',
     description='Simple keyword detection using tensorflow',
     author='Christopher Prohm',
     author_email='mail@cprohm.de',
     license='MIT',
-    packages=["kwdetect"],
+    packages=["chmp.app.kwdetect"],
+    package_dir={'': 'src'},
     install_requires=[
         'click',
         'numba',

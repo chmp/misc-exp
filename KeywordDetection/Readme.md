@@ -10,14 +10,18 @@ Libraries used to handle audio data:
 
 ## Usage
 
+First install the `chmp-app-kwdetect` package:
+
+    pip install chmp-app-kwdetect
+
 To listen for keywords and classify them with a fitted model, run:
 
-    python -m kwdetect detect --model ./run/model/model.pickle ./data
+    python -m chmp.app.kwdetect detect --model ./run/model/model.pickle ./data
 
 To collect data without a model, just leave out the model argument:
 
-    python -m kwdetect detect ./data
+    python -m chmp.app.kwdetect detect ./data
 
 To label collected data use:
 
-    python -m kwdetect label ./data
+    python -m chmp.app.kwdetect label ./data

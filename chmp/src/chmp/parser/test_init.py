@@ -1,5 +1,5 @@
 import pytest
-import chmp.parser_combinators as p
+import chmp.parser as p
 
 
 examples = {
