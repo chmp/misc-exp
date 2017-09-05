@@ -1,8 +1,8 @@
 """Helper for data science.
 """
-
 import importlib
 import itertools as it
+import warnings
 
 
 def notebook_preamble():
@@ -212,3 +212,81 @@ def _optional_skip_nan(x, y, skip_nan=True):
 
 def _dict_of_optionals(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def fix_categories(s, categories=None, other_category=None, inplace=False, groups=None, ordered=False):
+    """Fix the categories of a categorical series.
+
+    :param pd.Series s:
+        the series to normalize
+
+    :param Optional[Iterable[Any]] categories:
+        the categories to keep. The result will have categories in the
+        iteration order of this parameter. If not given but groups is passed,
+        the keys of `groups` will be used, otherwise the existing categories
+        of ``s`` will be used.
+
+    :param Optional[Any] other_category:
+        all categories to be removed wil be mapped to this value, unless they
+        are specified specified by the ``groups`` parameter. If given and not
+        included in the categories, it is added.
+
+    :param bool inplace:
+        if True the series will be modified in place.
+
+    :param Optional[Mapping[Any,Iterable[Any]]] groups:
+        if given, specifies which categories to replace by which in the form
+        of ``{replacement: list_of_categories_to_replace}``.
+
+    :param bool ordered:
+        if True the resulting series will have ordered categories.
+    """
+    import pandas.api.types as pd_types
+
+    if not inplace:
+        s = s.copy()
+
+    if not pd_types.is_categorical(s):
+        if inplace:
+            warnings.warn('cannot change the type inplace')
+        s = s.astype('category', )
+
+    if categories is None:
+        if groups is not None:
+            categories = list(groups.keys())
+
+        else:
+            categories = list(s.cat.categories)
+
+    categories = list(categories)
+    inital_categories = set(s.cat.categories)
+
+    if other_category is not None and other_category not in categories:
+        categories = categories + [other_category]
+
+    additions = [c for c in categories if c not in inital_categories]
+    removals = [c for c in inital_categories if c not in categories]
+
+    if groups is None:
+        groups = {}
+
+    else:
+        groups = {k: set(v) for k, v in groups.items()}
+
+    remapped = {c for group in groups.values() for c in group}
+
+    if set(removals) - set(remapped):
+        groups.setdefault(other_category, set()).update(set(removals) - set(remapped))
+
+    if additions:
+        s.cat.add_categories(additions, inplace=True)
+
+    for replacement, group in groups.items():
+        s[s.isin(group)] = replacement
+
+    if removals:
+        s.cat.remove_categories(removals, inplace=True)
+
+    s.cat.reorder_categories(categories, inplace=True, ordered=ordered)
+
+    return s
