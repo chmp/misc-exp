@@ -290,3 +290,34 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
     s.cat.reorder_categories(categories, inplace=True, ordered=ordered)
 
     return s
+
+
+def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
+    """Find categories with high frequency.
+
+    :param float min_min_frequency:
+        the minimum frequency to keep
+
+    :param Optional[int] n_max:
+        if given keep at most ``n_max`` categories. If more are present after
+        filtering for minimum frequency, keep the highest ``n_max`` frequency
+        columns.
+    """
+    s = (
+        s
+        .value_counts(normalize=True)
+        .pipe(lambda s: s[s > min_frequency])
+    )
+
+    if n_max is None:
+        return list(s.index)
+
+    if len(s) <= n_max:
+        return s
+
+    return list(
+        s
+        .sort_values(ascending=False)
+        .iloc[:n_max]
+        .index
+    )
