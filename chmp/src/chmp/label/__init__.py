@@ -15,11 +15,83 @@ import base64
 import collections.abc
 import datetime
 import glob
+import html
 import json
 import logging
 import os.path
 
 _logger = logging.getLogger(__name__)
+
+
+def annotate(items, classes, history_length=5, display_value=None, cls=None):
+    """Annotate data inside the ipython notebook.
+
+    This function constructs an IPython widget and displays it to the user. The
+    returned list will be filled with the labels as the user interacts with the
+    widget.
+
+    :param Sequence[Any] items:
+        the collection of items to label. The interpretation of the items
+        depends on the :class:`Annotator` chosen by the `cls` argument.
+        For image and audio, each item should be a filename. For text, the
+        items should be the lines of the text. For custom `display_value`
+        each item is passed as is.
+
+    :param Sequence[str] classes:
+        the classes to choose from.
+
+    :param int history_length:
+        the number of previously labeled items to show for changes in case of
+        errors.
+
+    :param Optional[Callable[str,Any]] display_value:
+        if given, a callable that accepts an item and returns a HTML
+        representation to show to the user.
+
+    :param Optional[Union[str,class]] cls:
+        the type of annotator to use. Can be either a class directly or one
+        of ``'text'``, ``'image'``, ``'audio'``. If not given, but
+        ``display_value`` is given, it will be used to display the result to
+        the user. If neither one is given, the ``repr`` will be shown to
+        the user.
+
+    :returns:
+        a list that is filled with feedback supplied by the user. In case of
+        corrections both the old and the new label will be returned. With the
+        new label having a higher index. To only retain the latest labels, use
+        the additional `get_latest` method on the returned object.
+    """
+    from IPython.core.display import display
+
+    kwargs = dict(history_length=history_length)
+    if display_value is not None:
+        kwargs.update(display_value=display_value)
+
+    if cls == 'text':
+        annotator = TextAnnotator(classes, **kwargs)
+
+    elif cls == 'audio':
+        annotator = AudioAnnotator(classes, **kwargs)
+
+    elif cls == 'image':
+        annotator = ImageAnnotator(classes, **kwargs)
+
+    elif cls is not None:
+        annotator = cls(classes, **kwargs)
+
+    elif display_value is not None:
+        annotator = FunctionalAnnotator(classes, **kwargs)
+
+    else:
+        annotator = FunctionalAnnotator(
+            classes,
+            lambda item: '<pre>{}</pre>'.format(html.escape(repr(item))),
+        )
+
+    annotator.annotate('', items)
+    display(annotator)
+
+    return annotator.current_annotations
 
 
 def listdata(pattern, valid_lables=None):
@@ -125,42 +197,6 @@ def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_k
 
         kwargs = dict(item, fname=os.path.basename(fname), label=label)
         write_label(fname, **kwargs)
-
-
-def annotate(items, classes, history_length=5, display_value=None, cls=None):
-    """Annotate data inside the ipython notebook.
-
-    :returns:
-        a list that is filled with feedback supplied by the user
-    """
-    from IPython.core.display import display
-
-    kwargs = dict(history_length=history_length)
-    if display_value is not None:
-        kwargs.update(display_value=display_value)
-
-    if cls == 'text':
-        annotator = TextAnnotator(classes, **kwargs)
-
-    elif cls == 'audio':
-        annotator = AudioAnnotator(classes, **kwargs)
-
-    elif cls == 'image':
-        annotator = ImageAnnotator(classes, **kwargs)
-
-    elif cls is not None:
-        annotator = cls(classes, **kwargs)
-
-    elif display_value is not None:
-        annotator = FunctionalAnnotator(classes, **kwargs)
-
-    else:
-        raise ValueError('invalid cls argument')
-
-    annotator.annotate('', items)
-    display(annotator)
-
-    return annotator.current_annotations
 
 
 class Annotator:
