@@ -123,7 +123,7 @@ def _fail(offset, consumed, **kwargs):
     return _debug('fail', offset, consumed, **kwargs)
 
 
-@parameters
+@parameters()
 def noop():
     def noop_parser(tokens, offset):
         return tokens, [], _ok(offset, 0)
