@@ -127,11 +127,47 @@ def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_k
         write_label(fname, **kwargs)
 
 
+def annotate(items, classes, history_length=5, display_value=None, cls=None):
+    """Annotate data inside the ipython notebook.
+
+    :returns:
+        a list that is filled with feedback supplied by the user
+    """
+    from IPython.core.display import display
+
+    kwargs = dict(history_length=history_length)
+    if display_value is not None:
+        kwargs.update(display_value=display_value)
+
+    if cls == 'text':
+        annotator = TextAnnotator(classes, **kwargs)
+
+    elif cls == 'audio':
+        annotator = AudioAnnotator(classes, **kwargs)
+
+    elif cls == 'image':
+        annotator = ImageAnnotator(classes, **kwargs)
+
+    elif cls is not None:
+        annotator = cls(classes, **kwargs)
+
+    elif display_value is not None:
+        annotator = FunctionalAnnotator(classes, **kwargs)
+
+    else:
+        raise ValueError('invalid cls argument')
+
+    annotator.annotate('', items)
+    display(annotator)
+
+    return annotator.current_annotations
+
+
 class Annotator:
     """IPython widget to quickly annotate data sets.
     """
     def __init__(self, classes, history_length=10, context_size=1):
-        self.current_annotations = []
+        self.current_annotations = Annotations()
         self.current_idx = None
         self.current_reason = None
         self.annotations = []
@@ -149,7 +185,7 @@ class Annotator:
         else:
             self.order = list(order)
 
-        self.current_annotations = []
+        self.current_annotations = Annotations()
         self.data = data
         self.annotations.append((key, self.current_annotations))
 
@@ -160,19 +196,9 @@ class Annotator:
             _, data = self.annotations[index]
 
         else:
-            data = []
+            data = Annotations()
 
-        result = []
-        added = set()
-
-        for item in reversed(data):
-            if item['index'] in added:
-                continue
-
-            added.add(item['index'])
-            result.append(item)
-
-        return result
+        return data.get_latest()
 
     def build_display_value(self):
         """Build the display of the item being annotated.
@@ -215,6 +241,9 @@ class Annotator:
         return b
 
     def _annotate(self, label):
+        if self.current_idx is None:
+            return
+
         self.current_annotations.append(dict(
             index=self.current_idx,
             reason=self.current_reason,
@@ -318,6 +347,34 @@ class TextAnnotator(Annotator):
                 result += [l]
 
         return '<pre>' + '\n'.join(result) + '</pre>'
+
+
+class FunctionalAnnotator(Annotator):
+    def __init__(self, classes, display_value, *, history_length=5, kwargs=None):
+        if kwargs is None:
+            kwargs = {}
+
+        super().__init__(classes=classes, history_length=history_length)
+        self.display_value = display_value
+        self.kwargs = kwargs
+
+    def build_display_value(self):
+        return self.display_value(self.data[self.current_idx], **self.kwargs)
+
+
+class Annotations(list):
+    def get_latest(self):
+        result = []
+        added = set()
+
+        for item in reversed(self):
+            if item['index'] in added:
+                continue
+
+            added.add(item['index'])
+            result.append(item)
+
+        return result
 
 
 def build_data_url(fname):
