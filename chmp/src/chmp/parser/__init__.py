@@ -70,14 +70,14 @@ def extract_parameters(parser):
             result[k] = nonlocals[k]
 
         except KeyError:
-            raise ValueError(f'could not extract {k} from {parser}')
+            raise ValueError('could not extract {} from {}'.format(k, parser))
 
     for k, extractor in parser._parser_extractors.items():
         try:
             result[k] = extractor(parser)
 
         except Exception as e:
-            raise ValueError(f'could not extract {k} from {parser}') from e
+            raise ValueError('could not extract {} from {}'.format(k, parser)) from e
 
     return result
 
