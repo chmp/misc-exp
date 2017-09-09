@@ -1,3 +1,8 @@
+"""Helper for running ML experiments.
+
+Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
+license, (c) 2017 Christopher Prohm.
+"""
 import enum
 import hashlib
 import itertools as it

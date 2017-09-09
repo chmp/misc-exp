@@ -1,4 +1,7 @@
 """Helper for data science.
+
+Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
+license, (c) 2017 Christopher Prohm.
 """
 import importlib
 import itertools as it

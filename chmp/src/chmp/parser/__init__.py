@@ -1,4 +1,7 @@
 """Build custom parsers fast using parser combinators.
+
+Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
+license, (c) 2017 Christopher Prohm.
 """
 # distributed as chmp.parser
 import functools as ft

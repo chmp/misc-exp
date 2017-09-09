@@ -1,3 +1,8 @@
+"""Helper for ML code.
+
+Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
+license, (c) 2017 Christopher Prohm.
+"""
 import contextlib
 
 
