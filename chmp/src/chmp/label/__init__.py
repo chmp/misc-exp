@@ -10,6 +10,8 @@ IPython widgtes for annotating data sets:
 * :class:`AudioAnnotator`
 * :class:`Annotator`
 
+Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
+license, (c) 2017 Christopher Prohm.
 """
 import base64
 import collections.abc
@@ -50,10 +52,9 @@ def annotate(items, classes, history_length=5, display_value=None, cls=None):
 
     :param Optional[Union[str,class]] cls:
         the type of annotator to use. Can be either a class directly or one
-        of ``'text'``, ``'image'``, ``'audio'``. If not given, but
-        ``display_value`` is given, it will be used to display the result to
-        the user. If neither one is given, the ``repr`` will be shown to
-        the user.
+        of ``'image'``, ``'audio'``. If not given, but ``display_value`` is
+        given, it will be used to display the result to the user. If neither
+        one is given, the ``repr`` will be shown to the user.
 
     :returns:
         a list that is filled with feedback supplied by the user. In case of
@@ -67,10 +68,7 @@ def annotate(items, classes, history_length=5, display_value=None, cls=None):
     if display_value is not None:
         kwargs.update(display_value=display_value)
 
-    if cls == 'text':
-        annotator = TextAnnotator(classes, **kwargs)
-
-    elif cls == 'audio':
+    if cls == 'audio':
         annotator = AudioAnnotator(classes, **kwargs)
 
     elif cls == 'image':
@@ -88,10 +86,10 @@ def annotate(items, classes, history_length=5, display_value=None, cls=None):
             lambda item: '<pre>{}</pre>'.format(html.escape(repr(item))),
         )
 
-    annotator.annotate('', items)
+    annotator.annotate(items)
     display(annotator)
 
-    return annotator.current_annotations
+    return annotator.annotations
 
 
 def listdata(pattern, valid_lables=None):
@@ -199,44 +197,86 @@ def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_k
         write_label(fname, **kwargs)
 
 
-class Annotator:
+class BaseAnnotator:
+    """Abstract annotator without ties to IPython.
+    """
+    def __init__(self):
+        self.data = None
+        self.annotations = None
+        self.current_item = None
+
+    def get_latest(self):
+        if self.annotations is None:
+            return []
+
+        return self.annotations.get_latest()
+
+    def update_display(self):
+        """Hook that is called, when new information should be shown.
+
+        The default does nothing, to add custom behavior overwrite it in a
+        subclass.
+        """
+        pass
+
+    def clear(self):
+        self.annotations = None
+        self.data = None
+        self.current_item = None
+
+    def annotate(self, data):
+        if self.annotations is not None:
+            raise RuntimeError('call clear before annotating again')
+
+        self.annotations = Annotations()
+        self.data = [('order', idx, item) for idx, item in enumerate(data)]
+        self.next()
+
+    def next(self, item=None):
+        if item is not None:
+            self.current_item = item
+
+        elif self.data:
+            self.current_item = self.data.pop(0)
+
+        else:
+            self.current_item = None
+            self.update_display()
+            return
+
+        self.update_display()
+
+    def annotate_current(self, label):
+        if self.annotations is None or self.current_item is None:
+            return
+
+        reason, index, item = self.current_item
+        self.annotations.append(dict(index=index, reason=reason, item=item, label=label))
+        self.next()
+
+    def repeat(self, idx):
+        if idx < 0 or idx >= len(self.annotations):
+            return
+
+        if self.current_item is not None:
+            self.data.insert(0, self.current_item)
+
+        index, item = self.annotations[idx]['index'], self.annotations[idx]['item']
+        item = 'repeat', index, item
+
+        self.next(item)
+
+
+class Annotator(BaseAnnotator):
     """IPython widget to quickly annotate data sets.
     """
-    def __init__(self, classes, history_length=10, context_size=1):
-        self.current_annotations = Annotations()
-        self.current_idx = None
-        self.current_reason = None
-        self.annotations = []
-        self.data = []
-        self.order = []
+    def __init__(self, classes, history_length=10):
+        super().__init__()
         self.history_length = int(history_length)
-        self.context_size = int(context_size)
-
+        self.last_repeat = 0
         self._build(classes)
 
-    def annotate(self, key, data, order=None):
-        if order is None:
-            self.order = list(range(0, len(data)))
-
-        else:
-            self.order = list(order)
-
-        self.current_annotations = Annotations()
-        self.data = data
-        self.annotations.append((key, self.current_annotations))
-
-        self._next()
-
-    def get_latest(self, index=-1):
-        if self.annotations:
-            _, data = self.annotations[index]
-
-        else:
-            data = Annotations()
-
-        return data.get_latest()
-
-    def build_display_value(self):
+    def build_display_value(self, item):
         """Build the display of the item being annotated.
 
         This class has to be overwritten in subclasses.
@@ -245,16 +285,53 @@ class Annotator:
             an HTML reprensetation of the item to display.
 
         """
-        raise NotImplementedError()
+        return html.escape(repr(item))
+
+    def clear(self):
+        super().clear()
+        self.last_repeat = 0
+
+    def update_display(self):
+        if self.current_item is None:
+            self._html.value = 'No data to annotate'
+            self._info.value = '&nbsp;'
+
+        else:
+            reason, index, item = self.current_item
+            self._html.value = self.build_display_value(item)
+            self._info.value = html.escape('index: {}, reason: {}'.format(index, reason))
+
+        if len(self.annotations) > self.last_repeat:
+            from ipywidgets import Button, Layout
+
+            repeats = list(self._history.children)
+
+            for idx in range(self.last_repeat, len(self.annotations)):
+                annotation = self.annotations[idx]
+
+                repeat_button = Button(
+                    description=f'{annotation["label"]} - {annotation["item"]!r}',
+                    layout=Layout(width='50%'),
+                )
+                repeat_button.on_click(lambda b: self.repeat(idx))
+
+                repeats = [repeat_button] + repeats
+
+            self.last_repeat = len(self.annotations)
+
+            repeats = repeats[:self.history_length]
+            self._history.children = repeats
 
     def _build(self, classes):
         from ipywidgets import HTML, VBox, Layout, Box
 
         self._html = HTML(value='No data to annotate')
+        self._info = HTML(value='&nbsp;')
         self._history = VBox(layout=Layout(margin='1em 0em 0em 0em'))
 
         self._widget = VBox([
             self._html,
+            self._info,
             Box([
                 self._build_label_button(label)
                 for label in classes
@@ -273,57 +350,8 @@ class Annotator:
             label.setdefault('style', '')
 
         b = Button(description=label['label'], button_style=label['style'])
-        b.on_click(lambda b: self._annotate(label))
+        b.on_click(lambda b: self.annotate_current(label['label']))
         return b
-
-    def _annotate(self, label):
-        if self.current_idx is None:
-            return
-
-        self.current_annotations.append(dict(
-            index=self.current_idx,
-            reason=self.current_reason,
-            label=label['label'],
-            item=self.data[self.current_idx],
-        ))
-
-        if self.current_idx is not None:
-            self._add_repeat(self.current_idx, label)
-
-        self._next()
-
-    def _next(self, idx=None, reason='order'):
-        if idx is None:
-            if not self.order:
-                self._html.value = 'No data to annotate'
-                self.current_idx = None
-                return
-
-            self.current_idx = self.order.pop(0)
-
-        else:
-            self.current_idx = idx
-
-        self.current_reason = reason
-        self._html.value = self.build_display_value()
-
-    def _add_repeat(self, idx, label):
-        from ipywidgets import Button, Layout
-
-        repeat_button = Button(
-            description=f'{label["label"]} - {self.data[idx]}',
-            layout=Layout(width='50%'),
-            button_style=label['style'],
-        )
-        repeat_button.on_click(lambda b: self._repeat(idx))
-
-        history = [repeat_button] + list(self._history.children)
-        history = history[:self.history_length]
-        self._history.children = history
-
-    def _repeat(self, idx):
-        self.order.insert(0, self.current_idx)
-        self._next(idx, reason='repeat')
 
     def _ipython_display_(self, **kwargs):
         return self._widget._ipython_display_(**kwargs)
@@ -331,58 +359,20 @@ class Annotator:
 
 class ImageAnnotator(Annotator):
     """IPython widget to annotate image files.
+
+    The widget expects a list of filenames.
     """
-    def build_display_value(self):
-        fname = self.data[self.current_idx]
-        return '<img src="{url}"/>'.format(url=build_data_url(fname))
+    def build_display_value(self, item):
+        return '<img src="{url}"/>'.format(url=build_data_url(item))
 
 
 class AudioAnnotator(Annotator):
     """IPython widget to annotate audio files.
+
+    The widget expects a list of filenames.
     """
-    def build_display_value(self):
-        fname = self.data[self.current_idx]
-        return '<audio src="{url}" controls autoplay/>'.format(url=build_data_url(fname))
-
-
-class TextAnnotator(Annotator):
-    """IPython widget to annotate a text document line by line.
-
-    Usage::
-
-        classes = [
-            {'label': 'Skip', 'style': 'primary'},
-            {'label': 'Pose', 'style': 'success'},
-            {'label': 'Background', 'style': 'danger'},
-        ]
-        annotator = TextAnnotator(classes)
-        annotator.annotate('my-key', lines)
-
-        display(annotator)
-
-
-    To limit the number or change the order of the lines to display, pass the
-    order argument to ``annotate``::
-
-        annotator.annotate('my-key', lines, order=[10, 5, 6])
-
-    """
-    def build_display_value(self):
-        result = []
-        for i in range(self.current_idx - self.context_size, self.current_idx + self.context_size + 1):
-            if i < 0 or i >= len(self.data):
-                l = '&nbsp;'
-
-            else:
-                l = self.data[i]
-
-            if i == self.current_idx:
-                result += [f'<span style="color:red">{l}</span>']
-
-            else:
-                result += [l]
-
-        return '<pre>' + '\n'.join(result) + '</pre>'
+    def build_display_value(self, item):
+        return '<audio src="{url}" controls autoplay/>'.format(url=build_data_url(item))
 
 
 class FunctionalAnnotator(Annotator):
@@ -394,8 +384,8 @@ class FunctionalAnnotator(Annotator):
         self.display_value = display_value
         self.kwargs = kwargs
 
-    def build_display_value(self):
-        return self.display_value(self.data[self.current_idx], **self.kwargs)
+    def build_display_value(self, item):
+        return self.display_value(item, **self.kwargs)
 
 
 class Annotations(list):
