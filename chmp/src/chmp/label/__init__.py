@@ -25,7 +25,14 @@ import os.path
 _logger = logging.getLogger(__name__)
 
 
-def annotate(items, classes, history_length=5, display_value=None, cls=None):
+def annotate(
+        items, *,
+        classes,
+        history_length=5,
+        display_value=None,
+        cls=None,
+        kwargs=None
+):
     """Annotate data inside the ipython notebook.
 
     This function constructs an IPython widget and displays it to the user. The
@@ -56,6 +63,11 @@ def annotate(items, classes, history_length=5, display_value=None, cls=None):
         given, it will be used to display the result to the user. If neither
         one is given, the ``repr`` will be shown to the user.
 
+    :param Optional[Mapping[Str,Any]] kwargs:
+        if given, additional keyword arguments passed on constucting the
+        annotator object. Note, ``history_length`` and ``display_value``
+        are set by the parameters of this function.
+
     :returns:
         a list that is filled with feedback supplied by the user. In case of
         corrections both the old and the new label will be returned. With the
@@ -64,7 +76,9 @@ def annotate(items, classes, history_length=5, display_value=None, cls=None):
     """
     from IPython.core.display import display
 
-    kwargs = dict(history_length=history_length)
+    kwargs = {} if kwargs is None else dict(kwargs)
+
+    kwargs.update(history_length=history_length)
     if display_value is not None:
         kwargs.update(display_value=display_value)
 
@@ -403,15 +417,28 @@ class Annotations(list):
         return result
 
 
-def build_data_url(fname):
+def build_data_url(fname, mime_type=None):
+    """Helper to build a data-url with data read from a file.
+
+    :param str fname:
+        the file to load the content from
+
+    :param Optional[str] mime_type:
+        if given the mime type to use, otherwise it's auto-detected from the
+        file extension.
+
+    :returns:
+        the data url.
+    """
     _, ext = os.path.splitext(fname)
     ext = ext.lower()
 
-    try:
-        mime_type = _mime_types[ext]
+    if mime_type is None:
+        try:
+            mime_type = _mime_types[ext]
 
-    except AttributeError:
-        raise ValueError('unknown file extension {}'.format(ext))
+        except AttributeError:
+            raise ValueError('unknown file extension {}'.format(ext))
 
     with open(fname, 'rb') as fobj:
         data = fobj.read()
@@ -423,6 +450,10 @@ def build_data_url(fname):
 
 
 _mime_types = {
-    '.png': 'image/png',
+    '.gif': 'image.gif',
+    '.jpg': 'image/jpeg',
+    '.mp3': 'audio/mpeg',
     '.ogg': 'audio/ogg',
+    '.png': 'image/png',
+    '.wav': 'audio/wav',
 }
