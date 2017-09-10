@@ -47,10 +47,12 @@ def get_color_cycle():
 
 
 def mpl_set(
+        box=None,
         xlabel=None, ylabel=None,
         title=None, suptitle=None,
         xscale=None, yscale=None, caption=None,
         xlim=None, ylim=None,
+        xticks=None, yticks=None,
         left=None, top=None, bottom=None, right=None, wspace=None, hspace=None,
         subplot=None,
         legend=None,
@@ -58,6 +60,9 @@ def mpl_set(
     """Set various style related options of MPL.
     """
     import matplotlib.pyplot as plt
+
+    if box is not None:
+        plt.box(box)
 
     if subplot is not None:
         ax = plt.gca()
@@ -87,6 +92,20 @@ def mpl_set(
 
     if ylim is not None:
         plt.ylim(*ylim)
+
+    if xticks is not None:
+        if isinstance(xticks, tuple):
+            plt.xticks(*xticks)
+
+        else:
+            plt.xticks(xticks)
+
+    if yticks is not None:
+        if isinstance(yticks, tuple):
+            plt.yticks(*yticks)
+
+        else:
+            plt.yticks(yticks)
 
     if caption is not None:
         _caption(caption)
