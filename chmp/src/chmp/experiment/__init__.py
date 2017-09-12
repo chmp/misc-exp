@@ -38,7 +38,7 @@ def str_sha1(obj):
 
 def random(obj):
     """Return a random float in the range [0, 1)"""
-    return max(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
+    return min(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
 
 
 def uniform(obj, a, b):
@@ -72,6 +72,23 @@ def std_seed(obj):
     """Return a seed usable by python random module.
     """
     return str_sha1(obj)
+
+
+def shuffled(obj, l):
+    l = list(l)
+    shuffle(obj, l)
+    return l
+
+
+def shuffle(obj, l):
+    """Shuffle `l` in place using Fisher–Yates algorithm.
+
+    See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+    """
+    n = len(l)
+    for i in range(n - 1):
+        j = randrange((obj, i), i, n)
+        l[i], l[j] = l[j], l[i]
 
 
 # ########################################################################### #
