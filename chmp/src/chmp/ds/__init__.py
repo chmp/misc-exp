@@ -56,6 +56,7 @@ def mpl_set(
         left=None, top=None, bottom=None, right=None, wspace=None, hspace=None,
         subplot=None,
         legend=None,
+        colorbar=None,
 ):
     """Set various style related options of MPL.
     """
@@ -117,11 +118,18 @@ def mpl_set(
     if subplot_kwargs:
         plt.subplots_adjust(**subplot_kwargs)
 
-    if legend is not None:
-        plt.legend(**legend)
+    if legend is not None and legend is not False:
+        if legend is True:
+            plt.legend(loc='best')
+
+        else:
+            plt.legend(**legend)
 
     if subplot is not None:
         plt.sca(ax)
+
+    if colorbar is True:
+        plt.colorbar()
 
 
 def caption(s, size=13, strip=True):
