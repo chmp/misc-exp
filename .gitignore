@@ -7,4 +7,5 @@ bak*
 .*.swp
 .cache/
 *.egg-info/
+.DS_Store
 

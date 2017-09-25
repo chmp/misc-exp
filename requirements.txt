@@ -1,0 +1,10 @@
+dask[bag]
+ipython[notebook]
+ipywidgets
+matplotlib
+numba
+numpy
+pandas
+scipy
+tensorflow
+toolz
