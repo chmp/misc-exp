@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from python_speech_features import mfcc
 from chmp.label import listdata
-from chmp.ml import PickableTFModel
+from chmp.ml import PickableTFModel, inject_session
 
 from .segmentation import compute_speechiness
 from .util import DEFAULT_SAMPLERATE, label_encoding, label_decoding, load_sample
@@ -184,22 +184,16 @@ class Model(PickableTFModel):
             with tf.name_scope('predict-class'):
                 self.class_ = tf.argmax(self.logits_, axis=-1)
 
-    def predict(self, inputs, session=None):
-        if session is None:
-            session = tf.get_default_session()
-
+    @inject_session
+    def predict(self, inputs, session):
         return session.run(self.class_, {self.inputs_: inputs['inputs'], self.lengths_: inputs['lengths']})
 
-    def predict_proba(self, inputs, session=None):
-        if session is None:
-            session = tf.get_default_session()
-
+    @inject_session
+    def predict_proba(self, inputs, session):
         return session.run(self.proba_, {self.inputs_: inputs['inputs'], self.lengths_: inputs['lengths']})
 
-    def fit_partial(self, inputs, labels, session=None):
-        if session is None:
-            session = tf.get_default_session()
-
+    @inject_session
+    def fit_partial(self, inputs, labels, session):
         return session.run(self.train_loss_, {
             self.inputs_: inputs['inputs'],
             self.lengths_: inputs['lengths'],

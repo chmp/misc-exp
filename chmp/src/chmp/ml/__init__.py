@@ -4,6 +4,8 @@ Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
 import contextlib
+import functools as ft
+import re
 
 
 class PickableTFModel:
@@ -53,7 +55,7 @@ class PickableTFModel:
         return PickableWrapper(type(self), init_kwargs, variables)
 
     @contextlib.contextmanager
-    def build_context(self, graph):
+    def build_context(self, graph=None):
         """Register the default graph and capture any created variables.
         """
         with self.valid_graph(graph) as graph, self.capture_variables():
@@ -111,3 +113,31 @@ class PickableWrapper:
             session.run(v.assign(self.variables[v.name]))
 
         return model
+
+
+def inject_session(func):
+    @ft.wraps(func)
+    def wrapper(*args, session=None, **kwargs):
+        import tensorflow as tf
+
+        if session is None:
+            session = tf.get_default_session()
+
+        return func(*args, session=session, **kwargs)
+
+    if wrapper.__doc__ is not None:
+        wrapper.__doc__ = _session_doc_pattern.sub(
+            lambda m: '\n'.join(m.group('indent') + l for l in _session_doc),
+            wrapper.__doc__,
+        )
+
+    return wrapper
+
+
+_session_doc = [
+    ':param Optional[tf.Session] session:',
+    '    if not given, the default session will be passed. This argument has to',
+    '    be supplied as a keyword argument.',
+]
+
+_session_doc_pattern = re.compile(r'^(?P<indent>[ ]*)\{\{session_doc\}\}\s+$', re.MULTILINE)
