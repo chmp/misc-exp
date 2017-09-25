@@ -97,7 +97,6 @@ def shuffle(obj, l):
 # #                                                                         # #
 # ########################################################################### #
 
-
 def experiment(config_class):
     def main(func, args=None):
         parser = build_parser(config_class)
@@ -106,20 +105,24 @@ def experiment(config_class):
         kwargs = {
             k: v
             for k, v in inspect.getmembers(args)
-            if not k.startswith('_')
+            if not k.startswith('_') and k not in {'command'}
         }
+
         return run(func, **kwargs)
 
-    def run(func, *, base_path='.', experiment=None, config=None, **kwargs):
+    def run(func, *, path='.', config=None, atomic=False, **kwargs):
         if config is None:
             config = {}
-
-        experiment, path = ensure_experiment(base_path, experiment)
 
         if isinstance(config, collections.Mapping):
             config = config_class.from_dict(config)
 
-        return func(experiment=experiment, path=path, config=config, **kwargs)
+        path = os.path.abspath(path)
+
+        if atomic:
+            ensure_atomic_start(os.path.join(path, 'start'))
+
+        return func(path=path, config=config, **kwargs)
 
     def decorator(func):
         func.main = ft.partial(main, func)
@@ -127,6 +130,18 @@ def experiment(config_class):
         return func
 
     return decorator
+
+
+def ensure_atomic_start(marker):
+    tmp_name = os.path.join(os.path.dirname(marker), 'tmp.' + os.path.basename(marker))
+    try:
+        os.rename(marker, tmp_name)
+
+    except OSError:
+        _logger.info('marker not preset %s', marker)
+        raise SystemExit(1)
+
+    os.unlink(tmp_name)
 
 
 def ensure_experiment(base_path='.', name=None):
@@ -172,6 +187,17 @@ def ensure_experiment(base_path='.', name=None):
                 return name, path
 
 
+def write(obj, fname):
+    if isinstance(fname, (list, tuple)):
+        fname = os.path.join(*fname)
+
+    if isinstance(obj, argparse.Namespace):
+        obj = build_dict(obj)
+
+    with open(fname, 'wt') as fobj:
+        json.dump(obj, fobj, indent=2, sort_keys=True)
+
+
 def build_namespace(d, result=None):
     if result is None:
         result = argparse.Namespace()
@@ -213,14 +239,19 @@ def build_parser(cls):
         path: arg
         for path, arg in _get_arguments((), '--', cls)
     }
-    # add config options
+
     for path, arg in arguments.items():
         parser.add_argument(arg, action=BuildNodeAction, path=path, default=argparse.SUPPRESS)
 
     # add default switches
     parser.add_argument('--config', dest='_config', help='if given, load config from this file')
-    parser.add_argument('--experiment', default=argparse.SUPPRESS)
-    parser.add_argument('base_path', default=argparse.SUPPRESS)
+    parser.add_argument('--path', default=argparse.SUPPRESS)
+    parser.add_argument(
+        '--atomic',
+        default=False,
+        action='store_true',
+        help='if given, indicate that the script should be executed only, when the start marker is present.',
+    )
 
     return parser
 
@@ -255,7 +286,7 @@ class BuildNodeAction(argparse.Action):
             namespace.config = argparse.Namespace()
 
         current = namespace.config
-        path = self.path
+        path = [p.replace('-', '_') for p in self.path]
 
         while True:
             if len(path) == 0:
@@ -287,7 +318,8 @@ class ConfigParser(argparse.ArgumentParser):
             args.config = argparse.Namespace()
 
         if hasattr(args, '_config') and args._config:
-            raise NotImplementedError('config loading not yet implemented')
+            with open(args._config, 'rt') as fobj:
+                args.config = build_namespace(json.load(fobj))
 
         enforce(self.config, args.config)
 
@@ -336,7 +368,11 @@ def enforce(cls, ns):
         elif isinstance(spec, type) and issubclass(spec, typing.Tuple):
             subtype, = spec.__args__
             value = getattr(ns, k)
-            value = tuple(subtype(item) for item in value.split(':'))
+
+            if isinstance(value, str):
+                value = value.split(':')
+
+            value = tuple(subtype(item) for item in value)
             setattr(ns, k, value)
 
         elif isinstance(spec, type):
