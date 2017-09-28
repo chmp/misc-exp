@@ -159,9 +159,9 @@ def test_custom_config2():
 
 
 def test_custom_config__parser():
-    args = build_parser(CustomConfig).parse_args(['--a', '20', '--b', 'hello world', '.'])
+    args = build_parser(CustomConfig).parse_args(['--a', '20', '--b', 'hello world'])
     assert build_dict(args) == {
-        'base_path': '.',
+        'atomic': False,
         'config': {
             'a': 20,
             'b': 'hello world',
@@ -182,9 +182,9 @@ def test_child_config():
 
 
 def test_child_config__parser():
-    args = build_parser(ChildConfig).parse_args(['--a', '20', '--b', 'bar', '.'])
+    args = build_parser(ChildConfig).parse_args(['--a', '20', '--b', 'bar'])
     assert build_dict(args) == {
-        'base_path': '.',
+        'atomic': False,
         'config': {
             'a': 20,
             'b': CustomEnum.bar,
