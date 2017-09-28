@@ -14,6 +14,7 @@ import json
 import logging
 import math
 import os.path
+import signal
 import time
 import typing
 import uuid
@@ -541,38 +542,38 @@ class Loop(object):
 
     """
     def __init__(self, time=time.time):
-        self.now = time
-        self.state = LoopState.pending
-        self.idx = 0
-        self.start = 0
-        self.length = None
-        self.expected = None
+        self._now = time
+        self._state = LoopState.pending
+        self._idx = 0
+        self._start = 0
+        self._length = None
+        self._expected = None
 
     def __call__(self, iterable, length=None):
         if length is None:
             try:
-                self.length = len(iterable)
+                self._length = len(iterable)
 
             except TypeError:
-                self.length = None
+                self._length = None
 
         else:
-            self.length = int(length)
+            self._length = int(length)
 
-        self.state = LoopState.running
-        self.start = self.now()
-        for self.idx, item in enumerate(iterable):
+        self._state = LoopState.running
+        self._start = self._now()
+        for self._idx, item in enumerate(iterable):
             try:
                 yield item
 
             except GeneratorExit:
                 # NOTE: this is reached, when the generator is not fully consumed
-                self.state = LoopState.aborted
+                self._state = LoopState.aborted
                 raise
 
-            self.expected = self._compute_expected()
+            self._expected = self._compute_expected()
 
-        self.state = LoopState.done
+        self._state = LoopState.done
 
     def __format__(self, format_spec):
         status = self.get_status()
@@ -590,21 +591,21 @@ class Loop(object):
             return f'[done. took {tdformat(status["total"])}]'
 
     def get_status(self):
-        total = self.now() - self.start
+        total = self._now() - self._start
 
-        if self.length is None:
+        if self._length is None:
             return dict(
-                state=self.state,
+                state=self._state,
                 total=total,
                 expected=None,
-                bar=running_characters[self.idx % len(running_characters)],
+                bar=running_characters[self._idx % len(running_characters)],
                 fraction=math.nan,
             )
 
-        fraction = (self.idx + 1) / self.length
+        fraction = (self._idx + 1) / self._length
 
         return dict(
-            state=self.state,
+            state=self._state,
             total=total,
             expected=self._get_expected(total=total),
             bar=bar(fraction),
@@ -612,19 +613,19 @@ class Loop(object):
         )
 
     def _get_expected(self, total=None):
-        if self.expected is None:
+        if self._expected is None:
             return self._compute_expected(total=total)
 
-        return self.expected
+        return self._expected
 
     def _compute_expected(self, total=None):
-        if self.length is None or self.start is None:
+        if self._length is None or self._start is None:
             return None
 
         if total is None:
-            total = self.now() - self.start
+            total = self._now() - self._start
 
-        return total / (self.idx + 1) * self.length
+        return total / (self._idx + 1) * self._length
 
 
 def tdformat(time_delta):
