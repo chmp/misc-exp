@@ -16,7 +16,7 @@ class ConvolutionalAutoEncoder(PickableTFModel):
     @typing.no_type_check
     class Config(_Config):
         batch_size: int = 10
-        epochs: int = 5
+        epochs: int = 10
 
         width: int = 160
         features: int = 4096
