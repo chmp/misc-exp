@@ -1,7 +1,7 @@
 
 .. automodule:: chmp.label
 
-.. autoclass:: chmp.label.TextAnnotator
+.. autofunction:: chmp.label.annotate
 
 .. autoclass:: chmp.label.ImageAnnotator
 

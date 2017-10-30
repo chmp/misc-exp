@@ -5,7 +5,6 @@ same base, but the extension ``.label``, i.e., ``image.label``.
 
 IPython widgtes for annotating data sets:
 
-* :class:`TextAnnotator`
 * :class:`ImageAnnotator`
 * :class:`AudioAnnotator`
 * :class:`Annotator`
@@ -41,10 +40,10 @@ def annotate(
 
     :param Sequence[Any] items:
         the collection of items to label. The interpretation of the items
-        depends on the :class:`Annotator` chosen by the `cls` argument.
-        For image and audio, each item should be a filename. For text, the
-        items should be the lines of the text. For custom `display_value`
-        each item is passed as is.
+        depends on the :class:`Annotator` chosen by the ``cls`` argument.  For
+        image and audio, each item should be a filename. For text, the items
+        should be the lines of the text. For custom ``display_value`` each item
+        is passed as is.
 
     :param Sequence[str] classes:
         the classes to choose from.
@@ -72,7 +71,7 @@ def annotate(
         a list that is filled with feedback supplied by the user. In case of
         corrections both the old and the new label will be returned. With the
         new label having a higher index. To only retain the latest labels, use
-        the additional `get_latest` method on the returned object.
+        the additional ``get_latest`` method on the returned object.
     """
     from IPython.core.display import display
 

@@ -252,9 +252,9 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
 
     :param Optional[Iterable[Any]] categories:
         the categories to keep. The result will have categories in the
-        iteration order of this parameter. If not given but groups is passed,
-        the keys of `groups` will be used, otherwise the existing categories
-        of ``s`` will be used.
+        iteration order of this parameter. If not given but ``groups`` is
+        passed, the keys of ``groups`` will be used, otherwise the existing
+        categories of ``s`` will be used.
 
     :param Optional[Any] other_category:
         all categories to be removed wil be mapped to this value, unless they
