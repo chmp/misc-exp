@@ -132,6 +132,24 @@ def mpl_set(
         plt.colorbar()
 
 
+def edges(x):
+    """Create edges for use with pcolor.
+
+    Usage::
+
+        assert x.size == v.shape[1]
+        assert y.size == v.shape[0]
+        pcolor(edges(x), edges(y), v)
+
+    """
+    centers = 0.5 * (x[1:] + x[:-1])
+    return np.concatenate((
+        [x[0] - 0.5 * (x[1] - x[0])],
+        centers,
+        [x[-1] + 0.5 * (x[-1] - x[-2])]
+    ))
+
+
 def caption(s, size=13, strip=True):
     """Add captions to matplotlib graphs."""
     import matplotlib.pyplot as plt

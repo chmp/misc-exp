@@ -22,6 +22,21 @@ Plot changes in a quantity with vspans.
 
 
 
+### `chmp.ds.edges`
+`chmp.ds.edges()`
+
+Create edges for use with pcolor.
+
+Usage:
+
+```
+assert x.size == v.shape[1]
+assert y.size == v.shape[0]
+pcolor(edges(x), edges(y), v)
+```
+
+
+
 ### `chmp.ds.find_high_frequency_categories`
 `chmp.ds.find_high_frequency_categories(s, min_frequency, min_frequency=0.02, n_max=None)`
 

@@ -11,6 +11,7 @@ IPython widgtes for annotating data sets:
 - [ImageAnnotator](#imageannotator)
 - [AudioAnnotator](#audioannotator)
 - [Annotator](#annotator)
+
 Distributed as part of `https://github.com/chmp/misc-exp` under the MIT
 license, (c) 2017 Christopher Prohm.
 
@@ -53,7 +54,10 @@ widget.
 
 #### Returns
 
-{body}
+a list that is filled with feedback supplied by the user. In case of
+corrections both the old and the new label will be returned. With the
+new label having a higher index. To only retain the latest labels, use
+the additional `get_latest` method on the returned object.
 
 
 

@@ -5,6 +5,8 @@
 
 .. autofunction:: chmp.ds.change_vspan
 
+.. autofunction:: chmp.ds.edges
+
 .. autofunction:: chmp.ds.find_high_frequency_categories
 
 .. autofunction:: chmp.ds.fix_categories
