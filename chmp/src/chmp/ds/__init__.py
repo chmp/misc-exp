@@ -40,10 +40,44 @@ def reload(module_or_module_name):
     return importlib.reload(module_or_module_name)
 
 
-def get_color_cycle():
+def define(func):
+    """Execute a function and return its result.
+
+    The idea is to use function scope to prevent pollution of global scope in
+    notebooks.
+
+    Usage::
+
+        @define
+        def foo():
+            return 42
+
+        assert foo == 42
+
+    """
+    return func()
+
+
+def get_color_cycle(n=None):
+    """Return the matplotlib color cycle.
+
+    :param Optional[int] n:
+        if given, return a list with exactly n elements formed by repeating
+        the color cycle as necessary.
+
+    Usage::
+
+        blue, green, red = get_color_cycle(3)
+
+    """
     import matplotlib as mpl
 
-    return mpl.rcParams['axes.prop_cycle'].by_key()['color']
+    cycle = mpl.rcParams['axes.prop_cycle'].by_key()['color']
+
+    if n is None:
+        return cycle
+
+    return list(it.islice(it.cycle(cycle), n))
 
 
 def mpl_set(
@@ -222,6 +256,47 @@ def change_plot(
     y = y[changes]
 
     plt.plot(x, y, **kwargs)
+
+
+def path(x, y, close=True, **kwargs):
+    """Plot a path given as a list of vertices.
+
+    Usage::
+
+        path([0, 1, 0], [0, 1, 1], facecolor='r')
+
+    """
+    import numpy as np
+
+    from matplotlib import pyplot as plt
+    from matplotlib.path import Path
+    from matplotlib.patches import PathPatch
+
+    vertices = np.stack([np.asarray(x), np.asarray(y)], axis=1)
+
+    codes = [Path.MOVETO] + [Path.LINETO] * (len(vertices) - 1)
+    if close:
+        codes += [Path.CLOSEPOLY]
+        vertices = np.concatenate([vertices, [vertices[0]]])
+
+    p = Path(vertices, codes)
+    p = PathPatch(p, **kwargs)
+
+    plt.gca().add_patch(p)
+
+
+def axtext(*args, **kwargs):
+    """Add a text in axes coordinates (similar ``figtext``).
+
+    Usage::
+
+        axtext(0, 0, 'text')
+
+    """
+    import matplotlib.pyplot as plt
+
+    kwargs.update(transform=plt.gca().transAxes)
+    plt.text(*args, **kwargs)
 
 
 def _prepare_xy(x, y, data=None, transform_x=None, transform_y=None, skip_nan=True):

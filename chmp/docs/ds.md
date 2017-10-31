@@ -8,6 +8,19 @@ license, (c) 2017 Christopher Prohm.
 
 
 
+### `chmp.ds.axtext`
+`chmp.ds.axtext(*args, **kwargs)`
+
+Add a text in axes coordinates (similar `figtext`).
+
+Usage:
+
+```
+axtext(0, 0, 'text')
+```
+
+
+
 ### `chmp.ds.change_plot`
 `chmp.ds.change_plot(**kwargs)`
 
@@ -19,6 +32,26 @@ Plot changes in a quantity with pyplot's standard plot function.
 `chmp.ds.change_vspan(**kwargs)`
 
 Plot changes in a quantity with vspans.
+
+
+
+### `chmp.ds.define`
+`chmp.ds.define()`
+
+Execute a function and return its result.
+
+The idea is to use function scope to prevent pollution of global scope in
+notebooks.
+
+Usage:
+
+```
+@define
+def foo():
+    return 42
+
+assert foo == 42
+```
 
 
 
@@ -82,9 +115,21 @@ Fix the categories of a categorical series.
 
 
 ### `chmp.ds.get_color_cycle`
-`chmp.ds.get_color_cycle()`
+`chmp.ds.get_color_cycle(n, n=None)`
 
-<undocumented>
+Return the matplotlib color cycle.
+
+#### Parameters
+
+* **n** (*Optional[int]*):
+  if given, return a list with exactly n elements formed by repeating
+  the color cycle as necessary.
+
+Usage:
+
+```
+blue, green, red = get_color_cycle(3)
+```
 
 
 
@@ -92,6 +137,19 @@ Fix the categories of a categorical series.
 `chmp.ds.mpl_set(box, xlabel, ylabel, title, suptitle, xscale, yscale, caption, xlim, ylim, xticks, yticks, left, top, bottom, right, wspace, hspace, subplot, legend, colorbar, box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None)`
 
 Set various style related options of MPL.
+
+
+
+### `chmp.ds.path`
+`chmp.ds.path(x, close=True, **kwargs)`
+
+Plot a path given as a list of vertices.
+
+Usage:
+
+```
+path([0, 1, 0], [0, 1, 1], facecolor='r')
+```
 
 
 
