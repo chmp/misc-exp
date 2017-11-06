@@ -3,9 +3,21 @@
 Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
+import functools as ft
 import importlib
 import itertools as it
 import warnings
+
+try:
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+except ImportError:
+    _HAS_SK_LEARN = False
+    BaseEstimator = TransformerMixin = object
+
+else:
+    _HAS_SK_LEARN = True
+
 
 
 def notebook_preamble():
@@ -444,3 +456,75 @@ def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
         .iloc[:n_max]
         .index
     )
+
+
+def as_frame(**kwargs):
+    import pandas as pd
+    return pd.DataFrame(kwargs)
+
+
+def column_transform(*args, **kwargs):
+    """Build a transformer for a list of columns.
+
+    Usage::
+
+        pipeline = sk_pipeline.Pipeline([
+            ('transform', column_transform(['a', 'b'], np.abs)),
+            ('classifier', sk_ensemble.GradientBoostingClassifier()),
+        ])
+
+    """
+    columns, func, *args = args
+
+    if not isinstance(columns, (list, tuple)):
+        columns = [columns]
+
+    func = ft.partial(
+        _column_transform,
+        columns=columns, func=func, args=args, kwargs=kwargs,
+    )
+
+    return FuncTransformer(func)
+
+
+def _column_transform(x, columns, func, args, kwargs):
+    if not hasattr(x, 'assign'):
+        raise RuntimeError('can only transform objects with an assign method.')
+
+    for c in columns:
+        x = x.assign(**{c: func(x[c], *args, **kwargs)})
+
+    return x
+
+
+def transform(*args, **kwargs):
+    """Build a function transformer with args / kwargs bound.
+
+    Usage::
+
+        pipeline = sk_pipeline.Pipeline([
+            ('transform', transform(np.abs)),
+            ('classifier', sk_ensemble.GradientBoostingClassifier()),
+        ])
+    """
+    func, *args = args
+    return FuncTransformer(ft.partial(func, *args, **kwargs))
+
+
+class FuncTransformer(TransformerMixin, BaseEstimator):
+    """Simple **non-validating** function transformer.
+
+    :param callable func:
+        the function to apply on transform
+    """
+    def __init__(self, func):
+        self.func = func
+
+    def fit(self, x, y=None):
+        return self
+
+    def partial_fit(self, x, y=None):
+        return self
+
+    def transform(self, x):
+        return self.func(x)
