@@ -528,3 +528,107 @@ class FuncTransformer(TransformerMixin, BaseEstimator):
 
     def transform(self, x):
         return self.func(x)
+
+
+def waterfall(
+        obj,
+        col=None, base=None, total=False,
+        end_annot=None, end_fmt='.g',
+        annot=False, fmt='+.2g',
+        cmap='coolwarm',
+        xmin=0,
+        total_kwargs=None, annot_kwargs=None, **kwargs
+):
+    """Plot a waterfall chart.
+
+    Usage::
+
+        series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
+
+    """
+    import matplotlib.cm as cm
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    if len(obj.shape) == 2 and col is None:
+        raise ValueError('need a column with 2d objects')
+
+    if col is not None:
+        top = obj[col] if not callable(col) else col(obj)
+
+    else:
+        top = obj
+
+    if base is not None:
+        bottom = obj[base] if not callable(base) else base(obj)
+
+    else:
+        bottom = top.shift(1).fillna(0)
+
+    if annot is True:
+        annot = 'top'
+
+    if total_kwargs is None:
+        total_kwargs = {}
+
+    if annot_kwargs is None:
+        annot_kwargs = {}
+
+    if end_annot is None:
+        end_annot = annot is not False
+
+    total_kwargs = {'color': (0.5, 0.75, 0.5), **total_kwargs}
+
+    if annot == 'top':
+        annot_kwargs = {'va': 'bottom', 'ha': 'center', **annot_kwargs}
+        annot_y = np.maximum(top, bottom)
+        total_y = max(top.iloc[-1], 0)
+
+    elif annot == 'bottom':
+        annot_kwargs = {'va': 'bottom', 'ha': 'center', **annot_kwargs}
+        annot_y = np.minimum(top, bottom)
+        total_y = min(top.iloc[-1], 0)
+
+    elif annot == 'center':
+        annot_kwargs = {'va': 'center', 'ha': 'center', **annot_kwargs}
+        annot_y = 0.5 * (top + bottom)
+        total_y = 0.5 * top.iloc[-1]
+
+    elif annot is not False:
+        raise ValueError(f'Cannot annotate with {annot}')
+
+    height = top - bottom
+    hmax = np.max(np.abs(height))
+
+    kwargs = {'color': cm.get_cmap(cmap)(height / (2 * hmax) + 0.5), **kwargs}
+
+    plt.bar(xmin + np.arange(len(height)), height, bottom=bottom, **kwargs)
+
+    if annot is not False:
+        for x, y, v in zip(it.count(xmin), annot_y, height):
+            if x == xmin:
+                continue
+
+            plt.text(x, y, ('%' + fmt) % v, **annot_kwargs)
+
+    if end_annot is not False:
+        plt.text(xmin, annot_y.iloc[0], ('%' + end_fmt) % top.iloc[0], **annot_kwargs)
+
+        if total:
+            plt.text(xmin + len(annot_y), total_y, ('%' + end_fmt) % top.iloc[-1], **annot_kwargs)
+
+    for idx, p in zip(it.count(xmin), bottom):
+        if idx == xmin:
+            continue
+
+        plt.plot([idx - 1 - 0.4, idx + 0.4], [p, p], ls='--', color='0.5')
+
+    plt.xticks(xmin + np.arange(len(height)), list(height.index))
+
+    if total:
+        plt.bar([xmin + len(bottom)], [top.iloc[-1]], **total_kwargs)
+        plt.plot(
+            [xmin + len(bottom) - 1 - 0.4, xmin + len(bottom) + 0.4],
+            [top.iloc[-1], top.iloc[-1]],
+            ls='--', color='0.5',
+        )
