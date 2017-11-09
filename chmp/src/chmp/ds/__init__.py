@@ -598,10 +598,8 @@ def waterfall(
         raise ValueError(f'Cannot annotate with {annot}')
 
     height = top - bottom
-    hmax = np.max(np.abs(height))
 
-    kwargs = {'color': cm.get_cmap(cmap)(height / (2 * hmax) + 0.5), **kwargs}
-
+    kwargs = {'color': colormap(height, cmap=cmap, center=True), **kwargs}
     plt.bar(xmin + np.arange(len(height)), height, bottom=bottom, **kwargs)
 
     if annot is not False:
@@ -632,3 +630,49 @@ def waterfall(
             [top.iloc[-1], top.iloc[-1]],
             ls='--', color='0.5',
         )
+
+
+def colormap(x, cmap='coolwarm', center=True, vmin=None, vmax=None, norm=None):
+    import numpy as np
+    import matplotlib.cm as cm
+    import matplotlib.colors as colors
+
+    if norm is None:
+        norm = colors.NoNorm()
+
+    if vmin is None:
+        vmin = np.min(x)
+
+    if vmax is None:
+        vmax = np.max(x)
+
+
+    if center:
+        vmax = max(abs(vmin), abs(vmax))
+        vmin = -vmax
+
+    x = norm(x)
+    x = np.clip((x - vmin) / (vmax - vmin), 0, 1)
+
+    return cm.get_cmap(cmap)(x)
+
+
+def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
+    import matplotlib.colors
+    import matplotlib.pyplot as plt
+
+    if norm is None:
+        norm = matplotlib.colors.NoNorm()
+
+    if color is None:
+        color = colormap(s, cmap=cmap, norm=norm)
+
+    indices = range(len(s))
+
+    if orientation == 'vertical':
+        plt.bar(indices, s, color=color)
+        plt.xticks(indices, s.index)
+
+    else:
+        plt.barh(indices, s, color=color)
+        plt.yticks(indices, s.index)
