@@ -6,10 +6,10 @@ license, (c) 2017 Christopher Prohm.
 import functools as ft
 import importlib
 import itertools as it
-import warnings
+import sys
 
 try:
-    from sklearn.base import BaseEstimator, TransformerMixin
+    from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, RegressorMixin
 
 except ImportError:
     _HAS_SK_LEARN = False
@@ -17,7 +17,6 @@ except ImportError:
 
 else:
     _HAS_SK_LEARN = True
-
 
 
 def notebook_preamble():
@@ -188,6 +187,8 @@ def edges(x):
         pcolor(edges(x), edges(y), v)
 
     """
+    import numpy as np
+
     centers = 0.5 * (x[1:] + x[:-1])
     return np.concatenate((
         [x[0] - 0.5 * (x[1] - x[0])],
@@ -383,7 +384,8 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
 
     if not pd_types.is_categorical(s):
         if inplace:
-            warnings.warn('cannot change the type inplace')
+            raise ValueError('cannot change the type inplace')
+
         s = s.astype('category', )
 
     if categories is None:
@@ -411,6 +413,9 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
     remapped = {c for group in groups.values() for c in group}
 
     if set(removals) - set(remapped):
+        if other_category is None:
+            raise ValueError('dangling categories found, need other category to assign')
+
         groups.setdefault(other_category, set()).update(set(removals) - set(remapped))
 
     if additions:
@@ -430,7 +435,7 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
 def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
     """Find categories with high frequency.
 
-    :param float min_min_frequency:
+    :param float min_frequency:
         the minimum frequency to keep
 
     :param Optional[int] n_max:
@@ -438,6 +443,7 @@ def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
         filtering for minimum frequency, keep the highest ``n_max`` frequency
         columns.
     """
+    assert 0.0 < min_frequency < 1.0
     s = (
         s
         .value_counts(normalize=True)
@@ -463,38 +469,176 @@ def as_frame(**kwargs):
     return pd.DataFrame(kwargs)
 
 
+def cast_types(numeric=None, categorical=None):
+    """Build a transform to cast numerical / categorical columns.
+
+    All non-cast columns are stripped for the dataframe.
+
+    """
+    return transform(_cast_types, numeric=numeric, categorical=categorical)
+
+
+def _cast_types(df, numeric, categorical):
+    numeric = set() if numeric is None else set(numeric)
+    categorical = set() if categorical is None else set(categorical)
+
+    for col in numeric:
+        try:
+            df = df.assign(**{col: df[col].astype(float)})
+
+        except Exception as e:
+            raise RuntimeError(f'could not cast {col} to numeric') from e
+
+    for col in categorical:
+        try:
+            df = df.assign(**{col: df[col].astype('category')})
+
+        except Exception as e:
+            raise RuntimeError(f'could not cast {col} to categorical') from e
+
+    return df[sorted({*categorical, *numeric})]
+
+
+def find_categorical_columns(df):
+    """Find all categorical columns in the given dataframe.
+    """
+    import pandas.api.types as pd_types
+
+    return [
+        k
+        for k, dtype in df.dtypes.items()
+        if pd_types.is_categorical_dtype(dtype)
+    ]
+
+
+def filter_low_frequency_categories(columns=None, min_frequency=0.02, other_category=None, n_max=None):
+    """Build a transformer to filter low frequency categories.
+
+    Usage::
+
+        pipeline = build_pipeline[
+            categories=filter_low_frequency_categories(),
+            predict=lgb.LGBMClassifier(),
+        )
+
+    """
+    if columns is not None and not isinstance(columns, (list, tuple)):
+        columns = [columns]
+
+    return FilterLowFrequencyTransfomer(columns, min_frequency, other_category, n_max)
+
+
+class FilterLowFrequencyTransfomer(BaseEstimator, TransformerMixin):
+    def __init__(self, columns=None, min_frequency=0.02, other_category='other', n_max=None):
+        self.columns = columns
+        self.min_frequency = min_frequency
+        self.other_category = other_category
+        self.n_max = n_max
+
+        self._columns = columns
+        self._to_keep = {}
+
+    def fit(self, df, y=None):
+        if self._columns is None:
+            self._columns = find_categorical_columns(df)
+
+        for col in self._columns:
+            try:
+                to_keep = find_high_frequency_categories(
+                    df[col],
+                    min_frequency=self._get('min_frequency', col),
+                    n_max=self._get('n_max', col),
+                )
+
+            except Exception as e:
+                raise RuntimeError(f'cannot determine high frequency categories for {col}')
+
+            self._to_keep[col] = to_keep
+
+        return self
+
+    def transform(self, df, y=None):
+        for col in self._columns:
+            df = df.assign(**{
+                col: fix_categories(
+                    df[col], self._to_keep[col],
+                    other_category=self._get('other_category', col),
+                )
+            })
+
+        return df
+
+    def _get(self, key, col):
+        var = getattr(self, key)
+        return var[col] if isinstance(var, dict) else var
+
+
 def column_transform(*args, **kwargs):
     """Build a transformer for a list of columns.
 
     Usage::
 
-        pipeline = sk_pipeline.Pipeline([
-            ('transform', column_transform(['a', 'b'], np.abs)),
-            ('classifier', sk_ensemble.GradientBoostingClassifier()),
+        pipeline = build_pipeline(
+            transform=column_transform(['a', 'b'], np.abs),
+            classifier=sk_ensemble.GradientBoostingClassifier(),
         ])
 
+    Or::
+
+        pipeline = build_pipeline(
+            transform=column_transform(
+                a=np.abs,
+                b=op.pos,
+            ),
+            classifier=sk_ensemble.GradientBoostingClassifier(),
+        )
+
     """
-    columns, func, *args = args
+    if not args:
+        columns = kwargs
 
-    if not isinstance(columns, (list, tuple)):
-        columns = [columns]
+    else:
+        columns, func, *args = args
 
-    func = ft.partial(
-        _column_transform,
-        columns=columns, func=func, args=args, kwargs=kwargs,
-    )
+        if not isinstance(columns, (list, tuple)):
+            columns = [columns]
 
-    return FuncTransformer(func)
+        func = ft.partial(func, *args, **kwargs)
+        columns = {c: func for c in columns}
+
+    return transform(_column_transform, columns=columns)
 
 
-def _column_transform(x, columns, func, args, kwargs):
+def _column_transform(x, columns):
     if not hasattr(x, 'assign'):
         raise RuntimeError('can only transform objects with an assign method.')
 
-    for c in columns:
-        x = x.assign(**{c: func(x[c], *args, **kwargs)})
+    for c, func in columns.items():
+        x = x.assign(**{c: func(x[c])})
 
     return x
+
+
+def build_pipeline(**kwargs):
+    """Build a pipeline from named steps.
+
+    The order of the keyword arguments is retained. Note, this functionality
+    requires python ``>= 3.6``.
+
+    Usage::
+
+        pipeline = build_pipeline(
+            transform=...,
+            predict=...,
+        )
+
+    """
+    import sklearn.pipeline as sk_pipeline
+
+    if sys.version_info[:2] < (3, 6):
+        raise RuntimeError('pipeline factory requires deterministic kwarg order')
+
+    return sk_pipeline.Pipeline(list(kwargs.items()))
 
 
 def transform(*args, **kwargs):
@@ -502,10 +646,10 @@ def transform(*args, **kwargs):
 
     Usage::
 
-        pipeline = sk_pipeline.Pipeline([
-            ('transform', transform(np.abs)),
-            ('classifier', sk_ensemble.GradientBoostingClassifier()),
-        ])
+        pipeline = build_pipeline(
+            transform=transform(np.abs)),
+            classifier=sk_ensemble.GradientBoostingClassifier()),
+        )
     """
     func, *args = args
     return FuncTransformer(ft.partial(func, *args, **kwargs))
@@ -530,6 +674,32 @@ class FuncTransformer(TransformerMixin, BaseEstimator):
         return self.func(x)
 
 
+class FuncClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, func):
+        self.func = func
+
+    def fit(self, df, y=None):
+        return self
+
+    def predict_proba(self, df):
+        return self.func(df)
+
+    def predict(self, df):
+        import numpy as np
+        return np.argmax(self.predict_proba(df), axis=1)
+
+
+class FuncRegressor(BaseEstimator, ClassifierMixin):
+    def __init__(self, func):
+        self.func = func
+
+    def fit(self, df, y=None):
+        return self
+
+    def predict(self, df):
+        return self.func(df)
+
+
 def waterfall(
         obj,
         col=None, base=None, total=False,
@@ -546,7 +716,6 @@ def waterfall(
         series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
 
     """
-    import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import numpy as np
 
