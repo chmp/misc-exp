@@ -204,7 +204,7 @@ def relax_bernoulli(p, temperature=1.0):
         the bernoulli distribution from which to sample
 
     :param float temperature:
-        the temperature used for created relaxed quantities
+        the temperature used for relaxed quantities
 
     :returns:
         a triple of sampled variable, relaxed variable and relaxed variable
@@ -227,6 +227,60 @@ def relax_bernoulli(p, temperature=1.0):
     z_cond = tf.log(p.probs / (1.0 - p.probs)) + tf.log(nu_cond / (1. - nu_cond))
 
     b_cond_relaxed = tf.sigmoid(z_cond / temperature)
+
+    return b, b_relaxed, b_cond_relaxed
+
+
+def relax_categorical(p, temperature=1.0):
+    """Create a relaxed sample from a OneHotCategorical distribution.
+
+    :param Union[tf.distributions.Mutltinomial,tf.contrib.distributions.OneHotCategorical] p:
+        the categorical distribution from which to sample. If specified as a
+        Multinomial, the total count has to be 1.
+
+    :param float temperature:
+        the temperature used for relaxed quantities
+
+    :returns:
+        a triple of sampled variable, relaxed variable and relaxed variable
+        conditioned on the non-relaxed variable.
+    """
+    import tensorflow as tf
+
+    if isinstance(p, tf.distributions.Multinomial):
+        control_deps = [tf.assert_equal(p.total_count, 1.0, message='can only relax categoricals')]
+        event_size = tf.shape(p.probs)[-1]
+
+    else:
+        control_deps = []
+        event_size = p.event_size
+
+    z = tf.log(p.probs) - tf.log(-tf.log(tf.random_uniform(tf.shape(p.probs))))
+
+    b = tf.argmax(z, axis=-1)
+    b = tf.one_hot(b, event_size)
+
+    with tf.control_dependencies(control_deps):
+        b = tf.stop_gradient(b)
+
+    b_relaxed = tf.nn.softmax(z / temperature)
+
+    alpha = (1.0 - p.probs) / p.probs
+    theta_b = tf.reduce_sum(p.probs * b, keep_dims=True, axis=-1)
+
+    u_i_exp = (1 - b)
+    u_b_exp = b + (1 - b) * p.probs / theta_b
+
+    u_b = tf.random_uniform(tf.shape(p.probs)) ** (1.0 / (1.0 + alpha))
+    u_b = tf.reduce_sum(u_b * b, keep_dims=True, axis=-1)
+
+    u_i = tf.random_uniform(tf.shape(p.probs))
+
+    u_cond = (u_i ** u_i_exp) * (u_b ** u_b_exp)
+
+    z_cond = tf.log(p.probs) - tf.log(-tf.log(u_cond))
+
+    b_cond_relaxed = tf.nn.softmax(z_cond / temperature)
 
     return b, b_relaxed, b_cond_relaxed
 
@@ -277,8 +331,14 @@ def rebar_latent_strategy(scope, key):
     if isinstance(p, tf.distributions.Bernoulli):
         v, v_relaxed, v_cond_relaxed = relax_bernoulli(p)
 
+    elif isinstance(p, tf.distributions.Multinomial):
+        v, v_relaxed, v_cond_relaxed = relax_categorical(p)
+
+    elif isinstance(p, tf.contrib.distributions.OneHotCategorical):
+        v, v_relaxed, v_cond_relaxed = relax_categorical(p)
+
     elif isinstance(p, tf.distributions.Categorical):
-        raise NotImplementedError()
+        raise NotImplementedError('use Multinomial with total_count = 1 or OneHotCategorical')
 
     else:
         v = v_relaxed = v_cond_relaxed = p.sample()
