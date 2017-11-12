@@ -1,4 +1,4 @@
-"""Helper for data science.
+"""Helpers for data science.
 
 Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
@@ -44,11 +44,16 @@ import seaborn as sns
 '''.strip()
 
 
-def reload(module_or_module_name):
-    if isinstance(module_or_module_name, str):
-        module_or_module_name = importlib.import_module(module_or_module_name)
+def reload(*modules_or_module_names):
+    mod = None
+    for module_or_module_name in modules_or_module_names:
+        if isinstance(module_or_module_name, str):
+            module_or_module_name = importlib.import_module(module_or_module_name)
 
-    return importlib.reload(module_or_module_name)
+        mod = importlib.reload(module_or_module_name)
+
+    return mod
+
 
 
 def define(func):
@@ -814,7 +819,6 @@ def colormap(x, cmap='coolwarm', center=True, vmin=None, vmax=None, norm=None):
 
     if vmax is None:
         vmax = np.max(x)
-
 
     if center:
         vmax = max(abs(vmin), abs(vmax))

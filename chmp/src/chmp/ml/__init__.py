@@ -141,3 +141,9 @@ _session_doc = [
 ]
 
 _session_doc_pattern = re.compile(r'^(?P<indent>[ ]*)\{\{session_doc\}\}\s+$', re.MULTILINE)
+
+
+def get_shape(v):
+    """Get a tensor shape as python objects (int's/ None's).
+    """
+    return tuple(i.value for i in v.get_shape())
