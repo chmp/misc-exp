@@ -285,8 +285,8 @@ def relax_categorical(p, temperature=1.0):
     return b, b_relaxed, b_cond_relaxed
 
 
-def build_rebar_loss(model):
-    """Build the REBAR loss.
+def build_relax_loss(model):
+    """Build the RELAX loss.
 
     Described in Will Grathwohl et al., "Backpropagation through the Void:
     Optimizing control variates for black-box gradient estimation", 2017,
@@ -301,7 +301,7 @@ def build_rebar_loss(model):
     """
     import tensorflow as tf
 
-    scope = model.build(latent_strategy=rebar_latent_strategy)
+    scope = model.build(latent_strategy=relax_latent_strategy)
 
     scope_cond_relaxed = dict(scope, latent=scope['latent_cond_relaxed'].copy(), p={}, loss=None)
     scope_cond_relaxed = model.build(scope=scope_cond_relaxed, latent_strategy=raise_latent_strategy)
@@ -323,7 +323,7 @@ def build_rebar_loss(model):
     return tf.reduce_mean(scope['loss']), tf.reduce_mean(loss)
 
 
-def rebar_latent_strategy(scope, key):
+def relax_latent_strategy(scope, key):
     import tensorflow as tf
 
     p = scope['q'][key]
