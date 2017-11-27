@@ -147,3 +147,28 @@ def get_shape(v):
     """Get a tensor shape as python objects (int's/ None's).
     """
     return tuple(i.value for i in v.get_shape())
+
+
+def get_variables(prefix, collection_key=None):
+    """Get all variables with a given name prefix.
+
+    :param str prefix:
+        the prefix to search for, e.g., ``scope1/``.
+
+    :param Optional[str] collection_key:
+        the collection to search in. If not given, it defaults to
+        ``tf.GraphKeys.GLOBAL_VARIABLES``.
+
+    :returns:
+        a list of tensorflow variables
+    """
+    import tensorflow as tf
+
+    if collection_key is None:
+        collection_key = tf.GraphKeys.GLOBAL_VARIABLES
+
+    return [
+        var
+        for var in tf.get_collection(collection_key)
+        if var.name.startswith(prefix)
+    ]
