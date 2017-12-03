@@ -55,6 +55,7 @@ class Model(NoOpContext):
         self._inference = func
         return func
 
+    # TODO: deprecate
     def __getitem__(self, key):
         self._ensure_observed()
 
@@ -62,6 +63,26 @@ class Model(NoOpContext):
             return tuple(self._scope['observed'][k] for k in key)
 
         return self._scope['observed'][key]
+
+    def get(self, *args, **kwargs):
+        kwargs.setdefault('ensure_loss', 'loss' in args)
+        scope = self.build(**kwargs)
+
+        res = []
+        for k in args:
+            if k == 'loss':
+               res.append(scope['loss'])
+
+            elif k in scope['observed']:
+                res.append(scope['observed'][k])
+
+            elif k in scope['latent']:
+                res.append(scope['latent'][k])
+
+            else:
+                raise KeyError(f'cannot get {k}')
+
+        return res[0] if len(res) == 1 else tuple(res)
 
     def build(self, scope=None, latent_strategy=None, ensure_loss=True):
         import tensorflow as tf
