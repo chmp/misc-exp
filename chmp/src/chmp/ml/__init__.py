@@ -5,6 +5,7 @@ license, (c) 2017 Christopher Prohm.
 """
 import contextlib
 import functools as ft
+import inspect
 import re
 
 
@@ -172,3 +173,55 @@ def get_variables(prefix, collection_key=None):
         for var in tf.get_collection(collection_key)
         if var.name.startswith(prefix)
     ]
+
+
+# TODO: inherit from tf.distributions.Distribution
+class GenerativeDistribution:
+    """Define a tensorflow dist, that only allows sampling.
+    """
+    def __init__(self, func, batch_shape=None, event_shape=None):
+        self._batch_shape = batch_shape
+        self._event_shape = event_shape
+
+        self.func = func
+
+    @property
+    def event_shape(self):
+        if self._event_shape is None:
+            raise RuntimeError('unknown event shape')
+
+        return self._event_shape
+
+    @property
+    def batch_shape(self):
+        if self._batch_shape is None:
+            raise RuntimeError('unknown batch shape')
+
+        return self._batch_shape
+
+    def sample(self, sample_shape=(), seed=None, name='sample'):
+        spec = inspect.getfullargspec(self.func)
+
+        if sample_shape and len(spec.args) == 0:
+            raise RuntimeError('generator does not support drawing multiple samples')
+
+        args = (sample_shape, seed, name)
+        args = args[:len(spec.args)]
+
+        return self.func(*args)
+
+    def prob(self, value):
+        raise RuntimeError('cannot determine prob of a generative distribution')
+
+    def log_prob(self, value):
+        raise RuntimeError('cannot determine log_prob of a generative distribution')
+
+    # TODO: raise for other methods .. (in particular log_prob, prob, ...)
+
+
+def make_distribution(*args, **kwargs):
+    if kwargs and not args:
+        return lambda func: GenerativeDistribution(func, **kwargs)
+
+    func, = args
+    return GenerativeDistribution(func, **kwargs)

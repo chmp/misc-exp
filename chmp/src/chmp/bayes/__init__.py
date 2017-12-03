@@ -12,6 +12,30 @@ class NoOpContext:
 
 
 class Model(NoOpContext):
+    """Definition of a model
+
+    Usage::
+
+        with bayes.Model() as model:
+            @model.observe
+            def _(s):
+                s.x = tf.placeholder(dtype=floatx, shape=[None, 1], name='x')
+                s.y = tf.placeholder(dtype=floatx, shape=[None], name='y')
+
+            @model.define
+            def _(s, lam=0.5):
+                s.p.w = tf.distributions.Normal(loc=0.0, scale=1.0 / lam)
+                s.p.y = tf.distributions.Normal(loc=tf.squeeze(s.x @ s.w[:, None]), scale=1.0)
+
+            @model.inference
+            def _(s):
+                _, n_features = get_shape(s.x)
+
+                s.q.w = tf.distributions.Normal(
+                    loc=tf.get_variable('w_loc', shape=[n_features], dtype=floatx),
+                    scale=tf.nn.softplus(tf.get_variable('w_scale', shape=[n_features], dtype=floatx)),
+                )
+    """
     def __init__(self):
         self._scope = {'observed': {}}
         self._observed = None
@@ -39,7 +63,7 @@ class Model(NoOpContext):
 
         return self._scope['observed'][key]
 
-    def build(self, scope=None, latent_strategy=None):
+    def build(self, scope=None, latent_strategy=None, ensure_loss=True):
         import tensorflow as tf
 
         if scope is None:
@@ -59,7 +83,7 @@ class Model(NoOpContext):
         with tf.variable_scope('model', reuse=tf.AUTO_REUSE):
             scope._scope['loss'] = self._definition(scope)
 
-        if scope._scope['loss'] is None:
+        if ensure_loss and scope._scope['loss'] is None:
             scope._scope['loss'] = _build_kl_loss(scope._scope)
 
         return scope.get()
@@ -153,6 +177,10 @@ def build(model, *defs, latent_strategy=None):
 
 def _lookup_dist(scope, k):
     return scope['p'][k] if k in scope['observed'] else scope['q'][k]
+
+
+def sample_prior(scope, key):
+    scope['latent'][key] = scope['p'][key].sample()
 
 
 def sample_latent(scope, key):
