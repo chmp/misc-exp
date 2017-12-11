@@ -3,8 +3,11 @@
 Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
+import base64
 import functools as ft
+import inspect
 import importlib
+import io
 import itertools as it
 import sys
 
@@ -849,3 +852,85 @@ def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
     else:
         plt.barh(indices, s, color=color)
         plt.yticks(indices, s.index)
+
+
+def dashcb(app, output, *inputs, figure=False):
+    """Construct a dash callback using function annotations.
+
+    :param dash.Dash app:
+        the dash app to build the callback for
+
+    :param str output:
+        the output, as a string of the form ``{component}:{property}``
+
+    :param str inputs:
+        the inputs, as strings of the form ``{component}:{property}``
+
+    :param bool figure:
+        if True, the current matplotlib figure will be captured and returned as
+         a data URL. This allows to use matplotlib with dash. See the examples
+         below
+
+    Consider the following das callback::
+
+
+        @app.callback(dash.dependencies.Output('display', 'children'),
+                      [dash.dependencies.Input('dropdown', 'value')])
+        def update_display(value):
+            return 'Selected: "{}"'.format(value)
+
+    With dashcb, it can be written as::
+
+        @dashcb(app, 'display:children', 'dropdown:value')
+        def update_display(value):
+            return 'Selected: "{}"'.format(value)
+
+    To use dash with matplotlib figure, define an ``html.Img`` element. For
+    example with id ``my_image``. Then the plot can be updated via::
+
+        @dashcb(app, 'my_image:src', 'dropdown:value', figure=True)
+        def update_display(value):
+            plt.plot([1, 2, 3])
+            plt.title(value)
+
+    """
+    import dash.dependencies
+
+    def decorator(func):
+        dash_inputs = [
+            _dash_cb_parse_annotation(dash.dependencies.Input, arg)
+            for arg in inputs
+        ]
+        dash_output = _dash_cb_parse_annotation(dash.dependencies.Output, output)
+
+        if figure:
+            return app.callback(dash_output, dash_inputs)(dashmpl(func))
+
+        return app.callback(dash_output, dash_inputs)(func)
+
+    return decorator
+
+
+def dashmpl(func):
+    """Capture the current matplotlib figure.
+    """
+    import matplotlib.pyplot as plt
+
+    @ft.wraps(func)
+    def impl(*args, **kwargs):
+        func(*args, **kwargs)
+
+        img = io.BytesIO()
+        plt.savefig(img, format='png')
+        plt.close()
+
+        img = base64.b64encode(img.getvalue())
+        img = img.decode('ascii')
+        return 'data:image/png;base64,' + img
+
+    return impl
+
+
+def _dash_cb_parse_annotation(cls, s):
+    element, _, property = s.partition(':')
+    return cls(element, property)
