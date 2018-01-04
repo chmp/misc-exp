@@ -4,8 +4,8 @@ Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
 import base64
+import collections
 import functools as ft
-import inspect
 import importlib
 import io
 import itertools as it
@@ -22,31 +22,6 @@ else:
     _HAS_SK_LEARN = True
 
 
-def notebook_preamble():
-    """Add common code
-    """
-    from IPython import get_ipython
-
-    get_ipython().set_next_input(_notebook_preamble, replace=True)
-
-
-_notebook_preamble = '''# from chmp.ds import notebook_preamble; notebook_preamble()
-
-%matplotlib inline
-# disable rescaling the figure, to gain tighter control over the result
-%config InlineBackend.print_figure_kwargs = {'bbox_inches':None}
-
-import logging
-logging.basicConfig(level=logging.INFO)
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-'''.strip()
-
-
 def reload(*modules_or_module_names):
     mod = None
     for module_or_module_name in modules_or_module_names:
@@ -56,7 +31,6 @@ def reload(*modules_or_module_names):
         mod = importlib.reload(module_or_module_name)
 
     return mod
-
 
 
 def define(func):
@@ -356,6 +330,11 @@ def _optional_skip_nan(x, y, skip_nan=True):
 
 def _dict_of_optionals(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
+
+
+@ft.singledispatch
+def get_children(est):
+    return []
 
 
 def fix_categories(s, categories=None, other_category=None, inplace=False, groups=None, ordered=False):
@@ -706,6 +685,118 @@ class FuncRegressor(BaseEstimator, ClassifierMixin):
 
     def predict(self, df):
         return self.func(df)
+
+
+class DataFrameEstimator(BaseEstimator):
+    """Add support for dataframe use to sklearn estimators.
+    """
+    def __init__(self, est):
+        self.est = est
+
+    def fit(self, x, y=None, **kwargs):
+        import numpy as np
+
+        x = x.reset_index(drop=True)
+        y = np.asarray(x[y])
+
+        self.est.fit(x, y, **kwargs)
+        return self
+
+    def predict(self, x, y=None):
+        x = x.reset_index(drop=True)
+        return self.est.predict(x)
+
+    def predict_proba(self, x, y=None):
+        x = x.reset_index(drop=True)
+        return self.est.predict_proba(x)
+
+
+@get_children.register(DataFrameEstimator)
+def df_estimator(est):
+    return [(0, est.est)]
+
+
+class OneHotEncoder(BaseEstimator, TransformerMixin):
+    def __init__(self, columns=None):
+        self.columns = columns
+        self.columns_ = columns
+        self.levels_ = collections.OrderedDict()
+
+    def fit(self, x, y=None):
+        if self.columns_ is None:
+            self.columns_ = find_categorical_columns(x)
+
+        for col in self.columns_:
+            try:
+                self.levels_[col] = multi_type_sorted(x[col].unique())
+
+            except Exception as e:
+                raise RuntimeError(f'cannot fit {col}') from e
+
+        return self
+
+    def transform(self, x, y=None):
+        for col in self.columns_:
+            try:
+                assignments = {}
+                for level in self.levels_[col]:
+                    assignments[f'{col}_{level}'] = (x[col] == level).astype(float)
+
+                x = x.drop([col], axis=1).assign(**assignments)
+
+            except Exception as e:
+                raise RuntimeError(f'cannot transform {col}') from e
+
+        return x
+
+
+def multi_type_sorted(vals):
+    import pandas as pd
+    return sorted(vals, key=lambda v: (type(v).__module__, type(v).__name__, pd.isnull(v), v))
+
+
+class FitInfo(BaseEstimator, TransformerMixin):
+    """Extract and store meta data of the dataframe passed to fit.
+    """
+    def __init__(self, extractor, target=None):
+        self.extractor = extractor
+        self.target = target
+
+        if target is None:
+            self.meta_ = {}
+
+        else:
+            self.meta_ = target
+
+    def fit(self, x, y=None):
+        self.meta_.update(self.extractor(x))
+        return self
+
+    def transform(self, x, y=None):
+        return x
+
+
+try:
+    import sklearn.pipeline as sk_pipeline
+
+    @get_children.register(sk_pipeline.Pipeline)
+    def pipeline_get_children(est):
+        return est.steps
+
+except ImportError:
+    pass
+
+
+def search_estimator(predicate, est, key=()):
+    return list(_search_estimator(predicate, key, est))
+
+
+def _search_estimator(predicate, key, est):
+    if predicate(key, est):
+        yield key, est
+
+    for child_key, child in get_children(est):
+        yield from _search_estimator(predicate, key + (child_key,), child)
 
 
 def waterfall(
