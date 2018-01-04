@@ -14,7 +14,6 @@ import json
 import logging
 import math
 import os.path
-import signal
 import time
 import typing
 import uuid
@@ -24,6 +23,12 @@ max_32_bit_integer = 0xFFFF_FFFF
 
 _logger = logging.getLogger()
 
+
+# ###################################################################### #
+# #                                                                    # #
+# #                 Deterministic Random Number Generation             # #
+# #                                                                    # #
+# ###################################################################### #
 
 def sha1(obj):
     """Create a hash for a json-encode-able object
@@ -493,7 +498,6 @@ class Config:
     def check(cls, d):
         pass
 
-
 # ########################################################################### #
 # #                                                                         # #
 # #                            Loops                                        # #
@@ -537,9 +541,37 @@ class Loop(object):
 
         loop = Loop()
         for item in loop(iterable):
+            # computationally intensive work
             ...
             print(f'{loop}'.ljust(120), end='\r')
 
+    Nested loops::
+
+        outer_loop = Loop()
+        loop = Loop()
+
+        for i in outer_loop(iterable1):
+            for j in loop(iterable2):
+                print(f'{outer_loop} {loop}'.ljust(120), end='\r')
+
+    The loop object can be formatted by using a format string. For example::
+
+        print(f'{loop:fr}'.ljust(120), end='\r')
+
+    prints the fraction of work completed and the remaining time expected to
+    finish all work.
+
+    The following options are understood:
+
+    * ``b``: a progress bar
+    * ``t``: total time taken so far
+    * ``e``: expected time for all work
+    * ``r``: remaining time
+    * ``f``: fraction of work completed
+
+    The default format is ``[bt/e`` for bar, total, /, expected sourrounded by
+    brackets. To print the work done and the remaining time in brackets use
+    ``[fr``.
     """
     def __init__(self, time=time.time):
         self._now = time
@@ -581,14 +613,45 @@ class Loop(object):
         if status['state'] is LoopState.pending:
             return '[pending]'
 
-        elif status['state'] is LoopState.running:
-            return f'[{status["bar"]} {tdformat(status["total"])} / {tdformat(status["expected"])}]'
-
         elif status['state'] is LoopState.aborted:
             return f'[aborted. took {tdformat(status["total"])}]'
 
         elif status['state'] is LoopState.done:
             return f'[done. took {tdformat(status["total"])}]'
+
+        elif status['state'] is not LoopState.running:
+            raise RuntimeError('unknown state')
+
+        if not format_spec:
+            format_spec = '[bt/e'
+
+        if format_spec[:1] == '[':
+            outer = '[', ']'
+            format_spec = format_spec[1:]
+
+        else:
+            outer = '', ''
+
+        if format_spec[:1] == '-':
+            join_char = ''
+            format_spec = format_spec[1:]
+
+        else:
+            join_char = ' '
+
+        result = [
+            self._loop_formats.get(c, lambda _: c)(status)
+            for c in format_spec
+        ]
+        return outer[0] + join_char.join(result) + outer[1]
+
+    _loop_formats = {
+        'b': lambda status: status['bar'],
+        't': lambda status: tdformat(status["total"]),
+        'e': lambda status: tdformat(status["expected"]),
+        'r': lambda status: tdformat(status["remaining"]),
+        'f': lambda status: f"{status['fraction']:.1%}",
+    }
 
     def get_status(self):
         total = self._now() - self._start
@@ -598,19 +661,22 @@ class Loop(object):
                 state=self._state,
                 total=total,
                 expected=None,
+                remaining=None,
                 bar=running_characters[self._idx % len(running_characters)],
                 fraction=math.nan,
             )
 
         fraction = (self._idx + 1) / self._length
 
-        return dict(
+        d = dict(
             state=self._state,
             total=total,
             expected=self._get_expected(total=total),
             bar=bar(fraction),
             fraction=fraction,
         )
+        d['remaining'] = d['expected'] - d['total']
+        return d
 
     def _get_expected(self, total=None):
         if self._expected is None:
@@ -626,7 +692,6 @@ class Loop(object):
             total = self._now() - self._start
 
         return total / (self._idx + 1) * self._length
-
 
 def tdformat(time_delta):
     """Format a timedelta given in seconds.
