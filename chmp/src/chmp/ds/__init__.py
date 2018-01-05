@@ -84,6 +84,7 @@ def mpl_set(
         subplot=None,
         legend=None,
         colorbar=None,
+        invert=None,
 ):
     """Set various style related options of MPL.
     """
@@ -157,6 +158,13 @@ def mpl_set(
 
     if colorbar is True:
         plt.colorbar()
+
+    if invert is not None:
+        if 'x' in invert:
+            plt.gca().invert_xaxis()
+
+        if 'y' in invert:
+            plt.gca().invert_yaxis()
 
 
 def edges(x):
