@@ -4,6 +4,7 @@ Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
 import argparse
+import builtins
 import collections
 import enum
 import functools as ft
@@ -518,7 +519,7 @@ class LoopState(enum.Enum):
     aborted = 'aborted'
 
 
-def loop(iterable, length=None):
+def loop(iterable, length=None, format='', keep=True):
     """Add a progressbar without an explicit print statement.
 
     Usage::
@@ -531,10 +532,13 @@ def loop(iterable, length=None):
 
     for item in loop(iterable, length=length):
         yield item
-        print('{}'.format(loop), end='\r')
+        print(builtins.format(loop, format).ljust(120), end='\r')
+
+    if keep is True:
+        print()
 
 
-class Loop(object):
+class Loop:
     """Helper to track the status of a long-running loops.
 
     Usage::
@@ -692,6 +696,7 @@ class Loop(object):
             total = self._now() - self._start
 
         return total / (self._idx + 1) * self._length
+
 
 def tdformat(time_delta):
     """Format a timedelta given in seconds.
