@@ -1,0 +1,5 @@
+{
+  "package": "package-name",
+  "full_package": "{{ 'chmp-app-' + cookiecutter.package }}",
+  "python_package": "{{ cookiecutter.package.replace('-', '_') }}"
+}
