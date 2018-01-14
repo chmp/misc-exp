@@ -519,25 +519,6 @@ class LoopState(enum.Enum):
     aborted = 'aborted'
 
 
-def loop(iterable, length=None, format='', keep=True):
-    """Add a progressbar without an explicit print statement.
-
-    Usage::
-
-        for item in loop(values):
-            ...
-
-    """
-    loop = Loop()
-
-    for item in loop(iterable, length=length):
-        yield item
-        print(builtins.format(loop, format).ljust(120), end='\r')
-
-    if keep is True:
-        print()
-
-
 class Loop:
     """Helper to track the status of a long-running loops.
 
@@ -584,6 +565,13 @@ class Loop:
         self._start = 0
         self._length = None
         self._expected = None
+
+    @classmethod
+    def over(cls, iterable, length=None, time=time.time):
+        loop = cls(time)
+
+        for item in loop(iterable, length=length):
+            yield loop, item
 
     def __call__(self, iterable, length=None):
         if length is None:
