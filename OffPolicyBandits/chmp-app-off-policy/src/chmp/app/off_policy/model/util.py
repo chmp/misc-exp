@@ -9,6 +9,19 @@ def action_p_to_propensity(action, action_p):
     return action * action_p + (1 - action) * (1 - action_p)
 
 
+class RegressingBinaryClassifier(sklearn.base.BaseEstimator, sklearn.base.RegressorMixin):
+    def __init__(self, est):
+        self.est = est
+
+    def fit(self, x, y):
+        self.est.fit(x, y)
+        return self
+
+    def predict(self, x):
+        _, score = self.est.predict_proba(x).T
+        return score
+
+
 class CategoricalMeanTargetEncoder(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
     def __init__(self, columns=None, pseudo_count=1):
         self.columns = columns
