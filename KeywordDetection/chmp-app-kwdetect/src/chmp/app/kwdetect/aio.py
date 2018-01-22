@@ -13,7 +13,18 @@ from .segmentation import StreamProcessor
 _logger = logging.getLogger()
 
 
-async def detect(model, samplerate=DEFAULT_SAMPLERATE, label_decoding=None, sample_target=None, session=None):
+class unset:
+    pass
+
+
+async def detect(
+        model,
+        samplerate=DEFAULT_SAMPLERATE,
+        label_decoding=None,
+        sample_target=None,
+        session=None,
+        start_token=unset,
+):
     import tensorflow as tf
 
     if label_decoding is None:
@@ -22,10 +33,14 @@ async def detect(model, samplerate=DEFAULT_SAMPLERATE, label_decoding=None, samp
     if session is None:
         session = tf.get_default_session()
 
-    async for sample in record(samplerate=samplerate):
-        label = predict_label(model, sample, session=session, label_decoding=label_decoding)
-        save_sample(sample_target, sample, samplerate=samplerate)
-        yield label
+    async for sample in record(samplerate=samplerate, start_token=start_token):
+        if sample is start_token:
+            yield sample
+
+        else:
+            label = predict_label(model, sample, session=session, label_decoding=label_decoding)
+            save_sample(sample_target, sample, samplerate=samplerate)
+            yield label
 
 
 def predict_label(model, sample, *, session, label_decoding):
@@ -48,7 +63,7 @@ def save_sample(sample_target, sample, samplerate=DEFAULT_SAMPLERATE):
     sf.write(fname, sample, samplerate=samplerate)
 
 
-async def record(samplerate=DEFAULT_SAMPLERATE):
+async def record(samplerate=DEFAULT_SAMPLERATE, start_token=unset):
     """An asynchronous generator yield recorded samples"""
     queue = janus.Queue()
 
@@ -66,8 +81,13 @@ async def record(samplerate=DEFAULT_SAMPLERATE):
                 callback=callback
         ):
             _logger.info('enter recording loop')
+            if start_token is not unset:
+                yield start_token
+
             while True:
                 yield await queue.async_q.get()
 
     finally:
+        _logger.info('exit recording loop')
         processor.finish()
+
