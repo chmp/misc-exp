@@ -1,144 +1,144 @@
-<svg height="548pt" viewBox="0.00 0.00 384.58 548.00" width="385pt" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg height="548pt" viewBox="0.00 0.00 328.78 548.00" width="329pt" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g class="graph" id="graph0" transform="scale(1 1) rotate(0) translate(4 544)">
 <title>%3</title>
-<polygon fill="#ffffff" points="-4,4 -4,-544 380.5756,-544 380.5756,4 -4,4" stroke="transparent"/>
+<polygon fill="#ffffff" points="-4,4 -4,-544 324.7808,-544 324.7808,4 -4,4" stroke="transparent"/>
 <!-- node0 -->
 <g class="node" id="node1">
 <title>node0</title>
-<ellipse cx="190.7808" cy="-162" fill="none" rx="72.4635" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="190.7808" y="-157.8">gru-pooling-layer</text>
-</g>
-<!-- node5 -->
-<g class="node" id="node6">
-<title>node5</title>
-<ellipse cx="190.7808" cy="-90" fill="none" rx="50.7224" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="190.7808" y="-85.8">dense-layer</text>
-</g>
-<!-- node0&#45;&gt;node5 -->
-<g class="edge" id="edge2">
-<title>node0-&gt;node5</title>
-<path d="M190.7808,-143.8314C190.7808,-136.131 190.7808,-126.9743 190.7808,-118.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="194.2809,-118.4132 190.7808,-108.4133 187.2809,-118.4133 194.2809,-118.4132" stroke="#000000"/>
-</g>
-<!-- node1 -->
-<g class="node" id="node2">
-<title>node1</title>
-<polygon fill="none" points="114.7808,-108 60.7808,-108 60.7808,-72 114.7808,-72 114.7808,-108" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="87.7808" y="-85.8">labels</text>
-</g>
-<!-- node11 -->
-<g class="node" id="node12">
-<title>node11</title>
-<ellipse cx="87.7808" cy="-18" fill="none" rx="27" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="87.7808" y="-13.8">loss</text>
-</g>
-<!-- node1&#45;&gt;node11 -->
-<g class="edge" id="edge5">
-<title>node1-&gt;node11</title>
-<path d="M87.7808,-71.8314C87.7808,-64.131 87.7808,-54.9743 87.7808,-46.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="91.2809,-46.4132 87.7808,-36.4133 84.2809,-46.4133 91.2809,-46.4132" stroke="#000000"/>
-</g>
-<!-- node2 -->
-<g class="node" id="node3">
-<title>node2</title>
-<ellipse cx="190.7808" cy="-18" fill="none" rx="57.9805" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="190.7808" y="-13.8">predict-proba</text>
+<ellipse cx="130" cy="-90" fill="none" rx="50.7224" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="130" y="-85.8">dense-layer</text>
 </g>
 <!-- node3 -->
 <g class="node" id="node4">
 <title>node3</title>
-<polygon fill="none" points="138.7808,-540 84.7808,-540 84.7808,-504 138.7808,-504 138.7808,-540" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="111.7808" y="-517.8">inputs</text>
+<ellipse cx="130" cy="-18" fill="none" rx="57.9805" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="130" y="-13.8">predict-proba</text>
 </g>
-<!-- node10 -->
-<g class="node" id="node11">
-<title>node10</title>
-<ellipse cx="111.7808" cy="-450" fill="none" rx="107.7028" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="111.7808" y="-445.8">dense_convolution_layer_1</text>
-</g>
-<!-- node3&#45;&gt;node10 -->
+<!-- node0&#45;&gt;node3 -->
 <g class="edge" id="edge10">
-<title>node3-&gt;node10</title>
-<path d="M111.7808,-503.8314C111.7808,-496.131 111.7808,-486.9743 111.7808,-478.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="115.2809,-478.4132 111.7808,-468.4133 108.2809,-478.4133 115.2809,-478.4132" stroke="#000000"/>
-</g>
-<!-- node4 -->
-<g class="node" id="node5">
-<title>node4</title>
-<ellipse cx="111.7808" cy="-378" fill="none" rx="111.562" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="111.7808" y="-373.8">dilated_convolution_layer_1</text>
-</g>
-<!-- node8 -->
-<g class="node" id="node9">
-<title>node8</title>
-<ellipse cx="111.7808" cy="-306" fill="none" rx="107.7028" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="111.7808" y="-301.8">dense_convolution_layer_2</text>
-</g>
-<!-- node4&#45;&gt;node8 -->
-<g class="edge" id="edge1">
-<title>node4-&gt;node8</title>
-<path d="M111.7808,-359.8314C111.7808,-352.131 111.7808,-342.9743 111.7808,-334.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="115.2809,-334.4132 111.7808,-324.4133 108.2809,-334.4133 115.2809,-334.4132" stroke="#000000"/>
-</g>
-<!-- node5&#45;&gt;node2 -->
-<g class="edge" id="edge11">
-<title>node5-&gt;node2</title>
-<path d="M190.7808,-71.8314C190.7808,-64.131 190.7808,-54.9743 190.7808,-46.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="194.2809,-46.4132 190.7808,-36.4133 187.2809,-46.4133 194.2809,-46.4132" stroke="#000000"/>
+<title>node0-&gt;node3</title>
+<path d="M130,-71.8314C130,-64.131 130,-54.9743 130,-46.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="133.5001,-46.4132 130,-36.4133 126.5001,-46.4133 133.5001,-46.4132" stroke="#000000"/>
 </g>
 <!-- node6 -->
 <g class="node" id="node7">
 <title>node6</title>
-<ellipse cx="321.7808" cy="-18" fill="none" rx="54.5904" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="321.7808" y="-13.8">predict-class</text>
+<ellipse cx="27" cy="-18" fill="none" rx="27" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="27" y="-13.8">loss</text>
 </g>
-<!-- node5&#45;&gt;node6 -->
+<!-- node0&#45;&gt;node6 -->
 <g class="edge" id="edge4">
-<title>node5-&gt;node6</title>
-<path d="M218.5625,-74.7307C237.7971,-64.159 263.6145,-49.9693 284.6168,-38.426" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="286.5097,-41.3795 293.5875,-33.4956 283.1381,-35.245 286.5097,-41.3795" stroke="#000000"/>
-</g>
-<!-- node5&#45;&gt;node11 -->
-<g class="edge" id="edge8">
-<title>node5-&gt;node11</title>
-<path d="M167.6656,-73.8418C152.1517,-62.9972 131.6403,-48.6591 115.2863,-37.2272" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="116.8879,-34.0764 106.6866,-31.2157 112.8774,-39.8137 116.8879,-34.0764" stroke="#000000"/>
+<title>node0-&gt;node6</title>
+<path d="M106.8848,-73.8418C91.371,-62.9972 70.8595,-48.6591 54.5055,-37.2272" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="56.1072,-34.0764 45.9058,-31.2157 52.0967,-39.8137 56.1072,-34.0764" stroke="#000000"/>
 </g>
 <!-- node7 -->
 <g class="node" id="node8">
 <title>node7</title>
-<ellipse cx="111.7808" cy="-234" fill="none" rx="111.562" ry="18" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="111.7808" y="-229.8">dilated_convolution_layer_2</text>
+<ellipse cx="261" cy="-18" fill="none" rx="54.5904" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="261" y="-13.8">predict-class</text>
 </g>
-<!-- node7&#45;&gt;node0 -->
-<g class="edge" id="edge3">
-<title>node7-&gt;node0</title>
-<path d="M131.3089,-216.2022C141.1626,-207.2217 153.2665,-196.1902 163.9769,-186.4289" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="166.444,-188.9159 171.4773,-179.593 161.7287,-183.7423 166.444,-188.9159" stroke="#000000"/>
+<!-- node0&#45;&gt;node7 -->
+<g class="edge" id="edge1">
+<title>node0-&gt;node7</title>
+<path d="M157.7817,-74.7307C177.0163,-64.159 202.8337,-49.9693 223.8361,-38.426" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="225.7289,-41.3795 232.8067,-33.4956 222.3573,-35.245 225.7289,-41.3795" stroke="#000000"/>
 </g>
-<!-- node8&#45;&gt;node7 -->
+<!-- node1 -->
+<g class="node" id="node2">
+<title>node1</title>
+<ellipse cx="209" cy="-378" fill="none" rx="111.562" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="209" y="-373.8">dilated_convolution_layer_1</text>
+</g>
+<!-- node11 -->
+<g class="node" id="node12">
+<title>node11</title>
+<ellipse cx="209" cy="-306" fill="none" rx="107.7028" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="209" y="-301.8">dense_convolution_layer_2</text>
+</g>
+<!-- node1&#45;&gt;node11 -->
+<g class="edge" id="edge5">
+<title>node1-&gt;node11</title>
+<path d="M209,-359.8314C209,-352.131 209,-342.9743 209,-334.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="212.5001,-334.4132 209,-324.4133 205.5001,-334.4133 212.5001,-334.4132" stroke="#000000"/>
+</g>
+<!-- node2 -->
+<g class="node" id="node3">
+<title>node2</title>
+<ellipse cx="130" cy="-162" fill="none" rx="72.4635" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="130" y="-157.8">gru-pooling-layer</text>
+</g>
+<!-- node2&#45;&gt;node0 -->
+<g class="edge" id="edge8">
+<title>node2-&gt;node0</title>
+<path d="M130,-143.8314C130,-136.131 130,-126.9743 130,-118.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="133.5001,-118.4132 130,-108.4133 126.5001,-118.4133 133.5001,-118.4132" stroke="#000000"/>
+</g>
+<!-- node4 -->
+<g class="node" id="node5">
+<title>node4</title>
+<polygon fill="none" points="236,-540 182,-540 182,-504 236,-504 236,-540" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="209" y="-517.8">inputs</text>
+</g>
+<!-- node5 -->
+<g class="node" id="node6">
+<title>node5</title>
+<ellipse cx="209" cy="-450" fill="none" rx="107.7028" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="209" y="-445.8">dense_convolution_layer_1</text>
+</g>
+<!-- node4&#45;&gt;node5 -->
+<g class="edge" id="edge11">
+<title>node4-&gt;node5</title>
+<path d="M209,-503.8314C209,-496.131 209,-486.9743 209,-478.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="212.5001,-478.4132 209,-468.4133 205.5001,-478.4133 212.5001,-478.4132" stroke="#000000"/>
+</g>
+<!-- node5&#45;&gt;node1 -->
+<g class="edge" id="edge7">
+<title>node5-&gt;node1</title>
+<path d="M209,-431.8314C209,-424.131 209,-414.9743 209,-406.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="212.5001,-406.4132 209,-396.4133 205.5001,-406.4133 212.5001,-406.4132" stroke="#000000"/>
+</g>
+<!-- node8 -->
+<g class="node" id="node9">
+<title>node8</title>
+<polygon fill="none" points="79.4431,-252 22.5569,-252 22.5569,-216 79.4431,-216 79.4431,-252" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="51" y="-229.8">lengths</text>
+</g>
+<!-- node8&#45;&gt;node2 -->
 <g class="edge" id="edge9">
-<title>node8-&gt;node7</title>
-<path d="M111.7808,-287.8314C111.7808,-280.131 111.7808,-270.9743 111.7808,-262.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="115.2809,-262.4132 111.7808,-252.4133 108.2809,-262.4133 115.2809,-262.4132" stroke="#000000"/>
+<title>node8-&gt;node2</title>
+<path d="M70.935,-215.8314C80.7925,-206.8473 92.8248,-195.8812 103.4511,-186.1965" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="105.8556,-188.7406 110.8889,-179.4177 101.1403,-183.5669 105.8556,-188.7406" stroke="#000000"/>
 </g>
 <!-- node9 -->
 <g class="node" id="node10">
 <title>node9</title>
-<polygon fill="none" points="298.2239,-252 241.3376,-252 241.3376,-216 298.2239,-216 298.2239,-252" stroke="#000000"/>
-<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="269.7808" y="-229.8">lengths</text>
+<ellipse cx="209" cy="-234" fill="none" rx="111.562" ry="18" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="209" y="-229.8">dilated_convolution_layer_2</text>
 </g>
-<!-- node9&#45;&gt;node0 -->
-<g class="edge" id="edge7">
-<title>node9-&gt;node0</title>
-<path d="M249.8457,-215.8314C239.9883,-206.8473 227.9559,-195.8812 217.3297,-186.1965" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="219.6405,-183.5669 209.8919,-179.4177 214.9252,-188.7406 219.6405,-183.5669" stroke="#000000"/>
-</g>
-<!-- node10&#45;&gt;node4 -->
+<!-- node9&#45;&gt;node2 -->
 <g class="edge" id="edge6">
-<title>node10-&gt;node4</title>
-<path d="M111.7808,-431.8314C111.7808,-424.131 111.7808,-414.9743 111.7808,-406.4166" fill="none" stroke="#000000"/>
-<polygon fill="#000000" points="115.2809,-406.4132 111.7808,-396.4133 108.2809,-406.4133 115.2809,-406.4132" stroke="#000000"/>
+<title>node9-&gt;node2</title>
+<path d="M189.4719,-216.2022C179.6182,-207.2217 167.5143,-196.1902 156.8039,-186.4289" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="159.052,-183.7423 149.3035,-179.593 154.3368,-188.9159 159.052,-183.7423" stroke="#000000"/>
+</g>
+<!-- node10 -->
+<g class="node" id="node11">
+<title>node10</title>
+<polygon fill="none" points="54,-108 0,-108 0,-72 54,-72 54,-108" stroke="#000000"/>
+<text fill="#000000" font-family="Times,serif" font-size="14.00" text-anchor="middle" x="27" y="-85.8">labels</text>
+</g>
+<!-- node10&#45;&gt;node6 -->
+<g class="edge" id="edge2">
+<title>node10-&gt;node6</title>
+<path d="M27,-71.8314C27,-64.131 27,-54.9743 27,-46.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="30.5001,-46.4132 27,-36.4133 23.5001,-46.4133 30.5001,-46.4132" stroke="#000000"/>
+</g>
+<!-- node11&#45;&gt;node9 -->
+<g class="edge" id="edge3">
+<title>node11-&gt;node9</title>
+<path d="M209,-287.8314C209,-280.131 209,-270.9743 209,-262.4166" fill="none" stroke="#000000"/>
+<polygon fill="#000000" points="212.5001,-262.4132 209,-252.4133 205.5001,-262.4133 212.5001,-262.4132" stroke="#000000"/>
 </g>
 </g>
 </svg>
