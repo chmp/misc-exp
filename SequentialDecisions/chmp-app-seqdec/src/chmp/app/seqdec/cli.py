@@ -10,7 +10,7 @@ def main():
     raise NotImplementedError()
 
 
-def execute(sequence, keyword_model, *, loop=None, debug=True):
+def execute(sequence, keyword_model, *, loop=None, debug=True, sample_target=None):
     if loop is None:
         loop = asyncio.get_event_loop()
 
@@ -20,7 +20,7 @@ def execute(sequence, keyword_model, *, loop=None, debug=True):
     q = asyncio.Queue()
 
     fg_task = asyncio.ensure_future(run_sequence(q, sequence, loop=loop))
-    bg_task = asyncio.ensure_future(wait_for_commands(q, keyword_model), loop=loop)
+    bg_task = asyncio.ensure_future(wait_for_commands(q, keyword_model, sample_target=sample_target), loop=loop)
 
     # make sure the bg task is canceled
     fg_task.add_done_callback(lambda *_: bg_task.cancel())
@@ -49,7 +49,7 @@ async def run_sequence(q, sequence, *, loop):
     )
 
 
-async def wait_for_commands(q, model):
+async def wait_for_commands(q, model, sample_target=None):
     graph = tf.Graph()
 
     with tf.Session(graph=graph) as session:
@@ -59,6 +59,6 @@ async def wait_for_commands(q, model):
                 model=tf_model,
                 session=session,
                 start_token=None,
-                sample_target='../KeywordDetection/data/',
+                sample_target=sample_target,
         ):
             await q.put(command)
