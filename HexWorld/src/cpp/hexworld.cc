@@ -36,6 +36,10 @@ struct CubePoint {
     bool operator!=(CubePoint b) const { return !(*this == b); }
     CubePoint operator+(CubePoint b) const { return {q + b.q, r + b.r, internal{}}; }
     CubePoint operator-(CubePoint b) const { return {q - b.q, r - b.r, internal{}}; }
+    CubePoint operator-() const { return {-q, -r, internal{}}; }
+    CubePoint operator+() const { return *this; }
+    CubePoint operator*(int s) const { return {s * q, s * r, internal{}}; }
+    friend CubePoint operator*(int s, CubePoint p) { return {s * p.q, s * p.r, internal{}}; }
 };
 
 // use odd-q format
@@ -71,11 +75,11 @@ CubePoint rotate(CubePoint p, int rotation) {
     // +60: {x, y, z} -> {-z, -x, -y}
     // -60: {x, y, z} -> {-y, -z, -x}
     if(rotation < 0) {
-        // NOTE: integer casting trucates the zeros, i.e., -1.5 -> -1.0 add +1 to compensate
-        rotation = rotation + 6 * (1 + (rotation / 6));
-        rotation = rotation % 6;
+        // NOTE: integer casting trucates the zeros, i.e., -1.5 -> -1.0 add +6 to compensate
+        rotation = rotation - 6 * int(rotation / 6) + 6;
     }
-    
+    rotation = rotation % 6;
+
     switch(rotation) {
         case 0: return {+p.x(), +p.y(), +p.z()};
         case 1: return {-p.z(), -p.x(), -p.y()};
@@ -228,7 +232,11 @@ PYBIND11_MODULE(_hexworld, m) {
         .def(py::self == py::self)
         .def(py::self + py::self)
         .def(py::self - py::self)
-        .def("__str__", [](CubePoint p) -> std::string {
+        .def(-py::self)
+        .def(+py::self)
+        .def(py::self * int())
+        .def(int() * py::self)
+        .def("__repr__", [](CubePoint p) -> std::string {
             return "hexworld.CubePoint("
                 "x=" + std::to_string(p.x()) + ", " + 
                 "y=" + std::to_string(p.y()) + ", " +
@@ -240,7 +248,7 @@ PYBIND11_MODULE(_hexworld, m) {
         .def(py::init<int, int>(), py::arg("col"), py::arg("row"))
         .def_readonly("col", &OffsetPoint::col)
         .def_readonly("row", &OffsetPoint::row)
-        .def("__str__", [](OffsetPoint p) -> std::string {
+        .def("__repr__", [](OffsetPoint p) -> std::string {
             return "hexworld.OffsetPoint("
                 "col=" + std::to_string(p.col) + ", " + 
                 "row=" + std::to_string(p.row) + ")";
