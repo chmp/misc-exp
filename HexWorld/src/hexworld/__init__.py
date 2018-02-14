@@ -11,7 +11,20 @@ def to_buffer(a):
     elif a.dtype == 'int64':
         return _hexworld._to_Int64Buffer(a)
 
-    raise ValueError(f"unknown dtype {a.dtype!r}")
+    else:
+        raise ValueError(f"unknown dtype {a.dtype!r}")
+
+
+def extract_viewport(target, source, p, rot):
+    assert type(source) == type(target)
+    if type(source) is Int32Buffer:
+        return _hexworld._extract_viewport_Int32Buffer(target, source, p, rot)
+
+    elif type(source) is Int64Buffer:
+        return _hexworld._extract_viewport_Int64Buffer(target, source, p, rot)
+
+    else:
+        raise ValueError(f"unknown buffer type {type(target)!r}")
 
 
 def default_display(col, row, value):

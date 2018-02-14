@@ -8,6 +8,19 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
 
+namespace hexworld::util {
+
+template<typename T>
+T division_round_down(T a, T b) {
+    static_assert(std::is_integral<T>::value, "division_round_down only works for integer arguments");
+
+    T negative_lower_bound = std::max(0, -a);
+    T multiple_lower_bound = negative_lower_bound + b - (negative_lower_bound % b);
+    return (a + multiple_lower_bound) / b - multiple_lower_bound / b;
+}
+
+}
+
 namespace hexworld {
 
 // inspired by https://www.redblobgames.com/grids/hexagons/
@@ -52,6 +65,19 @@ struct OffsetPoint {
 
     bool operator==(OffsetPoint b) const { return (col == b.col) && (row == b.row); }
 };
+
+std::string to_string(CubePoint p) {
+    return "hexworld.CubePoint("
+        "x=" + std::to_string(p.x()) + ", " + 
+        "y=" + std::to_string(p.y()) + ", " +
+        "z=" + std::to_string(p.z()) + ")";
+}
+
+std::string to_string(OffsetPoint p) {
+    return "hexworld.OffsetPoint("
+        "col=" + std::to_string(p.col) + ", " + 
+        "row=" + std::to_string(p.row) + ")";
+}
 
 OffsetPoint to_offset(OffsetPoint p) {
     return p;
@@ -135,13 +161,43 @@ struct Buffer {
     }
     
     bool inside(CubePoint p) const { return inside(to_offset(p)); }
-    T get(CubePoint p) const {return get(to_offset(p)); }
+    T get(CubePoint p) const { return get(to_offset(p)); }
     void set(CubePoint p, T value) { set(to_offset(p), value); }
 
     bool operator==(const Buffer<T>& other) const {
         return (width == other.width) && (height == other.height) && (data == other.data);
     }
 };
+
+template<typename T>
+void extract_viewport(Buffer<T>& target, const Buffer<T>& source, CubePoint pos, int rotation) {
+    // note:
+    // std::map<int, std::tuple<int, int>> expected = {
+    // x = -3, division_round_down(x + 1, 2) = -1, division_round_down(-x + 1, 2) = +2
+    // x = -2, division_round_down(x + 1, 2) = -1, division_round_down(-x + 1, 2) = +1
+    // x = -1, division_round_down(x + 1, 2) = +0, division_round_down(-x + 1, 2) = +1
+    // x = +0, division_round_down(x + 1, 2) = +0, division_round_down(-x + 1, 2) = +0
+    // x = +1, division_round_down(x + 1, 2) = +1, division_round_down(-x + 1, 2) = +0
+    // x = +2, division_round_down(x + 1, 2) = +1, division_round_down(-x + 1, 2) = -1
+    // x = +3, division_round_down(x + 1, 2) = +2, division_round_down(-x + 1, 2) = -1
+    
+    auto dn = rotate(CubePoint{0, +1, -1}, rotation);
+    auto du = rotate(dn, -1), dv = rotate(dn, +1);
+    auto w = target.width, h = target.height;
+
+    for(int i = 0; i < w; ++i) {
+        for(int j = 0; j < h; ++j) {
+            auto x = i - w / 2;
+            auto p = (
+                pos + 
+                j * dn + 
+                util::division_round_down(+x + 1, 2) * du + 
+                util::division_round_down(-x + 1, 2) * dv
+            );
+            target.set(OffsetPoint{i, h - 1 - j}, source.get(p));
+        }
+    }
+}
 
 }
 
@@ -213,6 +269,8 @@ void create_buffer_bindings(const char* name, py::module m) {
         }
         return result;
     });
+
+    m.def(("_extract_viewport_" + std::string(name)).c_str(), &extract_viewport<T>);
 }
 
 }
@@ -236,23 +294,14 @@ PYBIND11_MODULE(_hexworld, m) {
         .def(+py::self)
         .def(py::self * int())
         .def(int() * py::self)
-        .def("__repr__", [](CubePoint p) -> std::string {
-            return "hexworld.CubePoint("
-                "x=" + std::to_string(p.x()) + ", " + 
-                "y=" + std::to_string(p.y()) + ", " +
-                "z=" + std::to_string(p.z()) + ")";
-        });
+        .def("__repr__", py::overload_cast<CubePoint>(&to_string));
 
     py::class_<OffsetPoint>(m, "OffsetPoint")
         .def(py::init<>())
         .def(py::init<int, int>(), py::arg("col"), py::arg("row"))
         .def_readonly("col", &OffsetPoint::col)
         .def_readonly("row", &OffsetPoint::row)
-        .def("__repr__", [](OffsetPoint p) -> std::string {
-            return "hexworld.OffsetPoint("
-                "col=" + std::to_string(p.col) + ", " + 
-                "row=" + std::to_string(p.row) + ")";
-        });
+        .def("__repr__", py::overload_cast<OffsetPoint>(&to_string));
     
     hexworld::detail::create_buffer_bindings<std::int32_t>("Int32Buffer", m);
     hexworld::detail::create_buffer_bindings<std::int64_t>("Int64Buffer", m);
