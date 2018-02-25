@@ -1,5 +1,5 @@
 /.idea/
-/wip*
+wip*
 .ipynb_checkpoints/
 *.pyc
 __pycache__/
@@ -8,4 +8,5 @@ bak*
 .cache/
 *.egg-info/
 .DS_Store
+profile.dat
 
