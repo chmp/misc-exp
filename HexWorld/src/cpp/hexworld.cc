@@ -33,7 +33,7 @@ struct CubePoint {
     const int q = 0;
     const int r = 0;
 
-    CubePoint() {}
+    CubePoint() = default;
     CubePoint(int q, int r, internal) : q(q), r(r) {}
     CubePoint(int x, int y, int z) : q(x), r(z) {
         if((x + y + z) != 0) {
@@ -60,7 +60,7 @@ struct OffsetPoint {
     const int col = 0;
     const int row = 0;
 
-    OffsetPoint() {}
+    OffsetPoint() = default;
     OffsetPoint(int col, int row) : col(col), row(row) {}
 
     bool operator==(OffsetPoint b) const { return (col == b.col) && (row == b.row); }

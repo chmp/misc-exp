@@ -1,5 +1,7 @@
 import contextlib
+import json
 import operator as op
+import hashlib
 
 import vmprof
 
@@ -44,17 +46,21 @@ def plot_profile(stats, show=False):
 
     ds = build_data(stats)
 
-    hover = HoverTool(tooltips=[
-        ("Name", "@name"),
-        ('File', '@file'),
-        ('Count', '@count'),
-        ('Type', '@type'),
-        ('Time', '@time'),
-    ])
-
-    p = figure(active_scroll='wheel_zoom', x_axis_label='Runtime [ms]', y_axis_label='Stack depth')
-    p.tools.append(hover)
-    p.rect('x', 'y', 'width', 'height', color='color', source=ds)
+    p = figure(
+        active_scroll='wheel_zoom',
+        x_axis_label='Runtime [ms]', y_axis_label='Stack depth',
+        plot_width=800, plot_height=450,
+    )
+    p.tools.append(
+        HoverTool(tooltips=[
+            ("Name", "@name"),
+            ('File', '@file'),
+            ('Count', '@count'),
+            ('Type', '@type'),
+            ('Time', '@time'),
+        ], point_policy='follow_mouse')
+    )
+    p.rect('x', 'y', 'width', 'height', color='color', source=ds, line_color='black')
 
     if show:
         do_show(p)
@@ -63,7 +69,7 @@ def plot_profile(stats, show=False):
         return p
 
 
-def build_data(stats, cmap='plasma_r', skip_empty=True):
+def build_data(stats, cmap='autumn', skip_empty=True):
     from bokeh.models import ColumnDataSource
     from matplotlib import cm
 
@@ -87,7 +93,7 @@ def build_data(stats, cmap='plasma_r', skip_empty=True):
 
 
 def _build_data(node, *, offset, parent_count, depth, cmap, time_factor):
-    r, g, b, a = cmap(node.count / parent_count)
+    r, g, b, a = cmap(random(node.name))
     type, name, lineno, file = node.name.split(':')
 
     yield dict(
@@ -119,3 +125,21 @@ def format_time(time):
         return '{:.1f} ms'.format(time / 1e3)
 
     return '{:.1f} s'.format(time / 1e6)
+
+
+def sha1(obj):
+    """Create a hash for a json-encode-able object
+    """
+    return int(str_sha1(obj)[:15], 16)
+
+
+def str_sha1(obj):
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(',', ':'))
+    s = s.encode('utf8')
+    return hashlib.sha1(s).hexdigest()
+
+
+def random(obj):
+    """Return a random float in the range [0, 1)"""
+    maximum_15_digit_hex = float(0xFFF_FFFF_FFFF_FFFF)
+    return min(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)

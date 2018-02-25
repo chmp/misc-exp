@@ -59,6 +59,7 @@ define('de.cprohm.hexworld', ["@jupyter-widgets/base"], function(widgets) {
                     this.time++;
                     this.send({type: 'update', time: this.time, key: ev.keyCode});
                 }.bind(this));
+                this.send({type: 'update', time: this.time, key: 0});
             },
 
             onCustom: function(ev) {
