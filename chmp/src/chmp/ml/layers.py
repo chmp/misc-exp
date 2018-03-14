@@ -10,6 +10,7 @@ def factorized(inputs, units, activation=None, use_bias=True, trainable=True, na
 
     unique_name = _unique_name(name)
 
+    # TODO: remove AUTO_REUSE? explicit object reuse seems to be preferred
     with tf.variable_scope(unique_name, reuse=tf.AUTO_REUSE):
         if use_bias:
             bias = tf.get_variable(
