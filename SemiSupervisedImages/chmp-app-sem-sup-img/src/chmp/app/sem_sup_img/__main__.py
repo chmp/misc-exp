@@ -1,121 +1,70 @@
-import functools as ft
-import glob
+import argparse
 import json
 import logging
-import math
-import os.path
-import statistics
-import typing
+import pathlib
 
-import imageio
-import numpy as np
-import tensorflow as tf
+from chmp.app.sem_sup_img.data import input_fn
+from chmp.app.sem_sup_img.model import Estimator, default_params
 
-from chmp import experiment
-from chmp.app.sem_sup_img.model import ConvolutionalAutoEncoder
 
 _logger = logging.getLogger(__name__)
 
 
-@typing.no_type_check
-class Config(experiment.Config):
-    version: int = 0
-    data_dir: str
-    seed: str = '42'
+def main(*, model_dir, data_file):
+    data_file = pathlib.Path(data_file)
+    model_dir = pathlib.Path(model_dir)
+    config_path = model_dir / 'config.json'
 
-    model: ConvolutionalAutoEncoder.Config
+    config = get_config(config_path, default_params)
 
+    with data_file.open('rt') as fobj:
+        data_fnames = json.load(fobj)
 
-@experiment.experiment(Config)
-def train_model(path, config):
-    experiment.write(config, (path, 'config.json'))
-    _logger.info('run in %s', path)
-
-    model = ConvolutionalAutoEncoder(config=config.model)
-    train_fnames, test_fnames = _get_files(config.seed, config.data_dir)
-
-    _logger.info(f'found {len(train_fnames)} training examples, {len(test_fnames)} testing examples')
-    with tf.Session() as session:
-        _do_train(
-            path=path,
-            session=session,
-            model=model,
-            config=config,
-            train_fnames=train_fnames,
-            test_fnames=test_fnames,
-        )
-
-
-def _get_files(seed, data_dir):
-    fnames = glob.glob(os.path.join(data_dir, '*.png'))
-    fnames = sorted(fnames)
-    fnames = experiment.shuffled(seed, fnames)
-
-    split = int(0.95 * len(fnames))
-
-    train_fnames = fnames[:split]
-    test_fnames = fnames[split:]
-
-    return train_fnames, test_fnames
-
-
-def _do_train(*, path, session, config, model, train_fnames, test_fnames):
-    prepare_test_batch = ft.partial(prepare_batch, fnames=test_fnames, n_batch_size=50, width=config.model.width)
-    prepare_train_batch = ft.partial(
-        prepare_batch, fnames=train_fnames, n_batch_size=config.model.batch_size, width=config.model.width,
+    est = Estimator(
+        model_dir='./run/experiment',
+        structure=config['structure'],
+        latent_structure=config['latent_structure'],
     )
 
-    n_batches = len(train_fnames) // config.model.batch_size
-
-    losses = []
-    iteration = 0
-    loop = experiment.Loop()
-
-    saver = tf.train.Saver()
-    session.run(tf.global_variables_initializer())
-
-    test_loss = math.nan
-    for epoch in range(config.model.epochs):
-        _logger.info(f'epoch {epoch}')
-        experiment.shuffle((config.seed, epoch), train_fnames)
-
-        for batch in loop(range(n_batches)):
-            loss = model.fit_partial(prepare_train_batch(batch), session=session)
-
-            if iteration % 500 == 0:
-                test_loss = statistics.mean([
-                    float(model.eval_loss(prepare_test_batch(i), session=session))
-                    for i in range(len(test_fnames) // 50)
-                ])
-
-                losses.append((epoch, batch, float(loss), test_loss))
-
-            else:
-                losses.append((epoch, batch, float(loss), math.nan))
-
-            if iteration and iteration % 500 == 0:
-                saver.save(session, os.path.join(path, 'state'), global_step=iteration)
-
-            if iteration and iteration % 50 == 0:
-                experiment.write(losses, (path, 'loss.json'))
-
-            print(
-                f' {loop} {batch}@{batch / n_batches:.2%} loss: {loss:.5f} / {test_loss:.5f}'.ljust(120),
-                end='\r',
-            )
-            iteration += 1
-        print()
+    _logger.info('run until %s steps', config['max_steps'])
+    est.train(
+        lambda: input_fn(data_fnames, batch_size=config['batch_size']),
+        max_steps=config['max_steps'],
+    )
 
 
-def prepare_batch(idx, fnames, n_batch_size, width):
-    batch_data = np.zeros((n_batch_size, width, width, 1), dtype=np.float32)
+def get_config(path, default_params):
+    path = pathlib.Path(path)
 
-    for i, fname in enumerate(fnames[idx * n_batch_size:(idx + 1) * n_batch_size]):
-        batch_data[i, ..., 0] = imageio.imread(fname, format='png') / 256
+    if path.exists():
+        _logger.info('load config from %s', path)
+        with path.open('rt') as fobj:
+            config = json.load(fobj)
 
-    return batch_data
+    else:
+        config = {}
+
+    config = dict(default_params, **config)
+
+    _logger.info('write config to %s', path)
+    with path.open('wt') as fobj:
+        json.dump(config, fobj, indent=2, sort_keys=True)
+
+    return config
+
+
+_parser = argparse.ArgumentParser()
+_parser.add_argument('--data-file', required=True)
+_parser.add_argument('--model-dir', required=True)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    train_model.main()
+
+    # if tf logger already has a handler remove it to prevent double logging
+    handlers = list(logging.getLogger('tensorflow').handlers)
+    for handler in handlers:
+        logging.getLogger('tensorflow').removeHandler(handler)
+
+    args = _parser.parse_args()
+    main(model_dir=args.model_dir, data_file=args.data_file)

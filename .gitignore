@@ -9,4 +9,4 @@ bak*
 *.egg-info/
 .DS_Store
 profile.dat
-
+*.code-workspace

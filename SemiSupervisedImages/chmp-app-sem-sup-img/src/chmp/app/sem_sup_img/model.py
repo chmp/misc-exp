@@ -1,147 +1,199 @@
-"""Convolutional Auto-Encoder
-"""
-import itertools as it
-import logging
-import typing
-
+import numpy as np
 import tensorflow as tf
 
-from chmp.experiment import Config as _Config
-from chmp.ml import PickableTFModel, inject_session
 
-_logger = logging.getLogger(__name__)
+default_params = dict(
+    structure=[
+        (32, 4, 1),
+        (32, 3, 2),
+        (32, 3, 1),
+        (32, 3, 2),
+        (32, 3, 1),
+    ],
+    latent_structure=[128, 64],
+    max_steps=30_000,
+    batch_size=20,
+)
 
 
-class ConvolutionalAutoEncoder(PickableTFModel):
-    @typing.no_type_check
-    class Config(_Config):
-        batch_size: int = 10
-        epochs: int = 10
+class Estimator(tf.estimator.Estimator):
+    def __init__(
+        self, *,
+        structure=None, latent_structure=None, model_dir=None, config=None, warm_start_from=None
+    ):
+        if structure is None:
+            structure = default_params['structure']
 
-        width: int = 160
-        features: int = 4096
+        if latent_structure is None:
+            latent_structure  = default_params['latent_structure']
 
-        strides: typing.Tuple[int] = (2, 2, 2, 2)
-        kernel_sizes: typing.Tuple[int] = (4, 4, 4, 4)
-        encoder_filters: typing.Tuple[int] = (16, 32, 64, 64)
-        decoder_filters: typing.Tuple[int] = (64, 64, 32, 16)
-
-        @classmethod
-        def check(cls, ns):
-            if len(ns.strides) != len(ns.kernel_sizes):
-                raise ValueError('strides and kernel lens do not match')
-
-            if len(ns.strides) != len(ns.encoder_filters):
-                raise ValueError('strides and encoder_filter lens do not match')
-
-            if len(ns.strides) != len(ns.decoder_filters):
-                raise ValueError('strides and decoder_filters lens do not match')
-
-    def __init__(self, *, config, graph=None):
-        super().__init__()
-        self.config = config
-        self._build(graph=graph)
-
-    @inject_session
-    def fit_partial(self, inputs, labels=None, session=None):
-        return session.run(self.train_loss_, {self.input_: inputs})
-
-    @inject_session
-    def eval_loss(self, inputs, session=None):
-        return session.run(self.loss_, {self.input_: inputs})
-
-    @inject_session
-    def transform(self, inputs, session=None):
-        return session.run(self.encoded_, {self.input_: inputs})
-
-    def _build(self, graph=None):
-        with self.build_context(graph=graph):
-            self.input_ = tf.placeholder(
-                tf.float32,
-                shape=(None, self.config.width, self.config.width, 1),
-                name='input',
-            )
-
-            self.encoded_ = self._encode(self.input_)
-            self.decoded_ = self._decode(self.encoded_)
-
-            self.loss_ = tf.losses.mean_squared_error(self.input_, self.decoded_)
-
-            self.optimizer_ = tf.train.AdamOptimizer()
-            self.train_ = self.optimizer_.minimize(self.loss_)
-
-            with tf.control_dependencies([self.train_]):
-                self.train_loss_ = tf.identity(self.loss_)
-
-    def _encode(self, x_):
-        _logger.debug('encode')
-        x_ = self._apply_stacked_convolutions(x_, 'encoder', self.config.encoder_filters, self.config)
-
-        conv_shape = x_.shape.as_list()
-        conv_shape = conv_shape[1:]
-        conv_size = prod(conv_shape)
-
-        # TODO: calc shape instead of using attribute
-        self._conv_params = conv_size, conv_shape
-
-        x_ = tf.reshape(x_, [-1, conv_size])
-        return tf.layers.dense(x_, units=self.config.features, activation=tf.nn.sigmoid)
-
-    def _decode(self, x_):
-        _logger.debug('decode')
-        conv_size, conv_shape = self._conv_params
-
-        x_ = tf.layers.dense(x_, units=conv_size, activation=tf.nn.relu)
-        x_ = tf.reshape(x_, [-1] + list(conv_shape))
-
-        x_ = self._apply_stacked_convolutions(
-            x_, 'decoder', self.config.decoder_filters, self.config,
-            decode=True,
+        super().__init__(
+            model_fn=model_fn,
+            model_dir=model_dir,
+            config=config,
+            warm_start_from=warm_start_from,
+            params=dict(structure=structure, latent_structure=latent_structure),
         )
 
-        return tf.layers.conv2d(
+
+def model_fn(features, labels, mode, params):
+    params = dict(default_params, **params)
+    structure = params['structure']
+    latent_structure = params['latent_structure']
+
+    input_ = features['input']
+
+    encoded_ = conv_encode(input_, structure)
+    decoded_, latent_, (latent_mean_, latent_sigma_) = latent_bottleneck(encoded_, latent_structure)
+    decoded_ = conv_decode(decoded_, structure)
+    output_, (output_mean_, output_sigma_) = reconstruct(decoded_)
+
+    _, *input_shape = input_.shape.as_list()
+    _, *output_shape = output_.shape.as_list()
+    assert input_shape == output_shape, f'{input_shape!r} != {output_shape!r}'
+
+    loss_, reconstruction_loss_, prior_loss_, entropy_loss_ = build_loss(
+        input_, (latent_mean_, latent_sigma_), (output_mean_, output_sigma_),
+    )
+
+    # TODO: check formula
+    reconstruction_error_ = tf.reduce_mean((input_ - output_mean_) ** 2.0)
+    reconstruction_error_expected_ = reconstruction_error_ + tf.reduce_mean(output_sigma_ ** 2.0)
+
+    with tf.name_scope('losses'):
+        tf.summary.scalar('reconstruction_error', reconstruction_error_)
+        tf.summary.scalar('reconstruction_error_expected', reconstruction_error_expected_)
+
+        tf.summary.scalar('reconstruction_loss', reconstruction_loss_)
+        tf.summary.scalar('prior_loss', prior_loss_)
+        tf.summary.scalar('entropy_loss', entropy_loss_)
+
+    with tf.name_scope('means'):
+        tf.summary.scalar('mean_latent_mean', tf.reduce_mean(latent_mean_))
+        tf.summary.scalar('mean_latent_sigma', tf.reduce_mean(latent_sigma_))
+        tf.summary.scalar('mean_output_mean', tf.reduce_mean(output_mean_))
+        tf.summary.scalar('mean_output_sigma', tf.reduce_mean(output_sigma_))
+
+    with tf.name_scope('histograms'):
+        tf.summary.histogram('input', input_)
+
+        tf.summary.histogram('latent', latent_)
+        tf.summary.histogram('latent_mean', latent_mean_)
+        tf.summary.histogram('latent_sigma', latent_sigma_)
+
+        tf.summary.histogram('output', output_)
+        tf.summary.histogram('output_mean', output_mean_)
+        tf.summary.histogram('output_sigma', output_sigma_)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode, predictions=dict(
+            latent=latent_,
+            latent_mean=latent_mean_,
+            output=output_,
+            output_mean=output_mean_,
+        ))
+
+    elif mode == tf.estimator.ModeKeys.EVAL:
+        raise NotImplementedError()
+
+    elif mode == tf.estimator.ModeKeys.TRAIN:
+        opt_ = tf.train.MomentumOptimizer(learning_rate=1e-4, momentum=0.9)
+        train_ = opt_.minimize(loss_, global_step=tf.train.get_global_step())
+        return tf.estimator.EstimatorSpec(mode, train_op=train_, loss=loss_)
+
+    else:
+        raise NotImplementedError()
+
+
+def conv_encode(x_, structure):
+    for idx, (filters, kernel_size, stride) in enumerate(structure):
+        x_ = tf.layers.conv2d(
             x_,
-            name='decoder_final',
-            filters=1,
-            kernel_size=(1, 1),
-            strides=(1, 1),
-            activation=tf.nn.sigmoid,
-            padding='same',
+            filters, kernel_size, strides=(stride, stride),
+            activation=tf.nn.elu,
+            name=f'encode_{idx}'
         )
 
-    @staticmethod
-    def _apply_stacked_convolutions(x_, name, filters, config, decode=False):
-        layer_func = tf.layers.conv2d if not decode else tf.layers.conv2d_transpose
+    return x_
 
-        _logger.debug('shape before conv stack %s', x_.shape)
-        for i, nf, st, ks in zip(it.count(), filters, config.strides, config.kernel_sizes):
-            x_ = layer_func(
-                x_,
-                name=f'{name}_{i}',
-                filters=nf,
-                kernel_size=(ks, ks),
-                strides=(st, st),
-                activation=tf.nn.relu,
-                padding='same',
+
+def conv_decode(x_, structure):
+    structure = list(enumerate(structure))
+
+    for idx, (filters, kernel_size, stride) in structure[::-1]:
+        x_ = tf.layers.conv2d_transpose(
+            x_,
+            filters, kernel_size, strides=(stride, stride),
+            activation=tf.nn.elu,
+            name=f'decode_{idx}')
+
+        if stride != 1:
+            # TODO: find better way to set the kernel size
+            x_ = tf.contrib.layers.conv2d_in_plane(
+                x_, 3, padding='SAME',
+                # NOTE: the name argument is not supported
+                # name=f'decode_smooth_{idx}',
             )
-            _logger.debug('shape after convolution %s', x_.shape)
 
-            if decode:
-                x_ = tf.layers.conv2d(
-                    x_,
-                    name=f'{name}_{i}_smooth',
-                    filters=nf,
-                    kernel_size=(st, st),
-                    activation=tf.nn.relu,
-                    padding='same',
-                )
-                _logger.debug('shape after smooth %s', x_.shape)
-
-        _logger.debug('shap after conv stack %s', x_.shape)
-        return x_
+    return x_
 
 
-def prod(items, initial=1):
-    for item in items:
-        initial = initial * item
-    return initial
+def latent_bottleneck(x_, latent_structure):
+    latent_structure = list(enumerate(latent_structure))
+
+    _, *feature_shape = x_.shape.as_list()
+    x_ = tf.reshape(x_, [-1, np.prod(feature_shape)])
+
+    _, latent_size = latent_structure[-1]
+
+    for idx, units in latent_structure[:-1]:
+        x_ = tf.layers.dense(x_, latent_size, activation=tf.nn.elu, name=f'dense_encode_{idx}')
+
+    latent_mean_ = tf.layers.dense(x_, latent_size, name='latent_mean')
+    latent_sigma_ = tf.nn.softplus(1e-4 + tf.layers.dense(x_, latent_size, name='latent_sdev'))
+    latent_ = latent_mean_ + latent_sigma_ * tf.random_normal(tf.shape(latent_mean_))
+
+    x_ = latent_
+    for idx, units in latent_structure[-2::-1]:
+        x_ = tf.layers.dense(x_, units, activation=tf.nn.elu, name=f'dense_decode_{idx}')
+
+    x_ = tf.layers.dense(latent_, np.prod(feature_shape), activation=tf.nn.elu, name='decoded')
+    x_ = tf.reshape(x_, [-1, *feature_shape])
+
+    return x_, latent_, (latent_mean_, latent_sigma_)
+
+
+def reconstruct(decoded_):
+    output_mean_ = tf.layers.dense(decoded_, 1, name='output_mean')
+    output_sigma_ = tf.nn.softplus(1e-3 + tf.layers.dense(decoded_, 1, name='output_sdev'))
+
+    output_ = output_mean_ + output_sigma_ * tf.random_normal(tf.shape(output_mean_))
+    return output_, (output_mean_, output_sigma_)
+
+
+def build_loss(input_, latent_params_, output_params_):
+    latent_mean_, latent_sigma_ = latent_params_
+    output_mean_, output_sigma_ = output_params_
+
+    # mean over batch size and image size
+    with tf.control_dependencies([
+        tf.assert_positive(output_sigma_), tf.assert_positive(latent_sigma_)
+    ]):
+        reconstruction_loss_ = tf.reduce_mean(
+            -0.5 * (input_ - output_mean_) ** 2.0 / output_sigma_ ** 2.0 - tf.log(output_sigma_)
+        )
+
+        # mean over  batch size + latent size
+        prior_loss_ = 0.5 * tf.reduce_mean(- latent_mean_ ** 2.0 - latent_sigma_ ** 2.0)
+
+        entropy_loss_ = 0.5 * tf.reduce_mean(1 + tf.log(latent_sigma_ ** 2.0))
+
+    # NOTE: scale the reconstruction loss to remove the constants introduced in mean
+    loss_ = (
+        prior_loss_ +
+        entropy_loss_ + reconstruction_loss_ *
+        tf.cast(tf.size(output_mean_) / tf.size(latent_mean_), tf.float32)
+    )
+
+    # NOTE: the loss is the negative of L as defined in ...
+    return -loss_, reconstruction_loss_, prior_loss_, entropy_loss_
