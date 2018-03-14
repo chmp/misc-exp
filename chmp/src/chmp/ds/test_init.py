@@ -8,8 +8,8 @@ from chmp.ds import fix_categories, find_high_frequency_categories
 
 def test_example_int():
     s = pd.Series([0, 1, 2] * 3)
-    actual = fix_categories(s, [1, 2], ordered=True)
-    expected = pd.Series([None, 1, 2] * 3, dtype='category').cat.as_ordered()
+    actual = fix_categories(s, [-1, 1, 2], ordered=True, other_category=-1)
+    expected = pd.Series([-1, 1, 2] * 3, dtype='category').cat.as_ordered()
 
     pdt.assert_almost_equal(actual, expected)
 

@@ -1,18 +1,10 @@
 # coding=utf8
-import enum
-import typing
-
 import pytest
 
 from chmp.experiment import (
     Loop,
-    Config,
-    SelfNamedEnum,
 
     bar,
-    build_dict,
-    build_parser,
-    get_annotations,
     shuffle,
     shuffled,
     tdformat,
@@ -110,86 +102,6 @@ def loop_test(iterable, action):
     result += ['{loop}'.format(loop=loop)]
 
     return result
-
-
-@typing.no_type_check
-class CustomConfig(Config):
-    a: int = 13
-    b: str = ''
-
-
-@typing.no_type_check
-class CustomConfig2(Config):
-    a: int = 13
-    b: typing.Optional[str] = None
-
-
-class CustomEnum(SelfNamedEnum):
-    foo = enum.auto()
-    bar = enum.auto()
-
-
-@typing.no_type_check
-class ChildConfig(CustomConfig):
-    b: CustomEnum = CustomEnum.foo
-
-
-def test_custom_config():
-    assert get_annotations(CustomConfig) == {
-        'a': int,
-        'b': str,
-    }
-
-    cfg = CustomConfig(a='42')
-
-    assert cfg.a == 42
-    assert cfg.b == ''
-
-
-def test_custom_config2():
-    assert get_annotations(CustomConfig2) == {
-        'a': int,
-        'b': typing.Optional[str],
-    }
-
-    cfg = CustomConfig2(a='42')
-
-    assert cfg.a == 42
-    assert cfg.b is None
-
-
-def test_custom_config__parser():
-    args = build_parser(CustomConfig).parse_args(['--a', '20', '--b', 'hello world'])
-    assert build_dict(args) == {
-        'atomic': False,
-        'config': {
-            'a': 20,
-            'b': 'hello world',
-        }
-    }
-
-
-def test_child_config():
-    assert get_annotations(ChildConfig) == {
-        'a': int,
-        'b': CustomEnum,
-    }
-
-    cfg = ChildConfig(b='bar')
-
-    assert cfg.a == 13
-    assert cfg.b == CustomEnum.bar
-
-
-def test_child_config__parser():
-    args = build_parser(ChildConfig).parse_args(['--a', '20', '--b', 'bar'])
-    assert build_dict(args) == {
-        'atomic': False,
-        'config': {
-            'a': 20,
-            'b': CustomEnum.bar,
-        }
-    }
 
 
 def test_shuffle():

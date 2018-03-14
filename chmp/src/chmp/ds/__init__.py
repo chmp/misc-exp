@@ -360,7 +360,8 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
     :param Optional[Any] other_category:
         all categories to be removed wil be mapped to this value, unless they
         are specified specified by the ``groups`` parameter. If given and not
-        included in the categories, it is added.
+        included in the categories, it is appended to the given categories.
+        For a custom order, ensure it is included in ``categories``.
 
     :param bool inplace:
         if True the series will be modified in place.
@@ -407,9 +408,12 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
 
     remapped = {c for group in groups.values() for c in group}
 
-    if set(removals) - set(remapped):
+    dangling_categories = {*removals} - {*remapped}
+    if dangling_categories:
         if other_category is None:
-            raise ValueError('dangling categories found, need other category to assign')
+            raise ValueError(
+                'dangling categories %s found, need other category to assign' % dangling_categories,
+            )
 
         groups.setdefault(other_category, set()).update(set(removals) - set(remapped))
 
