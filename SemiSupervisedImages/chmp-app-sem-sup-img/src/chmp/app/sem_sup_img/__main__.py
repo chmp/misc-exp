@@ -1,16 +1,39 @@
-import argparse
+import glob
 import json
 import logging
 import pathlib
 
-from chmp.app.sem_sup_img.data import input_fn
+import click
+
+from chmp.app.sem_sup_img.data import input_fn, list_zip_contents
 from chmp.app.sem_sup_img.model import Estimator, default_params
 
 
 _logger = logging.getLogger(__name__)
 
 
-def main(*, model_dir, data_file):
+@click.group()
+def main():
+    pass
+
+
+@main.command(name='update-data-file')
+@click.argument('pattern')
+@click.argument('file')
+def update_data_file(pattern, file):
+    data_files = []
+    for zip_path in glob.iglob(pattern):
+        for frame_fname in list_zip_contents(zip_path):
+            data_files.append((str(zip_path), str(frame_fname)))
+
+    with open(file, 'wt') as fobj:
+        json.dump(data_files, fobj, indent=2, sort_keys=True)
+
+
+@main.command()
+@click.option('--model-dir', required=True)
+@click.option('--data-file', required=True)
+def run(model_dir, data_file):
     data_file = pathlib.Path(data_file)
     model_dir = pathlib.Path(model_dir)
     config_path = model_dir / 'config.json'
@@ -53,10 +76,6 @@ def get_config(path, default_params):
     return config
 
 
-_parser = argparse.ArgumentParser()
-_parser.add_argument('--data-file', required=True)
-_parser.add_argument('--model-dir', required=True)
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -66,5 +85,4 @@ if __name__ == "__main__":
     for handler in handlers:
         logging.getLogger('tensorflow').removeHandler(handler)
 
-    args = _parser.parse_args()
-    main(model_dir=args.model_dir, data_file=args.data_file)
+    main()
