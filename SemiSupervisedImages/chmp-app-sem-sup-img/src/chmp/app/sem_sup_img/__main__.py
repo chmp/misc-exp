@@ -40,11 +40,15 @@ def run(model_dir, data_file):
 
     config = get_config(config_path, default_params)
 
+    _logger.info('use config %s', config)
+    _logger.info('use data file %s', data_file)
+
     with data_file.open('rt') as fobj:
         data_fnames = json.load(fobj)
 
     est = Estimator(
         model_dir='./run/experiment',
+        learning_rate=config['learning_rate'],
         structure=config['structure'],
         latent_structure=config['latent_structure'],
     )

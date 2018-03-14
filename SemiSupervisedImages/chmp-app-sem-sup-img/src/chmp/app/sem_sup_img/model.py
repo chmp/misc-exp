@@ -13,26 +13,26 @@ default_params = dict(
     latent_structure=[128, 64],
     max_steps=30_000,
     batch_size=20,
+    learning_rate=dict(type='constant', value=1e-4),
 )
 
 
 class Estimator(tf.estimator.Estimator):
     def __init__(
         self, *,
-        structure=None, latent_structure=None, model_dir=None, config=None, warm_start_from=None
+        learning_rate, structure, latent_structure,
+        model_dir=None, config=None, warm_start_from=None
     ):
-        if structure is None:
-            structure = default_params['structure']
-
-        if latent_structure is None:
-            latent_structure  = default_params['latent_structure']
-
         super().__init__(
             model_fn=model_fn,
             model_dir=model_dir,
             config=config,
             warm_start_from=warm_start_from,
-            params=dict(structure=structure, latent_structure=latent_structure),
+            params=dict(
+                structure=structure,
+                latent_structure=latent_structure,
+                learning_rate=learning_rate,
+            ),
         )
 
 
@@ -40,6 +40,7 @@ def model_fn(features, labels, mode, params):
     params = dict(default_params, **params)
     structure = params['structure']
     latent_structure = params['latent_structure']
+    learning_rate = params['learning_rate']
 
     input_ = features['input']
 
@@ -59,6 +60,17 @@ def model_fn(features, labels, mode, params):
     # TODO: check formula
     reconstruction_error_ = tf.reduce_mean((input_ - output_mean_) ** 2.0)
     reconstruction_error_expected_ = reconstruction_error_ + tf.reduce_mean(output_sigma_ ** 2.0)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode, predictions=dict(
+            latent=latent_,
+            latent_mean=latent_mean_,
+            output=output_,
+            output_mean=output_mean_,
+        ))
+
+    elif mode == tf.estimator.ModeKeys.EVAL:
+        raise NotImplementedError()
 
     with tf.name_scope('losses'):
         tf.summary.scalar('reconstruction_error', reconstruction_error_)
@@ -85,24 +97,33 @@ def model_fn(features, labels, mode, params):
         tf.summary.histogram('output_mean', output_mean_)
         tf.summary.histogram('output_sigma', output_sigma_)
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(mode, predictions=dict(
-            latent=latent_,
-            latent_mean=latent_mean_,
-            output=output_,
-            output_mean=output_mean_,
-        ))
-
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    if mode != tf.estimator.ModeKeys.TRAIN:
         raise NotImplementedError()
 
-    elif mode == tf.estimator.ModeKeys.TRAIN:
-        opt_ = tf.train.MomentumOptimizer(learning_rate=1e-4, momentum=0.9)
-        train_ = opt_.minimize(loss_, global_step=tf.train.get_global_step())
-        return tf.estimator.EstimatorSpec(mode, train_op=train_, loss=loss_)
+    global_step_ = tf.train.get_global_step()
+    learning_rate_ = get_learning_rate_op(global_step_, learning_rate)
+
+    tf.summary.scalar('learning_rate', learning_rate_)
+
+    opt_ = tf.train.MomentumOptimizer(learning_rate=learning_rate_, momentum=0.9)
+    train_ = opt_.minimize(loss_, global_step=global_step_)
+    return tf.estimator.EstimatorSpec(mode, train_op=train_, loss=loss_)
+
+
+def get_learning_rate_op(global_step_, learning_rate):
+    if not isinstance(learning_rate, dict):
+        return learning_rate
+
+    elif learning_rate['type'] == 'constant':
+        return learning_rate['value']
+
+    elif learning_rate['type'] == 'piecewise':
+        return tf.train.piecewise_constant(
+            global_step_, learning_rate['boundaries'], learning_rate['values'],
+        )
 
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"unknown learning rate type: {learning_rate['type']}")
 
 
 def conv_encode(x_, structure):
