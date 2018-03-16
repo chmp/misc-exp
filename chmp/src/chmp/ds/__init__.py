@@ -51,6 +51,11 @@ def define(func):
     return func()
 
 
+def colorize(items):
+    cycle = get_color_cycle()
+    return zip(it.cycle(cycle), items)
+
+
 def get_color_cycle(n=None):
     """Return the matplotlib color cycle.
 
@@ -80,15 +85,27 @@ def mpl_set(
         xscale=None, yscale=None, caption=None,
         xlim=None, ylim=None,
         xticks=None, yticks=None,
+        xformatter=None, yformatter=None,
         left=None, top=None, bottom=None, right=None, wspace=None, hspace=None,
         subplot=None,
         legend=None,
         colorbar=None,
         invert=None,
+        ax=None,
 ):
     """Set various style related options of MPL.
+
+    :param Optional[callable] xformatter:
+        if given a formatter for the major x ticks. Should have the
+        signature ``(x_value, pos) -> label``.
+
+    :param Optional[callable] yformatter:
+        See ``xformatter``.
     """
     import matplotlib.pyplot as plt
+
+    if ax is not None:
+        plt.sca(ax)
 
     if box is not None:
         plt.box(box)
@@ -135,6 +152,12 @@ def mpl_set(
 
         else:
             plt.yticks(yticks)
+
+    if xformatter is not None:
+        plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(xformatter))
+
+    if yformatter is not None:
+        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(yformatter))
 
     if caption is not None:
         _caption(caption)
