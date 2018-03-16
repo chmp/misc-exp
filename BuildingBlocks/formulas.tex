@@ -1,0 +1,83 @@
+\documentclass[a4paper]{scrartcl}
+\usepackage{amsmath} 
+
+\title{Important ML formulas}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Gaussians}
+
+Definition:
+
+\begin{align}
+    \mathcal{N}(x|\mu, C) &= \frac{1}{|C| (2 \pi)^{d/2}} \exp\left[ -\frac{1}{2} (x - \mu)^T C^{-1} (c - \mu) \right]
+\end{align}
+
+Marginals and conditionals (see Bishop, (2.113) - (2.117)):
+    
+\begin{align}
+    p(x) &= \mathcal{N}(x|\mu, \Lambda^{-1}) \\
+    p(y|x) &= \mathcal{N}(y|A x + b, L^{-1}) \\
+    p(y) &= \int \mathrm{d}x\; p(y|x)p(x) 
+        = \mathcal{N}(y|A\mu + b, L^{-1} + A \Lambda^{-1} A^T) \\
+    p(x|y) &= \frac{p(y|x)p(x)}{p(y)} 
+        = \mathcal{N}(y|\Sigma \left\{ A^T L (y - b) + \Lambda \mu \right\}, \Sigma) \\
+    \Sigma &= \left( \Lambda  + A^T L A \right)^{-1}
+\end{align}
+
+Conditioning on blocks
+
+\begin{align}
+    p(x) &= \mathcal{N}(x|\mu, C) \\
+    C &= \begin{pmatrix}
+        C_N & k \\
+        k^T & c
+    \end{pmatrix} \\
+    x &= (x_N, x_{N+1})^T \\
+    \mu &= (\mu_N, \mu_{N+1})^T
+\end{align}
+
+Then:
+
+\begin{align}
+    p(x_{N+1}|x_{N}) &= 
+        \mathcal{N}\left( x_{N+1} | \tilde{\mu}_{N+1}, \tilde{C}_{N+1} \right) \\
+    \tilde{\mu}_{N+1} &= \mu_{N+1} + k^T C_N^{-1} (x_N - \mu_N) \\
+    \tilde{C}_{N+1} &= c - k^T C_N^{-1} k
+\end{align}
+
+\section{Laplace approximation}
+\begin{align}
+    \log p(x) 
+        &\approx \log p(x^\star) + \frac{1}{2} \left(x - x^\star \right)^T H \left(x - x^\star\right) \\
+        &= \mathcal{N}(x|x^\star, H^{-1}) \\
+    &\left. \frac{\partial}{\partial x} \log p(x) \right|_{x^\star} = 0 \\
+    &H_{ij} = \frac{\partial^2}{\partial x_i \partial x_j} \log p(x) 
+\end{align}
+
+\section{Sigmoids}
+\begin{align}
+    \sigma(x) &= \frac{1}{1 - \exp(-x)} \\
+    \sigma(-x) &= 1 - \sigma(x)  \\
+    \log \frac{\sigma(x)}{1 - \sigma(x)} &= x \\
+    \frac{\partial}{\partial x}\sigma(x) &= \sigma(x) (1 - \sigma(x))
+\end{align}
+
+\section{Block Matrix Inverse}
+\begin{align}
+    \begin{bmatrix} 
+            A_{00} & A_{01} \\ 
+            A_{10} & A_{11} 
+    \end{bmatrix}^{-1} 
+    &= \begin{bmatrix} 
+        A_{00}^{-1} + F E^{-1} G & -F E^{-1} \\ 
+        -E^{-1} G & E^{-1} 
+    \end{bmatrix} \\
+    E &= A_{11} - A_{10} A_{00}^{-1} A_{01} \\
+    F &= A_{00}^{-1}A_{01} \\
+    G &= A_{10} A_{00}^{-1}
+\end{align}
+
+\end{document}
