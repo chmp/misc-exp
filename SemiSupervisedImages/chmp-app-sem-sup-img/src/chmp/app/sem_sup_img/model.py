@@ -1,14 +1,18 @@
+import json
+import operator as op
+import pathlib
+
 import numpy as np
 import tensorflow as tf
 
 
 default_params = dict(
     structure=[
-        (32, 4, 1),
-        (32, 3, 2),
-        (32, 3, 1),
-        (32, 3, 2),
-        (32, 3, 1),
+        dict(filters=32, kernel_size=4, stride=1),
+        dict(filters=32, kernel_size=3, stride=2),
+        dict(filters=32, kernel_size=3, stride=1),
+        dict(filters=32, kernel_size=3, stride=2),
+        dict(filters=32, kernel_size=3, stride=1),
     ],
     latent_structure=[128, 64],
     max_steps=30_000,
@@ -18,16 +22,26 @@ default_params = dict(
 
 
 class Estimator(tf.estimator.Estimator):
-    def __init__(
-        self, *,
-        learning_rate, structure, latent_structure,
-        model_dir=None, config=None, warm_start_from=None
-    ):
+    @classmethod
+    def from_model_dir(cls, model_dir):
+        with (pathlib.Path(model_dir) / 'config.json').open('rt') as fobj:
+            config = json.load(fobj)
+
+        return cls.from_config(config, model_dir=model_dir)
+
+    @classmethod
+    def from_config(cls, config, *, model_dir=None):
+        return cls(
+            learning_rate=config['learning_rate'],
+            structure=config['structure'],
+            latent_structure=config['latent_structure'],
+            model_dir=model_dir,
+        )
+
+    def __init__(self, *, learning_rate, structure, latent_structure, model_dir=None):
         super().__init__(
             model_fn=model_fn,
             model_dir=model_dir,
-            config=config,
-            warm_start_from=warm_start_from,
             params=dict(
                 structure=structure,
                 latent_structure=latent_structure,
@@ -127,7 +141,8 @@ def get_learning_rate_op(global_step_, learning_rate):
 
 
 def conv_encode(x_, structure):
-    for idx, (filters, kernel_size, stride) in enumerate(structure):
+    unpack = op.itemgetter('filters', 'kernel_size', 'stride')
+    for idx, (filters, kernel_size, stride) in enumerate(unpack(s) for s in structure):
         x_ = tf.layers.conv2d(
             x_,
             filters, kernel_size, strides=(stride, stride),
@@ -139,7 +154,8 @@ def conv_encode(x_, structure):
 
 
 def conv_decode(x_, structure):
-    structure = list(enumerate(structure))
+    unpack = op.itemgetter('filters', 'kernel_size', 'stride')
+    structure = list(enumerate(unpack(s) for s in structure))
 
     for idx, (filters, kernel_size, stride) in structure[::-1]:
         x_ = tf.layers.conv2d_transpose(

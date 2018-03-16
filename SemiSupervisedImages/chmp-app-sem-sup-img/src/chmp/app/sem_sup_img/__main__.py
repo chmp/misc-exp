@@ -46,12 +46,7 @@ def run(model_dir, data_file):
     with data_file.open('rt') as fobj:
         data_fnames = json.load(fobj)
 
-    est = Estimator(
-        model_dir='./run/experiment',
-        learning_rate=config['learning_rate'],
-        structure=config['structure'],
-        latent_structure=config['latent_structure'],
-    )
+    est = Estimator.from_config(config, model_dir=model_dir)
 
     _logger.info('run until %s steps', config['max_steps'])
     est.train(
