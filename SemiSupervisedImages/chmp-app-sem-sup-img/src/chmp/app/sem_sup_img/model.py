@@ -1,10 +1,12 @@
 import json
+import logging
 import operator as op
 import pathlib
 
 import numpy as np
 import tensorflow as tf
 
+_logger = logging.getLogger(__name__)
 
 default_params = dict(
     structure=[
@@ -179,6 +181,7 @@ def latent_bottleneck(x_, latent_structure):
     latent_structure = list(enumerate(latent_structure))
 
     _, *feature_shape = x_.shape.as_list()
+    _logger.info('shape after convolutions: %s (%s)', feature_shape, np.prod(feature_shape))
     x_ = tf.reshape(x_, [-1, np.prod(feature_shape)])
 
     _, latent_size = latent_structure[-1]
