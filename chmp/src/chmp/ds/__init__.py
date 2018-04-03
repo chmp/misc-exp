@@ -980,6 +980,52 @@ def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
         plt.yticks(indices, s.index)
 
 
+# TODO: make sureit can be called with a dataframe
+def qplot(
+    x=None, y=None, data=None, alpha=1.0, fill_alpha=0.8, color=None, ax=None,
+    **line_kwargs
+):
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    if y is None and x is not None:
+        x, y = y, x
+
+    if y is None:
+        raise ValueError('need data to plot')
+
+    if isinstance(y, tuple) or (isinstance(y, np.ndarray) and y.ndim == 2):
+        y = tuple(y)
+
+    else:
+        y = y,
+
+    if data is not None:
+        y = tuple(data[c] for c in y)
+
+    # TODO: use index if data a dataframe
+    if x is None:
+        x = np.arange(len(y[0]))
+
+    elif data is not None:
+        x = data[x]
+
+    if ax is None:
+        ax = plt.gca()
+
+    if color is None:
+        color = ax._get_lines.get_next_color()
+
+    n = len(y) // 2
+    fill_alpha = (1 / n) if fill_alpha is None else (fill_alpha / n)
+
+    for i in range(n):
+        plt.fill_between(x, y[i], y[-(i + 1)], alpha=fill_alpha * alpha, color=color)
+
+    if len(y) % 2 == 1:
+        plt.plot(x, y[n], alpha=alpha, color=color, **line_kwargs)
+
+
 def dashcb(app, output, *inputs, figure=False):
     """Construct a dash callback using function annotations.
 
