@@ -1,12 +1,10 @@
-# coding=utf8
 import pytest
 
-from chmp.experiment import (
+from chmp.ds import (
     Loop,
+    LoopState,
 
-    bar,
-    shuffle,
-    shuffled,
+    ascii_bar,
     tdformat,
 )
 
@@ -41,7 +39,7 @@ def test_tdformat(time_delta, formatted):
     ]
 )
 def test_bar(progress, result):
-    assert bar(progress) == result
+    assert ascii_bar(progress) == result
 
 
 def test_loop():
@@ -81,18 +79,11 @@ def test_loop_exception():
 
 
 def loop_test(iterable, action):
-    t = 0
-
-    def time():
-        nonlocal t
-        return t
-
-    loop = Loop(time=time)
     result = []
 
     try:
-        for i in loop(iterable):
-            t = i + 1
+        for loop, i in Loop.over(iterable, time=MockTime()):
+            loop.now.time = i + 1
             action(i)
             result += ['{loop}'.format(loop=loop)]
 
@@ -104,11 +95,70 @@ def loop_test(iterable, action):
     return result
 
 
-def test_shuffle():
-    l = list(range(3))
-    shuffle(42, l)
+expected_states = [
+    dict(expected=2, fraction=0.125, state=LoopState.running, total=0.25),
+    dict(expected=2, fraction=0.250, state=LoopState.running, total=0.50),
+    dict(expected=2, fraction=0.375, state=LoopState.running, total=0.75),
+    dict(expected=2, fraction=0.500, state=LoopState.running, total=1.00),
+    dict(expected=2, fraction=0.625, state=LoopState.running, total=1.25),
+    dict(expected=2, fraction=0.750, state=LoopState.running, total=1.50),
+    dict(expected=2, fraction=0.875, state=LoopState.running, total=1.75),
+    dict(expected=2, fraction=1.000, state=LoopState.running, total=2.00),
+    dict(expected=2, fraction=1.000, state=LoopState.done, total=2.00),
+]
 
-    assert sorted(l) == [0, 1, 2]
 
-    # test that seed is taken into account
-    assert shuffled(13, [0, 1, 2]) != shuffled(42, [0, 1, 2])
+def test_single():
+    states = []
+
+    for loop, _ in Loop.over(range(8), time=MockTime()):
+        loop.now.time += 0.25
+        states += [loop.get_info()]
+
+    states += [loop.get_info()]
+
+    for s in states:
+        s.pop('idx')
+
+    assert states == expected_states
+
+
+def test_nested():
+    states = []
+
+    for loop, _ in Loop.over(range(2), time=MockTime()):
+        for _ in loop.nest(range(4)):
+            loop.now.time += 0.25
+            states += [loop.get_info()]
+
+    states += [loop.get_info()]
+
+    for s in states:
+        s.pop('idx')
+
+    assert states == expected_states
+
+
+def test_nested_nested():
+    states = []
+
+    for loop, _ in Loop.over(range(2), time=MockTime()):
+        for _ in loop.nest(range(2)):
+            for _ in loop.nest(range(2)):
+                loop.now.time += 0.25
+                states += [loop.get_info()]
+
+    states += [loop.get_info()]
+
+    for s in states:
+        s.pop('idx')
+
+    assert states == expected_states
+
+
+class MockTime:
+    def __init__(self):
+        self.time = 0
+
+    def __call__(self):
+        return self.time

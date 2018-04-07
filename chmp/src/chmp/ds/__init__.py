@@ -5,11 +5,15 @@ license, (c) 2017 Christopher Prohm.
 """
 import base64
 import collections
+import enum
 import functools as ft
+import hashlib
 import importlib
 import io
 import itertools as it
+import json
 import sys
+import time
 
 try:
     from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, RegressorMixin
@@ -1106,3 +1110,315 @@ def dashmpl(func):
 def _dash_cb_parse_annotation(cls, s):
     element, _, property = s.partition(':')
     return cls(element, property)
+
+
+# ########################################################################## #
+#                               Looping                                      #
+# ########################################################################## #
+
+
+status_characters = it.accumulate([64, 128, 4, 32, 2, 16, 1, 8])
+status_characters = [chr(ord('\u2800') + v) for v in status_characters]
+status_characters = ['\u25AB', ' '] + status_characters
+
+running_characters = ['-', '\\', '|', '/']
+
+
+class LoopState(enum.Enum):
+    pending = 'pending'
+    running = 'running'
+    done = 'done'
+    aborted = 'aborted'
+
+
+class Loop:
+    @classmethod
+    def over(cls, iterable, length=None, time=time.time):
+        loop = cls(time=time)
+
+        for item in loop.nest(iterable, length):
+            yield loop, item
+
+    @staticmethod
+    def print(str, width=120, end='\r', file=None, flush=False):
+        print(str.ljust(width)[:width], end=end, file=file, flush=flush)
+
+    def __init__(self, time=time.time, stack=None, root=None):
+        if stack is None:
+            stack = []
+
+        self.now = time
+        self._stack = stack
+        self._root = root
+
+    def __getitem__(self, idx):
+        return Loop(time=self.now, stack=self._stack[idx:], root=self._stack[idx])
+
+    def nest(self, iterable, length=None):
+        frame = LoopFrame(self.now(), iterable, 0, length)
+
+        self._stack.append(frame)
+        if self._root is None:
+            self._root = frame
+
+        for item in frame.iterable:
+            try:
+                yield item
+
+            # NOTE: this is reached, when the generator is not fully consumed
+            except GeneratorExit:
+                frame.abort()
+                raise
+
+            frame.finish_item()
+
+        frame.finish()
+        self._stack.pop()
+
+    def get_info(self):
+        now = self.now()
+
+        info = dict(
+            fraction=self._get_fraction(self._stack),
+            total=now - self._root.start,
+            state=self._root.state,
+            idx=self._root.idx,
+        )
+
+        if info['fraction'] is not None:
+            info['expected'] = info['total'] / info['fraction']
+
+        else:
+            info['expected'] = None
+
+        return info
+
+    @classmethod
+    def _get_fraction(cls, stack):
+        if not stack:
+            return 1
+
+        root, *stack = stack
+
+        if root.length is None:
+            return None
+
+        return min(1.0, (root.idx + cls._get_fraction(stack)) / root.length)
+
+    def __str__(self):
+        return format(self)
+
+    def __format__(self, format_spec):
+        status = self.get_info()
+
+        if status['state'] is LoopState.pending:
+            return '[pending]'
+
+        elif status['state'] is LoopState.aborted:
+            return f'[aborted. took {tdformat(status["total"])}]'
+
+        elif status['state'] is LoopState.done:
+            return f'[done. took {tdformat(status["total"])}]'
+
+        elif status['state'] is not LoopState.running:
+            raise RuntimeError('unknown state')
+
+        if not format_spec:
+            format_spec = '[bt/e'
+
+        if format_spec[:1] == '[':
+            outer = '[', ']'
+            format_spec = format_spec[1:]
+
+        else:
+            outer = '', ''
+
+        if format_spec[:1] == '-':
+            join_char = ''
+            format_spec = format_spec[1:]
+
+        else:
+            join_char = ' '
+
+        result = [
+            self._loop_formats.get(c, lambda _: c)(status)
+            for c in format_spec
+        ]
+        return outer[0] + join_char.join(result) + outer[1]
+
+    _loop_formats = {
+        'B': lambda status: loop_bar(status, n=1),
+        'b': lambda status: loop_bar(status),
+        't': lambda status: tdformat(status["total"]),
+        'e': lambda status: tdformat(status["expected"]),
+        'r': lambda status: tdformat(status['expected'] - status['total']),
+        'f': lambda status: f"{status['fraction']:.1%}",
+    }
+
+
+class LoopFrame:
+    def __init__(self, start, iterable, idx=0, length=None, state=LoopState.running):
+        if length is None:
+            try:
+                length = len(iterable)
+
+            except TypeError:
+                length = None
+
+        else:
+            length = int(length)
+
+        self.start = start
+        self.iterable = iterable
+        self.idx = idx
+        self.length = length
+        self.state = state
+
+    def copy(self):
+        return LoopFrame(
+            start=self.start,
+            iterable=self.iterable,
+            idx=self.idx,
+            length=self.length,
+            state=self.state,
+        )
+
+    def finish_item(self):
+        self.idx += 1
+
+    def abort(self):
+        self.state = LoopState.aborted
+
+    def finish(self):
+        self.state = LoopState.done
+
+    def __repr__(self):
+        return 'LoopFrame(...) <state={!r}, start={!r}>'.format(self.state, self.start)
+
+
+def tdformat(time_delta):
+    """Format a timedelta given in seconds.
+    """
+    if time_delta is None:
+        return '?'
+
+    # TODO: handle negative differences?
+    time_delta = abs(time_delta)
+
+    d = dict(
+        weeks=int(time_delta // (7 * 24 * 60 * 60)),
+        days=int(time_delta % (7 * 24 * 60 * 60) // (24 * 60 * 60)),
+        hours=int(time_delta % (24 * 60 * 60) // (60 * 60)),
+        minutes=int(time_delta % (60 * 60) // 60),
+        seconds=time_delta % 60,
+    )
+
+    if d['weeks'] > 0:
+        return '{weeks}w {days}d'.format(**d)
+
+    elif d['days'] > 0:
+        return '{days}d {hours}h'.format(**d)
+
+    elif d['hours'] > 0:
+        return '{hours}h {minutes}m'.format(**d)
+
+    elif d['minutes'] > 0:
+        return '{minutes}m {seconds:.0f}s'.format(**d)
+
+    else:
+        return '{seconds:.2f}s'.format(**d)
+
+
+def loop_bar(status, n=10):
+    if status['fraction'] is not None:
+        return ascii_bar(status['fraction'], n=n)
+
+    return running_characters[status['idx'] % len(running_characters)]
+
+
+def ascii_bar(u, n=10):
+    """Format a ASCII progressbar"""
+    u = max(0.00, min(0.99, u))
+
+    done = int((n * u) // 1)
+    rest = max(0, n - done - 1)
+
+    c = int(((n * u) % 1) * len(status_characters))
+    return status_characters[-1] * done + status_characters[c] + status_characters[0] * rest
+
+
+# ###################################################################### #
+# #                                                                    # #
+# #                 Deterministic Random Number Generation             # #
+# #                                                                    # #
+# ###################################################################### #
+
+maximum_15_digit_hex = float(0xFFF_FFFF_FFFF_FFFF)
+max_32_bit_integer = 0xFFFF_FFFF
+
+
+def sha1(obj):
+    """Create a hash for a json-encode-able object
+    """
+    return int(str_sha1(obj)[:15], 16)
+
+
+def str_sha1(obj):
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(',', ':'))
+    s = s.encode('utf8')
+    return hashlib.sha1(s).hexdigest()
+
+
+def random(obj):
+    """Return a random float in the range [0, 1)"""
+    return min(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
+
+
+def uniform(obj, a, b):
+    return a + (b - a) * random(obj)
+
+
+def randrange(obj, *range_args):
+    r = range(*range_args)
+    # works up to a len of 9007199254749999, rounds down afterwards
+    i = int(random(obj) * len(r))
+    return r[i]
+
+
+def randint(obj, a, b):
+    return randrange(obj, a, b + 1)
+
+
+def np_seed(obj):
+    """Return a seed usable by numpy.
+    """
+    return [randrange((obj, i), max_32_bit_integer) for i in range(10)]
+
+
+def tf_seed(obj):
+    """Return a seed usable by tensorflow.
+    """
+    return randrange(obj, max_32_bit_integer)
+
+
+def std_seed(obj):
+    """Return a seed usable by python random module.
+    """
+    return str_sha1(obj)
+
+
+def shuffled(obj, l):
+    l = list(l)
+    shuffle(obj, l)
+    return l
+
+
+def shuffle(obj, l):
+    """Shuffle `l` in place using Fisher–Yates algorithm.
+
+    See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+    """
+    n = len(l)
+    for i in range(n - 1):
+        j = randrange((obj, i), i, n)
+        l[i], l[j] = l[j], l[i]
