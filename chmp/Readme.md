@@ -3,7 +3,6 @@
 - [`chmp.distributed`](src/chmp/distributed): distributed execution of
   functional pipelines
 - [`chmp.ds`](docs/ds.md): data science support
-- [`chmp.experiment`](src/chmp/experiment): support for ML experiments
 - [`chmp.label`](docs/label.md): support for labeling in IPython notebooks
 - [`chmp.ml`](src/chmp/ml): machine learning helpers
 - [`chmp.parser`](src/chmp/parser): helpers to write parsers using functional
