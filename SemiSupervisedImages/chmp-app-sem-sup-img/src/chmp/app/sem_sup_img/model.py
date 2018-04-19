@@ -81,8 +81,10 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode, predictions=dict(
             latent=latent_,
             latent_mean=latent_mean_,
+            latent_sigma=latent_sigma_,
             output=output_,
             output_mean=output_mean_,
+            output_sigma=output_sigma_,
         ))
 
     elif mode == tf.estimator.ModeKeys.EVAL:

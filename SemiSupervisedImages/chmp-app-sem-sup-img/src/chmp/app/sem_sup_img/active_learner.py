@@ -40,6 +40,7 @@ class ActiveLearner:
         self.class_proba = np.zeros((self.n_nodes, self.n_classes), dtype=np.float64)
         self.node_weight = np.zeros(self.n_nodes, dtype=np.int64)
         self.error = np.zeros(self.n_nodes, dtype=np.float64)
+        self.majority_class = np.zeros(self.n_nodes, dtype=np.int64)
 
         self.pruning = [self.root]
 
@@ -76,11 +77,18 @@ class ActiveLearner:
         alpha_0 = self.n_classes * self.concentration + self.node_weight
         alpha_0 = alpha_0[:, None]
 
-        self.class_proba[:] = alpha_i / alpha_0
-        delta = np.sqrt((alpha_i * (alpha_0 - alpha_i)) / (alpha_0 * alpha_0 * (alpha_0 + 1)))
-        proba_lower = np.maximum(0, self.class_proba - delta)
+        self.class_proba[:] = alpha_i / np.maximum(1e-6, alpha_0)
+        self.majority_class[:] = np.argmax(self.class_proba, axis=1)
 
-        self.error[:] = np.sum(self.class_proba * (1 - proba_lower), axis=1)
+        i = np.arange(self.n_nodes)
+        a0 = alpha_0[i, 0]
+        ai = alpha_i[i, self.majority_class]
+        p = self.class_proba[i, self.majority_class]
+
+        delta = np.sqrt((ai * (a0 - ai)) / np.maximum(1e-6, (a0 * a0 * (a0 + 1))))
+        proba_lower = np.maximum(0, p - delta)
+
+        self.error[:] = (1 - proba_lower)
 
     def split(self):
         self.pruning = [
@@ -135,6 +143,18 @@ class ActiveLearner:
     def sample_class(self):
         class_proba = self.fill_proba()
         return random_multinomial(class_proba)
+
+    def get_class(self):
+        # use the pruning to fill cluster w/ their probabilities
+        cluster_class = np.zeros(self.n_leaves, dtype=np.int64)
+        for cluster in self.pruning:
+            self.clustering.mark_leaves(cluster.id, self.majority_class[cluster.id], cluster_class)
+
+        # get the observed probabilities
+        observed_class = self.majority_class[:self.n_leaves]
+
+        # kepp observed probabiities, use cluster as a stand-in
+        return (1 - self.observed_leaves) * cluster_class + self.observed_leaves * observed_class
 
     @property
     def observed_leaves(self):

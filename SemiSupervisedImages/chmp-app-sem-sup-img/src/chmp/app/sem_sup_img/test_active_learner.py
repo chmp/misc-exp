@@ -45,7 +45,7 @@ def test_active_learner__add():
     learner.update([0, 2, 4], [1, 2, 2])
 
     np.testing.assert_almost_equal(learner.node_weight, [1, 0, 1, 0, 1, 1, 1, 2, 3])
-    np.testing.assert_almost_equal(learner.majority_class, [1, -1, 2, -1, 2, 2, 1, 1, 2])
+    np.testing.assert_almost_equal(learner.majority_class, [1, 0, 2, 0, 2, 2, 1, 1, 2])
     np.testing.assert_almost_equal(learner.class_count, [
         [0, 1, 0], [0, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 1],
         [0, 0, 1], [0, 1, 0], [0, 1, 1], [0, 1, 2],
