@@ -1112,6 +1112,15 @@ def _dash_cb_parse_annotation(cls, s):
     return cls(element, property)
 
 
+def expand(low, high, change=0.05):
+    center = 0.5 * (low + high)
+    delta = 0.5 * (high - low)
+    return (
+        center - (1 + 0.5 * change) * delta,
+        center + (1 + 0.5 * change) * delta,
+    )
+
+
 # ########################################################################## #
 #                               Looping                                      #
 # ########################################################################## #
