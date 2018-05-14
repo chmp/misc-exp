@@ -20,7 +20,18 @@ try:
 
 except ImportError:
     _HAS_SK_LEARN = False
-    BaseEstimator = TransformerMixin = object
+
+    class BaseEstimator:
+        pass
+
+    class TransformerMixin:
+        pass
+
+    class RegressorMixin:
+        pass
+
+    class ClassifierMixin:
+        pass
 
 else:
     _HAS_SK_LEARN = True
@@ -715,7 +726,7 @@ class FuncClassifier(BaseEstimator, ClassifierMixin):
         return np.argmax(self.predict_proba(df), axis=1)
 
 
-class FuncRegressor(BaseEstimator, ClassifierMixin):
+class FuncRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, func):
         self.func = func
 

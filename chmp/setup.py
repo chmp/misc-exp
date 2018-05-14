@@ -1,12 +1,9 @@
-from setuptools import setup, find_packages
+from setuptools import setup, PEP420PackageFinder
 
 setup(
     name='chmp',
-    version='0.1.0',
-    packages=[
-        'chmp.{}'.format(package)
-        for package in find_packages('src/chmp')
-    ],
+    version='0.2.0',
+    packages=PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},
-    test_requires=['pytest'],
+    tests_require=['pytest'],
 )
