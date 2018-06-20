@@ -10,3 +10,4 @@ bak*
 .DS_Store
 profile.dat
 *.code-workspace
+.pytest_cache/
