@@ -10,6 +10,17 @@ name = "pypi"
 "39bd382" = {path = "./chmp", editable = true}
 "47b1f36" = {path = "./KeywordDetection/chmp-app-kwdetect", editable = true}
 "7f29d02" = {path = "./SemiSupervisedImages/chmp-app-sem-sup-img", editable = true}
+scikit-learn = "*"
+scipy = "*"
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+patsy = "*"
+ipytest = "*"
+pytest = "*"
+sympy = "*"
+mplleaflet = "*"
+ipywidgets = "*"
 
 
 [dev-packages]
