@@ -955,6 +955,8 @@ def colormap(x, cmap='coolwarm', center=True, vmin=None, vmax=None, norm=None):
     import matplotlib.cm as cm
     import matplotlib.colors as colors
 
+    x = np.asarray(x)
+
     if norm is None:
         norm = colors.NoNorm()
 
