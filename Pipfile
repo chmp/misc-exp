@@ -1,12 +1,9 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 "39bd382" = {path = "./chmp", editable = true}
 "47b1f36" = {path = "./KeywordDetection/chmp-app-kwdetect", editable = true}
 "7f29d02" = {path = "./SemiSupervisedImages/chmp-app-sem-sup-img", editable = true}
@@ -21,13 +18,12 @@ pytest = "*"
 sympy = "*"
 mplleaflet = "*"
 ipywidgets = "*"
-
+altair = "*"
+vega = "*"
+"422b063" = {path = "./vegawidget"}
 
 [dev-packages]
-
 jupyter = {extras = ["notebook"]}
 
-
 [requires]
-
 python_version = "3.6"
