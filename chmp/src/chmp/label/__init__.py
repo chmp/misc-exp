@@ -21,6 +21,10 @@ import json
 import logging
 import os.path
 
+from ipywidgets import DOMWidget, Button, Text, HBox, VBox, jslink
+from IPython.display import display_javascript, Javascript
+from traitlets import Unicode, Float
+
 _logger = logging.getLogger(__name__)
 
 
@@ -456,3 +460,357 @@ _mime_types = {
     '.png': 'image/png',
     '.wav': 'audio/wav',
 }
+
+
+# ########################################################################## #
+#                                                                            #
+#                                 Bounding Boxes                             #
+#                                                                            #
+# ########################################################################## #
+def annotate_bounding_boxes(images):
+    annotations = []
+    position = 0
+
+    bounding_boxer = BoundingBoxer()
+    annotation_display = AnnotationDisplay()
+    label = Text(placeholder='label')
+    prev_button = Button(description='prev')
+    next_button = Button(description='next')
+
+    widget = VBox([
+        HBox([label, prev_button, next_button]),
+        bounding_boxer,
+        annotation_display,
+    ])
+
+    def show():
+        if bounding_boxer.url:
+            annotations.append((bounding_boxer.url, bounding_boxer.annotations))
+
+        if position < len(images):
+            url = images[position]
+
+        else:
+            url = ''
+
+        if callable(url):
+            url = url()
+        
+        bounding_boxer.url = url
+        bounding_boxer.annotations = []
+
+    def _advance(delta):
+        nonlocal position
+        # NOTE: allow to walk out of the images
+        position = max(0, min(len(images), position + delta))
+        show()
+
+    show()
+    jslink((bounding_boxer, '_annotations'), (annotation_display, '_annotations'))
+    jslink((bounding_boxer, 'current_tag'), (label, 'value'))
+
+    @bounding_boxer.on_msg
+    def _(widget, ev, _):
+        if ev['type'] == 'keydown' and ev['which'] == 32:
+            _advance(+1)
+
+    prev_button.on_click(lambda *_: _advance(-1))
+    next_button.on_click(lambda *_: _advance(+1))
+
+    return widget, annotations
+
+
+class BoundingBoxer(DOMWidget):
+    """Allow to annotate an image with bounding boxes."""
+    _view_name = Unicode('BoundingBoxer').tag(sync=True)
+    _view_module = Unicode('de/cprohm/label/boundingBoxer').tag(sync=True)
+    _view_module_version = Unicode('0.1.0').tag(sync=True)
+
+    url = Unicode(None, allow_none=True).tag(sync=True)
+    current_tag = Unicode().tag(sync=True)
+    scale = Float(1.0).tag(sync=True)
+
+    _annotations = Unicode('[]').tag(sync=True)
+
+    def __init__(self):
+        super().__init__()
+        inject_bounding_boxer_js()
+
+    @property
+    def annotations(self):
+        return json.loads(self._annotations)
+
+    @annotations.setter
+    def annotations(self, value):
+        self._annotations = json.dumps(value)
+
+
+class AnnotationDisplay(DOMWidget):
+    """Widget to show and manipulate bounding box annotations."""
+    _view_name = Unicode('Annotations').tag(sync=True)
+    _view_module = Unicode('de/cprohm/label/boundingBoxer').tag(sync=True)
+    _view_module_version = Unicode('0.1.0').tag(sync=True)
+
+    _annotations = Unicode('[]').tag(sync=True)
+
+    def __init__(self):
+        super().__init__()
+        inject_bounding_boxer_js()
+
+    @property
+    def annotations(self):
+        return json.loads(self._annotations)
+
+    @annotations.setter
+    def annotations(self, value):
+        self._annotations = json.dumps(value)
+
+
+def inject_bounding_boxer_js():
+    if getattr(inject_bounding_boxer_js, 'injected', False) is True:
+        return
+
+    inject_bounding_boxer_js.injected = True
+    display_javascript(Javascript(_bounding_boxer_js))
+
+
+_bounding_boxer_js = r'''
+require.undef('de/cprohm/label/boundingBoxer');
+
+define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widgets) {
+    "use strict";
+    
+    const BoundingBoxer = widgets.DOMWidgetView.extend({
+        render: function() {
+            // hidden element to load the image
+            this.img = document.createElement('img');
+            this.img.style = 'display: none';
+            this.el.appendChild(this.img);
+            
+            this.canvas = document.createElement('canvas');
+            this.canvas.style = 'border: 1px solid black;'
+            // make sure key events are fired
+            // TODO: forward key events of the canvas to python
+            this.canvas.tabIndex = 100;
+            
+            this.canvas.addEventListener('click', this.onCanvasClick.bind(this), false);
+            this.canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this), false);
+            this.canvas.addEventListener('keydown', this.onCanvasKeyDown.bind(this), false);
+            
+            this.el.appendChild(this.canvas);
+            
+            this.model.on('change:_annotations', this.updateClient.bind(this));
+            this.model.on('change:url', this.updateClient.bind(this));
+            this.model.on('change:scale', this.updateClient.bind(this));
+            
+            this.updateClient();
+        },
+        
+        updateServer: logerr(function() {
+            console.log('update', JSON.stringify(this.annotations));
+            this.model.set(
+                '_annotations', JSON.stringify(this.annotations),
+            );
+            this.touch();
+        }),
+        updateClient: logerr(function() {
+            console.log(this.model.get('_annotations'));
+            this.annotations = JSON.parse(
+                this.model.get('_annotations'),
+            );
+            this.url = this.model.get('url');
+            this.scale = this.model.get('scale');
+            
+            // TODO: is this operation really synchronous?
+            this.img.src = this.url || '';
+            
+            this.canvas.width = this.scale * this.img.width;
+            this.canvas.height = this.scale * this.img.height;
+            
+            this.nextId = Math.max(0, ...this.annotations.map(a => a.id + 1));
+            
+            this.redraw();
+        }),
+        redraw: logerr(function(ctx) {
+            if(ctx == null) {
+                ctx = this.canvas.getContext('2d');
+            }
+            ctx.drawImage(
+                this.img, 
+                0, 0, this.img.width, this.img.height,
+                0, 0, 
+                this.scale * this.img.width, 
+                this.scale * this.img.height,
+            );
+            
+            for(const annotation of this.annotations) {
+                ctx.strokeStyle = 'red';
+                ctx.strokeRect(
+                    annotation.x, annotation.y, 
+                    annotation.w, annotation.h,
+                );
+
+                ctx.fillStyle = 'red';
+                ctx.font = '12px sans-serif';
+                ctx.fillText(
+                    annotation.id + ':' + annotation.label, 
+                    annotation.x, annotation.y + annotation.h,
+                );
+            }
+        }),
+        onCanvasClick: logerr(function(ev) {
+            const pos = this.position(ev);
+
+            if(this.pos == null) {
+                this.pos = pos;
+            }
+            else {
+                const x = ~~Math.min(this.pos.x, pos.x);
+                const y = ~~Math.min(this.pos.y, pos.y);
+                const w = ~~Math.abs(this.pos.x - pos.x);
+                const h = ~~Math.abs(this.pos.y - pos.y);
+                const label = this.model.get('current_tag');
+                const id = this.nextId++;
+                
+                this.pos = null;   
+                
+                this.annotations.push({id, label, x, y, w, h});
+                this.updateServer();
+            }
+            this.redraw();
+        }),
+        onCanvasMouseMove: logerr(function(ev) {
+            if(this.pos != null) {
+                var pos = this.position(ev);
+                var x = Math.min(this.pos.x, pos.x)
+                var y = Math.min(this.pos.y, pos.y);
+
+                var w = Math.abs(this.pos.x - pos.x);
+                var h = Math.abs(this.pos.y - pos.y);
+
+                var ctx = this.canvas.getContext('2d');
+                this.redraw(ctx);
+                ctx.strokeStyle = 'green';
+                ctx.strokeRect(x, y, w, h);
+            }
+        }),
+        onCanvasKeyDown: logerr(function(ev) {
+            ev.preventDefault();
+            this.send({'type': 'keydown', 'which': ev['which']});
+        }),
+        position: function(event) {
+            var rect = this.canvas.getBoundingClientRect();
+            return {
+              x: event.clientX - rect.left,
+              y: event.clientY - rect.top,
+            };
+        },
+    });
+    
+    const Annotations = widgets.DOMWidgetView.extend({
+        render: function() {
+            this.model.on('change:_annotations', this.redraw.bind(this));
+            this.redraw();
+        },
+        updateServer: logerr(function() {
+            this.model.set(
+                '_annotations', JSON.stringify(this.annotations),
+            );
+            this.touch();
+        }),
+        redraw: logerr(function() {
+            // keep the array around for bidrectional updates
+            this.annotations = JSON.parse(this.model.get('_annotations'));
+            
+            // clear the element
+            while(this.el.firstChild) {
+                this.el.removeChild(this.el.firstChild);
+            }
+            
+            // add new annotations
+            for(const annotation of this.annotations) {
+                this.el.appendChild(
+                    div(
+                        text('' + annotation.id + ' '),
+                        synced(annotation, 'label'),
+                        text(': '),
+                        synced(annotation, 'x'),
+                        text('/'),
+                        synced(annotation, 'y'),
+                        text(' '),
+                        synced(annotation, 'w'),
+                        text('/'),
+                        synced(annotation, 'h'),
+                        removeButton(annotation),
+                    ),
+                );
+            }
+            
+            const self = this;
+            function div(...children) {
+                const el = document.createElement('div');
+                for(const child of children) {
+                    el.appendChild(child);
+                }
+                return el;
+            }
+            
+            function text(s) {
+                return document.createTextNode(s);
+            }
+            
+            function synced(obj, key) {
+                const el = document.createElement('input');
+                el.value = obj[key];
+                
+                const update = () => {
+                    obj[key] = el.value;
+                    self.updateServer();
+                }
+
+                el.addEventListener('change', update);
+                el.addEventListener('keydown', function(ev) {
+                    if(ev.which == 13) {
+                        ev.preventDefault();
+                        update();
+                    }
+                });
+
+                return el;
+            }
+            
+            function removeButton(obj) {
+                const button = document.createElement('button');
+                button.innerHTML = 'x';
+                
+                button.addEventListener('click', () => {
+                    const row = button.parentNode;
+                    const el = row.parentNode;
+                    el.removeChild(row);
+                    
+                    self.annotations = self.annotations.filter(
+                        o => o.id != obj.id
+                    );
+                    console.log(JSON.stringify(self.annotations));
+                    self.updateServer();
+                });
+                return button;
+            }
+        }),
+    })
+    
+    function logerr(func) {
+        return function() {
+            try {
+                return func.apply(this, arguments);
+            }
+            catch(err) {
+                console.error(err);
+                throw err;
+            }
+        }
+    }
+    
+    return {BoundingBoxer, Annotations};
+});
+'''
