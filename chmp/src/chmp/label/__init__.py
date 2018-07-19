@@ -495,7 +495,7 @@ def annotate_bounding_boxes(images):
 
         if callable(url):
             url = url()
-        
+
         bounding_boxer.url = url
         bounding_boxer.annotations = []
 
