@@ -21,6 +21,10 @@ ipywidgets = "*"
 altair = "*"
 vega = "*"
 "422b063" = {path = "./vegawidget"}
+sqlalchemy = "*"
+requests = "*"
+"beautifulsoup4" = "*"
+torch = "*"
 
 [dev-packages]
 jupyter = {extras = ["notebook"]}
