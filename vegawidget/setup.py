@@ -6,6 +6,7 @@ setup(
     version='0.1.0',
     packages=PEP420PackageFinder.find('src'),
     package_dir={'': 'src'},
+    python_requires='>=3',
     install_requires=['ipywidgets', 'vega'],
     tests_require=['pytest'],
     include_package_data=True,
