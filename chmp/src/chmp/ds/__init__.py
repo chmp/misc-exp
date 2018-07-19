@@ -107,6 +107,7 @@ def mpl_set(
         colorbar=None,
         invert=None,
         ax=None,
+        grid=None,
 ):
     """Set various style related options of MPL.
 
@@ -203,6 +204,28 @@ def mpl_set(
 
         if 'y' in invert:
             plt.gca().invert_yaxis()
+
+    if grid is not None:
+        if not isinstance(grid, list):
+            grid = [grid]
+
+        for spec in grid:
+            if isinstance(spec, bool):
+                b, which, axis = spec, 'major', 'both'
+
+            elif isinstance(spec, str):
+                b, which, axis = True, 'major', spec
+
+            elif isinstance(spec, tuple) and len(spec) == 2:
+                b, which, axis = True, spec[0], spec[1]
+
+            elif isinstance(spec, tuple):
+                b, which, axis = spec
+
+            else:
+                raise RuntimeError()
+
+            plt.grid(b, which, axis)
 
 
 def edges(x):
