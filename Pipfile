@@ -25,6 +25,11 @@ sqlalchemy = "*"
 requests = "*"
 "beautifulsoup4" = "*"
 torch = "*"
+dask = "*"
+cloudpickle = "*"
+partd = "*"
+vmprof = "*"
+bokeh = "*"
 
 [dev-packages]
 jupyter = {extras = ["notebook"]}
