@@ -7,6 +7,7 @@ license, (c) 2017 Christopher Prohm.
 import functools as ft
 import inspect
 import operator as op
+import re
 
 
 class ParseError(Exception):
@@ -315,6 +316,27 @@ def end_of_sequence():
             return tokens, None, _fail(offset, 0, message='trailing tokens {!r}'.format(_excerpt(tokens)))
 
     return end_of_sequence_parser
+
+
+@parameters('pattern')
+def regex(pattern, flags=0):
+    pattern = re.compile(pattern, flags=flags)
+
+    def _match_regex(lines, offset):
+        if not lines:
+            return lines, None, {}
+
+        head = lines[0]
+        tail = lines[1:]
+
+        m = pattern.match(head)
+
+        if m is None:
+            return lines, None, {}
+
+        return tail, [m.groupdict()], {}
+
+    return _match_regex
 
 
 def _excerpt(s, n=40):
