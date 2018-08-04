@@ -1248,9 +1248,9 @@ class Loop:
     The following format codes are recognized:
 
     * ``[``: in the beginning, indicates that the progress bar will be
-        surrounded by brackets.
+      surrounded by brackets.
     * ``-``: in the beginning, indicates that the parts of the progress bar
-        will be printed without automatic spaces
+      will be printed without automatic spaces
     * ``B``: a one character bar
     * ``b``: the full bar
     * ``t``: the total runtime so far

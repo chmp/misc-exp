@@ -1,10 +1,36 @@
 
 ## `chmp.ds`
 
-Helper for data science.
+Helpers for data science.
 
 Distributed as part of `https://github.com/chmp/misc-exp` under the MIT
 license, (c) 2017 Christopher Prohm.
+
+
+
+### `chmp.ds.Loop`
+`chmp.ds.Loop(time, stack, root, debounce, time=<built-in function time>, stack=None, root=None, debounce=0.1)`
+
+A flexible progressbar indicator.
+
+It's designed to make printing custom messages and customizing the loop
+style easy.
+
+The following format codes are recognized:
+
+- `[`: in the beginning, indicates that the progress bar will be
+  surrounded by brackets.
+- `-`: in the beginning, indicates that the parts of the progress bar
+  will be printed without automatic spaces
+- `B`: a one character bar
+- `b`: the full bar
+- `t`: the total runtime so far
+- `e`: the expected total runtime
+- `r`: the expected remaining runtime
+- `f`: the fraction of work performed so far
+- additional characters will be included verbatim
+
+To access nested loop use the getitem notation, e.g. `loop[1]`.
 
 
 
@@ -77,7 +103,7 @@ Find categories with high frequency.
 
 #### Parameters
 
-* **min_min_frequency** (*float*):
+* **min_frequency** (*float*):
   the minimum frequency to keep
 * **n_max** (*Optional[int]*):
   if given keep at most `n_max` categories. If more are present after
@@ -103,7 +129,8 @@ Fix the categories of a categorical series.
 * **other_category** (*Optional[Any]*):
   all categories to be removed wil be mapped to this value, unless they
   are specified specified by the `groups` parameter. If given and not
-  included in the categories, it is added.
+  included in the categories, it is appended to the given categories.
+  For a custom order, ensure it is included in `categories`.
 * **inplace** (*bool*):
   if True the series will be modified in place.
 * **groups** (*Optional[Mapping[Any,Iterable[Any]]]*):
@@ -134,9 +161,17 @@ blue, green, red = get_color_cycle(3)
 
 
 ### `chmp.ds.mpl_set`
-`chmp.ds.mpl_set(box, xlabel, ylabel, title, suptitle, xscale, yscale, caption, xlim, ylim, xticks, yticks, left, top, bottom, right, wspace, hspace, subplot, legend, colorbar, box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None)`
+`chmp.ds.mpl_set(box, xlabel, ylabel, title, suptitle, xscale, yscale, caption, xlim, ylim, xticks, yticks, xformatter, yformatter, left, top, bottom, right, wspace, hspace, subplot, legend, colorbar, invert, ax, grid, box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, xformatter=None, yformatter=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None, invert=None, ax=None, grid=None)`
 
 Set various style related options of MPL.
+
+#### Parameters
+
+* **xformatter** (*Optional[callable]*):
+  if given a formatter for the major x ticks. Should have the
+  signature `(x_value, pos) -> label`.
+* **yformatter** (*Optional[callable]*):
+  See `xformatter`.
 
 
 
@@ -153,15 +188,8 @@ path([0, 1, 0], [0, 1, 1], facecolor='r')
 
 
 
-### `chmp.ds.notebook_preamble`
-`chmp.ds.notebook_preamble()`
-
-Add common code
-
-
-
 ### `chmp.ds.reload`
-`chmp.ds.reload()`
+`chmp.ds.reload(*modules_or_module_names)`
 
 <undocumented>
 

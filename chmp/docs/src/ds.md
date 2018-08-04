@@ -1,6 +1,8 @@
 
 .. automodule:: chmp.ds
 
+.. autoclass:: chmp.ds.Loop
+
 .. autofunction:: chmp.ds.axtext
 
 .. autofunction:: chmp.ds.change_plot
@@ -20,8 +22,6 @@
 .. autofunction:: chmp.ds.mpl_set
 
 .. autofunction:: chmp.ds.path
-
-.. autofunction:: chmp.ds.notebook_preamble
 
 .. autofunction:: chmp.ds.reload
 
