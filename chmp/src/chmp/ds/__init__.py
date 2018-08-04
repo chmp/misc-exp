@@ -175,7 +175,7 @@ def mpl_set(
         plt.suptitle(suptitle)
 
     if xscale is not None:
-        plt.yscale(xscale)
+        plt.xscale(xscale)
 
     if yscale is not None:
         plt.yscale(yscale)
