@@ -1208,25 +1208,98 @@ class LoopState(enum.Enum):
     aborted = 'aborted'
 
 
+class LoopPrintDispatch:
+    def __get__(self, instance, owner):
+        if instance is None:
+            return owner._static_print
+
+        else:
+            return instance._print
+
+
+class Debouncer:
+    def __init__(self, interval, *, now=time.time):
+        self.last_invocation = 0
+        self.interval = interval
+        self.now = now
+
+    def should_run(self, now=None):
+        if self.interval is False:
+            return True
+
+        if now is None:
+            now = self.now()
+
+        return now > self.last_invocation + self.interval
+
+    def invoked(self, now=None):
+        if now is None:
+            now = self.now()
+
+        self.last_invocation = now
+
+
 class Loop:
+    """A flexible progressbar indicator.
+
+    It's designed to make printing custom messages and customizing the loop
+    style easy.
+
+    The following format codes are recognized:
+
+    * ``[``: in the beginning, indicates that the progress bar will be
+        surrounded by brackets.
+    * ``-``: in the beginning, indicates that the parts of the progress bar
+        will be printed without automatic spaces
+    * ``B``: a one character bar
+    * ``b``: the full bar
+    * ``t``: the total runtime so far
+    * ``e``: the expected total runtime
+    * ``r``: the expected remaining runtime
+    * ``f``: the fraction of work performed so far
+    * additional characters will be included verbatim
+
+    To access nested loop use the getitem notation, e.g. ``loop[1]``.
+
+    """
     @classmethod
-    def over(cls, iterable, length=None, time=time.time):
-        loop = cls(time=time)
+    def range(cls, *range_args, time=time.time, debounce=0.1):
+        return cls.over(range(*range_args), time=time, debounce=debounce)
+
+    @classmethod
+    def over(cls, iterable, length=None, time=time.time, debounce=0.1):
+        loop = cls(time=time, debounce=debounce)
 
         for item in loop.nest(iterable, length):
             yield loop, item
 
+    print = LoopPrintDispatch()
+
     @staticmethod
-    def print(str, width=120, end='\r', file=None, flush=False):
+    def _static_print(str: str, width=120, end='\r', file=None, flush=False):
         print(str.ljust(width)[:width], end=end, file=file, flush=flush)
 
-    def __init__(self, time=time.time, stack=None, root=None):
+    def _print(self, str: str, width=120, end='\r', file=None, flush=False):
+        now = self.now()
+        if not self.debouncer.should_run(now=now):
+            return
+
+        self.debouncer.invoked(now=now)
+        self._static_print(str, width=width, end=end, file=file, flush=flush)
+
+    def will_print(self, now=None):
+        """Check whether the print invocation will be debounced."""
+        return self.debouncer.should_run(now)
+
+    def __init__(self, time=time.time, stack=None, root=None, debounce=0.1):
         if stack is None:
             stack = []
 
         self.now = time
         self._stack = stack
         self._root = root
+        self._last_print = 0
+        self.debouncer = Debouncer(debounce)
 
     def __getitem__(self, idx):
         return Loop(time=self.now, stack=self._stack[idx:], root=self._stack[idx])
