@@ -12,7 +12,6 @@ to listen continuously for commands.
 ## Support
 
 - [chmp](./chmp): support code as a python package
-- [bin](./bin): executable helpers
 
 ## Getting started
 
