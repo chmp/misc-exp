@@ -66,6 +66,38 @@ def define(func):
     return func()
 
 
+class Object:
+    """Dictionary-like namespace object."""
+    def __init__(*args, **kwargs):
+        self, *args = args
+
+        if len(args) > 1:
+            raise ValueError('Object(...) can be called with at '
+                             'most one positional argument')
+
+        elif len(args) == 0:
+            seed = {}
+
+        else:
+            seed, = args
+            if not isinstance(seed, collections.Mapping):
+                seed = vars(seed)
+
+        for k, v in dict(seed, **kwargs).items():
+            setattr(self, k, v)
+
+    def __repr__(self):
+        return 'Object({})'.format(
+            ', '.join('{}={!r}'.format(k, v) for k, v in vars(self).items())
+        )
+
+    def __eq__(self, other):
+        return type(self) == type(other) and vars(self) == vars(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
 def colorize(items):
     cycle = get_color_cycle()
     return zip(it.cycle(cycle), items)
