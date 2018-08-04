@@ -30,6 +30,7 @@ cloudpickle = "*"
 partd = "*"
 vmprof = "*"
 bokeh = "*"
+tornado = "<5.0"
 
 [dev-packages]
 jupyter = {extras = ["notebook"]}
