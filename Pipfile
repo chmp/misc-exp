@@ -34,9 +34,12 @@ tornado = "<5.0"
 
 [dev-packages]
 jupyter = {extras = ["notebook"]}
+black = "==18.6b4"
+docutils = "*"
 
 [requires]
 python_version = "3.6"
 
 [scripts]
 test = "py.test chmp"
+docs = "python -m chmp.tools mddocs chmp/docs/src chmp/docs"
