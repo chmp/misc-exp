@@ -1,13 +1,13 @@
 from setuptools import setup
 
 setup(
-    name='chmp-app-off_policy',
+    name='chmp-app-causality',
     version='0.1.0',
     description='...',
     author='Christopher Prohm',
     author_email='mail@cprohm.de',
     license='MIT',
-    packages=["chmp.app.off_policy"],
+    packages=["chmp.app.causality"],
     package_dir={'': 'src'},
     install_requires=[
         'chmp',

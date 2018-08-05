@@ -11,21 +11,19 @@ _basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 def create(data_path):
-    target_fname = os.path.join(data_path, 'customer.parquet')
+    target_fname = os.path.join(data_path, "customer.parquet")
     if os.path.exists(target_fname):
-        _logger.info('skip %s, does already exist', target_fname)
+        _logger.info("skip %s, does already exist", target_fname)
         return
 
-    _logger.info('create %s', target_fname)
-    generate_customer_data(n_samples=100_000).to_parquet(target_fname, engine='pyarrow', compression='brotli')
+    _logger.info("create %s", target_fname)
+    generate_customer_data(n_samples=100_000).to_parquet(
+        target_fname, engine="pyarrow", compression="brotli"
+    )
 
 
 def generate_customer_data(
-        n_samples=100_000,
-        n_occupations=5,
-        seed=24,
-        p_random=0.05,
-        train_ratio=0.75,
+    n_samples=100_000, n_occupations=5, seed=24, p_random=0.05, train_ratio=0.75
 ):
     """Generate a dataset designed to resemble customer datasets.
     """
@@ -37,25 +35,20 @@ def generate_customer_data(
 
     generic_latent = sigmoid(np.random.normal(size=n_samples))
 
-    salary_latent = (
-        spline(
-            sample_cauchy(size=(1, n_occupations)) +
-            np.random.normal(loc=1, scale=0.75, size=(10, n_occupations)).cumsum(axis=0),
-            age_latent,
-        ) +
-        spline(
-            sample_cauchy(size=(1, n_occupations)) +
-            np.random.normal(loc=3, scale=0.75, size=(10, n_occupations)).cumsum(axis=0),
-            gender_latent,
-        )
+    salary_latent = spline(
+        sample_cauchy(size=(1, n_occupations))
+        + np.random.normal(loc=1, scale=0.75, size=(10, n_occupations)).cumsum(axis=0),
+        age_latent,
+    ) + spline(
+        sample_cauchy(size=(1, n_occupations))
+        + np.random.normal(loc=3, scale=0.75, size=(10, n_occupations)).cumsum(axis=0),
+        gender_latent,
     )
     salary_latent = salary_latent[np.arange(n_samples), occupation_latent]
 
-    dist_city_latent = (
-        spline(
-            np.random.laplace(loc=+1, scale=0.4, size=(10, n_occupations)).cumsum(axis=0),
-            age_latent,
-        )
+    dist_city_latent = spline(
+        np.random.laplace(loc=+1, scale=0.4, size=(10, n_occupations)).cumsum(axis=0),
+        age_latent,
     )
     dist_city_latent = dist_city_latent[np.arange(n_samples), occupation_latent]
 
@@ -68,67 +61,75 @@ def generate_customer_data(
     effect_noise_1 = np.random.normal(scale=0.4, size=n_samples)
 
     generic = spline(
-        np.random.laplace(loc=+0, scale=0.4, size=10).cumsum(axis=0),
-        generic_latent,
+        np.random.laplace(loc=+0, scale=0.4, size=10).cumsum(axis=0), generic_latent
     )
 
     data = pd.DataFrame()
 
-    data['age'] = spline(
+    data["age"] = spline(
         [20, 25, 30, 45, 60, 85],
         normalize(age_latent) + np.random.normal(scale=0.05, size=n_samples),
     )
-    data['gender'] = ((gender_latent + np.random.normal(scale=0.05, size=n_samples)) > 0.5).astype(float)
-    data['salary'] = spline(
+    data["gender"] = (
+        (gender_latent + np.random.normal(scale=0.05, size=n_samples)) > 0.5
+    ).astype(float)
+    data["salary"] = spline(
         [30, 35, 45, 60, 70, 80, 90, 100],
         normalize(salary_latent) + np.random.normal(scale=0.05, size=n_samples),
     )
-    data['dist_city'] = sigmoid(
-        3 * normalize(dist_city_latent) - 1.5 + np.random.normal(scale=0.05, size=n_samples)
+    data["dist_city"] = sigmoid(
+        3 * normalize(dist_city_latent)
+        - 1.5
+        + np.random.normal(scale=0.05, size=n_samples)
     )
-    data['occupation'] = random_cat_swaps(occupation_latent, eps=5e-2)
+    data["occupation"] = random_cat_swaps(occupation_latent, eps=5e-2)
 
-    data['generic'] = generic
-    data['count'] = count
+    data["generic"] = generic
+    data["count"] = count
 
-    data['outcome_mean_p_det'] = sigmoid(
-        -0.0 +
-        2.5 * (normalize(age_latent) - 0.35) +
-        3 * (normalize(salary_latent) - 0.5)
-    )
-
-    data['outcome_delta_p_det'] = sigmoid(
-        0.55 +
-        -0.15 * occupation_delta[occupation_latent] * normalize(salary_latent) ** 2 +
-        -0.5 * normalize(age_latent) ** 2 +
-        +1.0 * (normalize(gender_latent) - 0.5) * (normalize(generic_latent) - 0.15)
+    data["outcome_mean_p_det"] = sigmoid(
+        -0.0
+        + 2.5 * (normalize(age_latent) - 0.35)
+        + 3 * (normalize(salary_latent) - 0.5)
     )
 
-    data['outcome_0_p_det'] = sigmoid(logit(data['outcome_mean_p_det']) - 0.5 * logit(data['outcome_delta_p_det']))
-    data['outcome_1_p_det'] = sigmoid(logit(data['outcome_mean_p_det']) + 0.5 * logit(data['outcome_delta_p_det']))
-
-    data['outcome_0_p'] = sigmoid(
-        logit(data['outcome_0_p_det']) - 0.2 * effect_noise_0 * occupation_delta[occupation_latent]
+    data["outcome_delta_p_det"] = sigmoid(
+        0.55
+        + -0.15 * occupation_delta[occupation_latent] * normalize(salary_latent) ** 2
+        + -0.5 * normalize(age_latent) ** 2
+        + +1.0 * (normalize(gender_latent) - 0.5) * (normalize(generic_latent) - 0.15)
     )
-    data['outcome_1_p'] = sigmoid(
-        logit(data['outcome_1_p_det']) + 0.2 * effect_noise_1 * occupation_delta[occupation_latent]
+
+    data["outcome_0_p_det"] = sigmoid(
+        logit(data["outcome_mean_p_det"]) - 0.5 * logit(data["outcome_delta_p_det"])
+    )
+    data["outcome_1_p_det"] = sigmoid(
+        logit(data["outcome_mean_p_det"]) + 0.5 * logit(data["outcome_delta_p_det"])
+    )
+
+    data["outcome_0_p"] = sigmoid(
+        logit(data["outcome_0_p_det"])
+        - 0.2 * effect_noise_0 * occupation_delta[occupation_latent]
+    )
+    data["outcome_1_p"] = sigmoid(
+        logit(data["outcome_1_p_det"])
+        + 0.2 * effect_noise_1 * occupation_delta[occupation_latent]
     )
 
     cutoff = logit(p_random)
 
-    data['action_p'] = (data['age'] - 40) / 1.5
-    data['action_p'] = sigmoid(np.clip(data['action_p'], -cutoff, +cutoff))
-    data['action'] = sample_bernoulli(data['action_p'])
+    data["action_p"] = (data["age"] - 40) / 1.5
+    data["action_p"] = sigmoid(np.clip(data["action_p"], -cutoff, +cutoff))
+    data["action"] = sample_bernoulli(data["action_p"])
 
-    data['outcome_p'] = (
-        (data['action'] == 1) * data['outcome_1_p'] +
-        (data['action'] == 0) * data['outcome_0_p']
-    )
+    data["outcome_p"] = (data["action"] == 1) * data["outcome_1_p"] + (
+        data["action"] == 0
+    ) * data["outcome_0_p"]
 
-    data['outcome'] = sample_bernoulli(data['outcome_p'])
+    data["outcome"] = sample_bernoulli(data["outcome_p"])
 
-    data['train'] = 1
-    data.iloc[int(train_ratio * len(data)):, data.columns.get_loc('train')] = 0
+    data["train"] = 1
+    data.iloc[int(train_ratio * len(data)) :, data.columns.get_loc("train")] = 0
 
     return data
 
@@ -209,8 +210,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('data_path')
+    parser.add_argument("data_path")
     args = parser.parse_args()
 
     create(args.data_path)
-

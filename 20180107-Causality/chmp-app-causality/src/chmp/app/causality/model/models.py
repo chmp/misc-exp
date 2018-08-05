@@ -6,7 +6,11 @@ import sklearn.pipeline
 import sklearn.ensemble
 import tensorflow as tf
 
-from chmp.ds import FuncTransformer, FilterLowFrequencyTransfomer, find_categorical_columns
+from chmp.ds import (
+    FuncTransformer,
+    FilterLowFrequencyTransfomer,
+    find_categorical_columns,
+)
 from chmp.experiment import Loop
 from chmp.ml import PickableTFModel
 from chmp.ml.layers import factorized
@@ -15,22 +19,27 @@ from .util import CategoricalMeanTargetEncoder, CategoricalIndexEncoder
 
 
 def build_standard_sklearn_classifier(features):
-    return sklearn.pipeline.Pipeline([
-        ('select', FuncTransformer(lambda df: df[list(features)])),
-        ('filter', FilterLowFrequencyTransfomer()),
-        ('one-hot', CategoricalMeanTargetEncoder()),
-        ('predict', sklearn.ensemble.GradientBoostingClassifier(
-            n_estimators=100, subsample=0.80, max_depth=5,
-        )),
-    ])
+    return sklearn.pipeline.Pipeline(
+        [
+            ("select", FuncTransformer(lambda df: df[list(features)])),
+            ("filter", FilterLowFrequencyTransfomer()),
+            ("one-hot", CategoricalMeanTargetEncoder()),
+            (
+                "predict",
+                sklearn.ensemble.GradientBoostingClassifier(
+                    n_estimators=100, subsample=0.80, max_depth=5
+                ),
+            ),
+        ]
+    )
 
 
 def get_weight_keyword(est):
     if isinstance(est, sklearn.pipeline.Pipeline):
         key, _ = est.steps[-1]
-        return f'{key}__sample_weight'
+        return f"{key}__sample_weight"
 
-    return 'sample_weight'
+    return "sample_weight"
 
 
 def binary_offset_tree_transform(reward, action, action_propensity=None):
@@ -58,10 +67,13 @@ class RegressionPolicy:
     def predict(self, df):
         # TODO: return actions also a probabilities
         value = self.predict_value(df)
-        action = np.concatenate([
-            np.asarray(value[:, None, 1] < value[:, None, 0], dtype=np.int),
-            np.asarray(value[:, None, 1] >= value[:, None, 0], dtype=np.int),
-        ], axis=-1)
+        action = np.concatenate(
+            [
+                np.asarray(value[:, None, 1] < value[:, None, 0], dtype=np.int),
+                np.asarray(value[:, None, 1] >= value[:, None, 0], dtype=np.int),
+            ],
+            axis=-1,
+        )
 
         return action, value
 
@@ -76,10 +88,11 @@ class BinaryOutcomeRegressionPolicy(RegressionPolicy):
         obtain reasonable results.
 
     """
-    def __init__(self,  est, action_column='action', target_column='outcome'):
+
+    def __init__(self, est, action_column="action", target_column="outcome"):
         self.est = est
         self.action_column = action_column
-        self.target_column= target_column
+        self.target_column = target_column
 
     def fit(self, df):
         df = df.reset_index(drop=True)
@@ -94,19 +107,20 @@ class BinaryOutcomeRegressionPolicy(RegressionPolicy):
 
 class DirectClassifierPolicy:
     def __init__(
-            self, est,
-            action_column='action',
-            reward_column='outcome',
-            propensity_column=None,
-            sample_weight_keyword=None,
-            clipping_value=1e-4
+        self,
+        est,
+        action_column="action",
+        reward_column="outcome",
+        propensity_column=None,
+        sample_weight_keyword=None,
+        clipping_value=1e-4,
     ):
         if sample_weight_keyword is None:
             sample_weight_keyword = get_weight_keyword(est)
 
         # TODO: implement propensity estimation
         if propensity_column is None:
-            raise RuntimeError('propensity estimation not yet supported')
+            raise RuntimeError("propensity estimation not yet supported")
 
         self.est = est
         self.action_column = action_column
@@ -127,7 +141,7 @@ class DirectClassifierPolicy:
 
         # fit the classifier
         fit_weight, fit_target = binary_offset_tree_transform(
-            reward=reward, action=action, action_propensity=propensity,
+            reward=reward, action=action, action_propensity=propensity
         )
         self.est.fit(df, fit_target, **{self.sample_weight_keyword: fit_weight})
 
@@ -146,10 +160,14 @@ class DoublyRobustClassifierPolicy:
         ``len(action_values)`` during fit.
 
     """
+
     def __init__(
-        self, value_est, action_est, action_values,
-        action_column='action',
-        reward_column='outcome',
+        self,
+        value_est,
+        action_est,
+        action_values,
+        action_column="action",
+        reward_column="outcome",
         propensity_column=None,
         sample_weight_keyword=None,
         clipping_value=1e-4,
@@ -159,7 +177,7 @@ class DoublyRobustClassifierPolicy:
 
         # TODO: implement propensity estimation
         if propensity_column is None:
-            raise RuntimeError('propensity estimation not yet supported')
+            raise RuntimeError("propensity estimation not yet supported")
 
         self.value_est = value_est
         self.action_est = action_est
@@ -192,8 +210,8 @@ class DoublyRobustClassifierPolicy:
             reward_estimate = self.value_est.predict(df_with_action)
 
             full_reward.append(
-                (reward - reward_estimate) / propensity * (action == observed_action) +
-                reward_estimate
+                (reward - reward_estimate) / propensity * (action == observed_action)
+                + reward_estimate
             )
             full_df.append(df_with_action)
 
@@ -202,9 +220,11 @@ class DoublyRobustClassifierPolicy:
 
         # fit the classifier
         fit_weight, fit_target = binary_offset_tree_transform(
-            reward=full_reward, action=np.asarray(full_df['action'])
+            reward=full_reward, action=np.asarray(full_df["action"])
         )
-        self.action_est.fit(full_df, fit_target, **{self.sample_weight_keyword: fit_weight})
+        self.action_est.fit(
+            full_df, fit_target, **{self.sample_weight_keyword: fit_weight}
+        )
 
         return self
 
@@ -220,7 +240,14 @@ class DoublyRobustClassifierPolicy:
 
 # TODO: fix (by allowing to bind to a session?)
 class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
-    def __init__(self, features, action_column='action', target_column='outcome', epochs=10, batch_size=10):
+    def __init__(
+        self,
+        features,
+        action_column="action",
+        target_column="outcome",
+        epochs=10,
+        batch_size=10,
+    ):
         super().__init__()
 
         self.features = features
@@ -230,11 +257,18 @@ class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
         self.batch_size = batch_size
         self.train_scores = None
 
-        self.preproc_est = sklearn.pipeline.Pipeline([
-            ('select', FuncTransformer(lambda df: df[self.features + [self.action_column]])),
-            ('filter', FilterLowFrequencyTransfomer()),
-            ('one-hot', CategoricalIndexEncoder()),
-        ])
+        self.preproc_est = sklearn.pipeline.Pipeline(
+            [
+                (
+                    "select",
+                    FuncTransformer(
+                        lambda df: df[self.features + [self.action_column]]
+                    ),
+                ),
+                ("filter", FilterLowFrequencyTransfomer()),
+                ("one-hot", CategoricalIndexEncoder()),
+            ]
+        )
 
     def fit(self, df, session=None):
         df = df.reset_index(drop=True)
@@ -277,15 +311,12 @@ class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
             loss, _ = session.run([self.loss_, self.train_], self._feed_dict(batch))
             losses += [loss]
 
-            print(f'{outer_loop:[fr} {loop} loss: {loss:.2f}'.ljust(120), end='\r')
+            print(f"{outer_loop:[fr} {loop} loss: {loss:.2f}".ljust(120), end="\r")
 
         return losses
 
     def _feed_dict(self, df):
-        return {
-            placeholder: df[key]
-            for key, placeholder in self.features.items()
-        }
+        return {placeholder: df[key] for key, placeholder in self.features.items()}
 
     def _build(self, df, graph=None):
         categorical_columns = find_categorical_columns(df)
@@ -295,27 +326,31 @@ class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
         with self.valid_graph(graph):
 
             self.features = {
-                'outcome': tf.placeholder(tf.float32, shape=[None]),
-                'action': tf.placeholder(tf.float32, shape=[None]),
-                'weight': tf.placeholder(tf.float32, shape=[None]),
+                "outcome": tf.placeholder(tf.float32, shape=[None]),
+                "action": tf.placeholder(tf.float32, shape=[None]),
+                "weight": tf.placeholder(tf.float32, shape=[None]),
             }
-            self.features.update({
-                key: tf.placeholder(tf.float32, shape=[None])
-                for key in numeric_columns
-            })
-            self.features.update({
-                key: tf.placeholder(tf.int32, shape=[None])
-                for key in categorical_columns
-            })
+            self.features.update(
+                {
+                    key: tf.placeholder(tf.float32, shape=[None])
+                    for key in numeric_columns
+                }
+            )
+            self.features.update(
+                {
+                    key: tf.placeholder(tf.int32, shape=[None])
+                    for key in categorical_columns
+                }
+            )
 
             feature_columns = (
-                [tf.feature_column.numeric_column('action')] +
-                [tf.feature_column.numeric_column(key) for key in numeric_columns] +
-                [
+                [tf.feature_column.numeric_column("action")]
+                + [tf.feature_column.numeric_column(key) for key in numeric_columns]
+                + [
                     tf.feature_column.indicator_column(
                         tf.feature_column.categorical_column_with_identity(
                             key, self.category_count[key]
-                        ),
+                        )
                     )
                     for key in categorical_columns
                 ]
@@ -325,14 +360,29 @@ class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
 
             # TODO: implement advantage functions ...
             x_ = inputs_
-            x_ = tf.concat([inputs_, tf.layers.dense(x_, 30, activation=tf.nn.elu), factorized(x_, 30)], axis=1)
-            x_ = tf.concat([inputs_, tf.layers.dense(x_, 30, activation=tf.nn.elu), factorized(x_, 30)], axis=1)
+            x_ = tf.concat(
+                [
+                    inputs_,
+                    tf.layers.dense(x_, 30, activation=tf.nn.elu),
+                    factorized(x_, 30),
+                ],
+                axis=1,
+            )
+            x_ = tf.concat(
+                [
+                    inputs_,
+                    tf.layers.dense(x_, 30, activation=tf.nn.elu),
+                    factorized(x_, 30),
+                ],
+                axis=1,
+            )
             x_ = tf.layers.dense(x_, units=1, activation=None)
 
             self.score_ = tf.sigmoid(x_)
 
             self.loss_ = tf.losses.sigmoid_cross_entropy(
-                tf.reshape(self.features['outcome'], [-1, 1]), x_,
+                tf.reshape(self.features["outcome"], [-1, 1]),
+                x_,
                 reduction=tf.losses.Reduction.MEAN,
             )
 
