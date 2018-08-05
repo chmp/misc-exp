@@ -36,6 +36,8 @@ tornado = "<5.0"
 jupyter = {extras = ["notebook"]}
 black = "==18.6b4"
 docutils = "*"
+twine = "*"
+wheel = "*"
 
 [requires]
 python_version = "3.6"
