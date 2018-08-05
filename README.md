@@ -3,7 +3,7 @@
 ## Keyword detection from scratch
 
 [blog post](http://cprohm.de/article/keyword-detection-from-scratch.html) |
-[source](./KeywordDetection)
+[source](./20170813-KeywordDetection)
 
 Detecting keywords in speech from data-collection to modelling, includes code
 to listen continuously for commands.

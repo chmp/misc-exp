@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "bbeffd1614a41d6dbff463b94976b63fde47d74092126c59233f2a4c4ac0f98c"
+            "sha256": "5cb14156592ff2a5e1f4afef3fc98a66320335cced320a86cac71a885220308b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -22,10 +22,6 @@
         },
         "422b063": {
             "path": "./vegawidget"
-        },
-        "47b1f36": {
-            "editable": true,
-            "path": "./KeywordDetection/chmp-app-kwdetect"
         },
         "7f29d02": {
             "editable": true,
@@ -159,6 +155,10 @@
         "chmp-app-causality": {
             "editable": true,
             "path": "./20180107-Causality/chmp-app-causality"
+        },
+        "chmp-app-kwdetect": {
+            "editable": true,
+            "path": "./20170813-KeywordDetection/chmp-app-kwdetect"
         },
         "click": {
             "hashes": [

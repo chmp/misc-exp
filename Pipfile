@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 "39bd382" = {path = "./chmp", editable = true}
-"47b1f36" = {path = "./KeywordDetection/chmp-app-kwdetect", editable = true}
 "7f29d02" = {path = "./SemiSupervisedImages/chmp-app-sem-sup-img", editable = true}
 scikit-learn = "*"
 scipy = "*"
@@ -32,6 +31,7 @@ vmprof = "*"
 bokeh = "*"
 tornado = "<5.0"
 chmp-app-causality = {editable = true, path = "./20180107-Causality/chmp-app-causality"}
+chmp-app-kwdetect = {editable = true, path = "./20170813-KeywordDetection/chmp-app-kwdetect"}
 
 [dev-packages]
 jupyter = {extras = ["notebook"]}
