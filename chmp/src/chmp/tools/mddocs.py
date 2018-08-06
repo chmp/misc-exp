@@ -23,6 +23,8 @@ from docutils.nodes import Element
 from docutils.parsers.rst import roles
 from docutils.writers import Writer
 
+from chmp import parser as p
+
 _logger = logging.getLogger(__name__)
 
 
@@ -82,52 +84,110 @@ def relwalk(absroot, relroot='.'):
 
 
 def transform(content, source):
+    content_lines = [line.rstrip() for line in content.splitlines()]
+    result = p.parse(parser, content_lines)
     lines = []
-    for line in content.splitlines():
-        if line.startswith('.. include::'):
-            lines += include(line, source)
 
-        elif line.startswith('.. autofunction::'):
-            lines += autofunction(line)
+    directive_map = {
+        'include': include,
+        'autofunction': autofunction,
+        'autoclass': autoclass,
+        'automethod': automethod,
+        'automodule': automodule,
+        'literalinclude': literalinclude,
+    }
 
-        elif line.startswith('.. autoclass::'):
-            lines += autoclass(line)
+    for part in result:
+        if part['type'] == 'verbatim':
+            lines += [part['line']]
 
-        elif line.startswith('.. automethod::'):
-            lines += automethod(line)
-
-        elif line.startswith('.. automodule::'):
-            lines += automodule(line)
-
-        elif line.startswith('.. literalinclude::'):
-            lines += literalinclude(line, source)
-
-        elif line.startswith('..'):
-            raise NotImplementedError('unknown directive: %s' % line)
+        elif part['type'] in directive_map:
+            lines += directive_map[part['type']](part, source)
 
         else:
-            lines.append(line)
+            raise NotImplementedError('unknown parse fragmet {}'.format(part['type']))
 
     return '\n'.join(lines)
 
 
-def autofunction(line):
-    return autoobject(line)
+def build_parser():
+    simple_directives = [
+        'autofunction', 'include', 'autoclass', 'automethod', 'literalincldue',
+    ]
+
+    end_of_directive = p.first(
+        p.map(
+            lambda line: {'type': 'verbatim', 'line': line},
+            p.eq(''),
+        ),
+        p.end_of_sequence(),
+    )
+
+    def make_simple_parser(name):
+        return p.sequential(
+            p.map(
+                lambda line: {'type': name, 'line': line},
+                p.predicate(lambda line: line.startswith('.. {}::'.format(name))),
+            ),
+            end_of_directive,
+        )
+
+    simple_parsers = [make_simple_parser(name) for name in simple_directives]
+
+    automodule_parser = p.sequential(
+        p.build_object(
+            p.map(
+                lambda line: {'type': 'automodule', 'line': line},
+                p.predicate(lambda line: line.startswith('.. automodule::'))
+            ),
+            p.repeat(
+                p.first(
+                    p.map(lambda line: {'members': True}, p.eq('    :members:')),
+                ),
+            ),
+        ),
+        end_of_directive,
+    )
+
+    return p.repeat(
+        p.first(
+            *simple_parsers,
+            automodule_parser,
+            p.map(
+                lambda line: {'type': 'verbatim', 'line': line},
+                p.first(
+                    p.fail_if(
+                        lambda line: line.startswith('..'),
+                        lambda line: 'unknown directive {!r}'.format(line),
+                    ),
+                    p.any(),
+                )
+            ),
+        ),
+    )
+
+parser = build_parser()
 
 
-def automethod(line):
-    return autoobject(line, depth=2, skip_args=1)
+def autofunction(part, source):
+    return autoobject(part)
 
 
-def autoclass(line):
-    return autoobject(line)
+def automethod(part, source):
+    return autoobject(part, depth=2, skip_args=1)
 
 
-def automodule(line):
-    return autoobject(line, header=2, depth=0)
+def autoclass(part, source):
+    return autoobject(part)
 
 
-def autoobject(line, depth=1, header=3, skip_args=0):
+def automodule(part, source):
+    yield from autoobject(part, header=2, depth=0)
+
+
+def autoobject(part, depth=1, header=3, skip_args=0):
+    line = part['line']
+
     _, what = line.split('::')
 
     if '(' in what:
@@ -138,7 +198,15 @@ def autoobject(line, depth=1, header=3, skip_args=0):
         signature = None
 
     obj = import_object(what, depth=depth)
+    yield from document_object(obj, what, signature=signature, header=header, skip_args=skip_args)
 
+    if part.get('members') is True:
+        for k in get_member_names(obj):
+            v = getattr(obj, k)
+            yield from document_object(v, what + '.' + k)
+
+
+def document_object(obj, what, *, signature=None, header=3, skip_args=0):
     if signature is None:
         if inspect.isfunction(obj):
             signature = format_signature(what, obj, skip=skip_args)
@@ -179,7 +247,9 @@ def format_signature(label, func, skip=0):
     return '{}({})'.format(label.strip(), ', '.join(args))
 
 
-def literalinclude(line, source):
+def literalinclude(part, source):
+    line = part['line']
+
     _, what = line.split('::')
     what = what.strip()
 
@@ -199,7 +269,8 @@ def literalinclude(line, source):
     yield '```'
 
 
-def include(line, source):
+def include(part, source):
+    line = part['line']
     _, what = line.split('::')
     what = what.strip()
 
@@ -212,7 +283,7 @@ def include(line, source):
 
 
 def render_docstring(obj):
-    doc = obj.__doc__ or '<undocumented>'
+    doc = obj.__doc__ or '[undocumented]'
     doc = unindent(doc)
 
     return publish_string(
@@ -333,6 +404,14 @@ class MarkdownWriter(Writer):
             node.attributes['reference'].replace('.', '').lower(),
         )
 
+    def _translate_strong(self, node):
+        yield '**'
+        yield from self._translate_children(node)
+        yield '**'
+
+    def _translate_reference(self, node):
+        yield from self._translate_children(node)
+
 
 def unindent(doc):
     def impl():
@@ -375,3 +454,20 @@ def import_object(what, depth=1):
         obj = getattr(obj, p)
 
     return obj
+
+
+def get_member_names(obj):
+    """Return all members names of the given object"""
+    # TODO: handle classes
+
+    if hasattr(obj, '__all__'):
+        return obj.__all__
+
+    return [
+        k
+        for k, v in vars(obj).items()
+        if (
+            getattr(v, '__module__', None) == obj.__name__ and
+            getattr(v, '__doc__', None) is not None
+        )
+    ]

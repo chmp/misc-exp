@@ -135,6 +135,30 @@ def noop():
     return noop_parser
 
 
+@parameters('message')
+def fail(message):
+    def fail_parser(tokens, offset):
+        raise ValueError(message)
+
+    return fail_parser
+
+
+@parameters('predicate', 'message')
+def fail_if(predicate, message):
+    def fail_parser(tokens, offset):
+        head = list(tokens[:1])
+
+        if not head:
+            return tokens, head, _fail(offset, 0, message='no token')
+
+        if predicate(head[0]):
+            raise ValueError(message(head[0]))
+
+        return tokens, None, _fail(offset, 0)
+
+    return fail_parser
+
+
 @parameters('predicate')
 def predicate(predicate, message=None):
     if message is None:
@@ -337,6 +361,36 @@ def regex(pattern, flags=0):
         return tail, [m.groupdict()], {}
 
     return _match_regex
+
+
+@parameters('value')
+def literal(value):
+    def literal_parser(tokens, offset):
+        return tokens, [value], _ok(offset, 0)
+
+    return literal_parser
+
+
+@parameters('parser')
+def build_object(parser, *parsers):
+    if parsers:
+        parser = sequential(parser, *parsers)
+
+    def build_object_parser(tokens, offset):
+        rest, fragments, d = parser(tokens, offset)
+
+        if fragments is None:
+            return tokens, None, _fail(offset, 0, children=[d])
+
+        result = {
+            k: v
+            for fragment in fragments
+            for k, v in fragment.items()
+        }
+
+        return rest, [result], _ok(offset, d.get('consumed', 0), children=[d])
+
+    return build_object_parser
 
 
 def _excerpt(s, n=40):
