@@ -1,0 +1,2 @@
+.. automodule:: chmp.distributed
+    :members:

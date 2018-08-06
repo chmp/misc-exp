@@ -1,4 +1,3 @@
-
 ## `chmp.label`
 
 Helpers to label files.
@@ -14,7 +13,6 @@ IPython widgtes for annotating data sets:
 
 Distributed as part of `https://github.com/chmp/misc-exp` under the MIT
 license, (c) 2017 Christopher Prohm.
-
 
 
 ### `chmp.label.annotate`
@@ -60,6 +58,23 @@ new label having a higher index. To only retain the latest labels, use
 the additional `get_latest` method on the returned object.
 
 
+### `chmp.label.write_latest_labels`
+`chmp.label.write_latest_labels(annotator, skip_class, label_key, skip_class='skip', label_key='label', fname_key='item')`
+
+Write the latest labels added to an annotator.
+
+
+### `chmp.label.BaseAnnotator`
+`chmp.label.BaseAnnotator()`
+
+Abstract annotator without ties to IPython.
+
+
+### `chmp.label.Annotator`
+`chmp.label.Annotator(classes, history_length=10)`
+
+IPython widget to quickly annotate data sets.
+
 
 ### `chmp.label.ImageAnnotator`
 `chmp.label.ImageAnnotator(classes, history_length=10)`
@@ -67,7 +82,6 @@ the additional `get_latest` method on the returned object.
 IPython widget to annotate image files.
 
 The widget expects a list of filenames.
-
 
 
 ### `chmp.label.AudioAnnotator`
@@ -78,9 +92,32 @@ IPython widget to annotate audio files.
 The widget expects a list of filenames.
 
 
+### `chmp.label.build_data_url`
+`chmp.label.build_data_url(fname, mime_type=None)`
 
-### `chmp.label.Annotator`
-`chmp.label.Annotator(classes, history_length=10)`
+Helper to build a data-url with data read from a file.
 
-IPython widget to quickly annotate data sets.
+#### Parameters
+
+* **fname** (*str*):
+  the file to load the content from
+* **mime_type** (*Optional[str]*):
+  if given the mime type to use, otherwise it's auto-detected from the
+  file extension.
+
+#### Returns
+
+the data url.
+
+
+### `chmp.label.BoundingBoxer`
+`chmp.label.BoundingBoxer()`
+
+Allow to annotate an image with bounding boxes.
+
+
+### `chmp.label.AnnotationDisplay`
+`chmp.label.AnnotationDisplay()`
+
+Widget to show and manipulate bounding box annotations.
 

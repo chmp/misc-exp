@@ -1112,10 +1112,10 @@ def dashcb(app, output, *inputs, figure=False):
 
     :param bool figure:
         if True, the current matplotlib figure will be captured and returned as
-         a data URL. This allows to use matplotlib with dash. See the examples
-         below
+        a data URL. This allows to use matplotlib with dash. See the examples
+        below
 
-    Consider the following das callback::
+    Consider the following dash callback::
 
 
         @app.callback(dash.dependencies.Output('display', 'children'),
@@ -1564,7 +1564,7 @@ def shuffled(obj, l):
 
 
 def shuffle(obj, l):
-    """Shuffle `l` in place using Fisher–Yates algorithm.
+    """Shuffle ``l`` in place using Fisher–Yates algorithm.
 
     See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
     """
