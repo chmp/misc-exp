@@ -599,7 +599,11 @@ def get_member_names(obj):
         return [
             k
             for k, v in vars(obj).items()
-            if callable(v) and not k.startswith('_')
+            if (
+                callable(v) and
+                getattr(v, '__doc__', None) is not None and
+                not k.startswith('_')
+            )
         ]
 
     else:

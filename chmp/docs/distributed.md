@@ -10,28 +10,8 @@ license, (c) 2017 Christopher Prohm.
 `chmp.distributed.DaskCounter(items)`
 
 
-#### `chmp.distributed.DaskCounter.elements`
-`chmp.distributed.DaskCounter.elements()`
-
-
-#### `chmp.distributed.DaskCounter.most_common`
-`chmp.distributed.DaskCounter.most_common(n)`
-
-
 ### `chmp.distributed.DaskDict`
 `chmp.distributed.DaskDict(items)`
-
-
-#### `chmp.distributed.DaskDict.items`
-`chmp.distributed.DaskDict.items()`
-
-
-#### `chmp.distributed.DaskDict.keys`
-`chmp.distributed.DaskDict.keys()`
-
-
-#### `chmp.distributed.DaskDict.values`
-`chmp.distributed.DaskDict.values()`
 
 
 #### `chmp.distributed.DaskDict.copy`
@@ -40,16 +20,8 @@ license, (c) 2017 Christopher Prohm.
 dask bags are immutable
 
 
-#### `chmp.distributed.DaskDict.compute`
-`chmp.distributed.DaskDict.compute(**kwargs)`
-
-
 ### `chmp.distributed.RuleSet`
 `chmp.distributed.RuleSet(rules=())`
-
-
-#### `chmp.distributed.RuleSet.add`
-`chmp.distributed.RuleSet.add(match, apply, help=None)`
 
 
 ### `chmp.distributed.apply`

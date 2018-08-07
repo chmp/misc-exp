@@ -262,48 +262,16 @@ Simple **non-validating** function transformer.
   the function to apply on transform
 
 
-#### `chmp.ds.FuncTransformer.fit`
-`chmp.ds.FuncTransformer.fit(x, y=None)`
-
-
-#### `chmp.ds.FuncTransformer.partial_fit`
-`chmp.ds.FuncTransformer.partial_fit(x, y=None)`
-
-
-#### `chmp.ds.FuncTransformer.transform`
-`chmp.ds.FuncTransformer.transform(x)`
-
-
 ### `chmp.ds.DataFrameEstimator`
 `chmp.ds.DataFrameEstimator(est)`
 
 Add support for dataframe use to sklearn estimators.
 
 
-#### `chmp.ds.DataFrameEstimator.fit`
-`chmp.ds.DataFrameEstimator.fit(x, y=None, **kwargs)`
-
-
-#### `chmp.ds.DataFrameEstimator.predict`
-`chmp.ds.DataFrameEstimator.predict(x, y=None)`
-
-
-#### `chmp.ds.DataFrameEstimator.predict_proba`
-`chmp.ds.DataFrameEstimator.predict_proba(x, y=None)`
-
-
 ### `chmp.ds.FitInfo`
 `chmp.ds.FitInfo(extractor, target=None)`
 
 Extract and store meta data of the dataframe passed to fit.
-
-
-#### `chmp.ds.FitInfo.fit`
-`chmp.ds.FitInfo.fit(x, y=None)`
-
-
-#### `chmp.ds.FitInfo.transform`
-`chmp.ds.FitInfo.transform(x, y=None)`
 
 
 ### `chmp.ds.waterfall`
@@ -407,14 +375,6 @@ To access nested loop use the getitem notation, e.g. `loop[1]`.
 `chmp.ds.Loop.will_print(now=None)`
 
 Check whether the print invocation will be debounced.
-
-
-#### `chmp.ds.Loop.nest`
-`chmp.ds.Loop.nest(iterable, length=None)`
-
-
-#### `chmp.ds.Loop.get_info`
-`chmp.ds.Loop.get_info()`
 
 
 ### `chmp.ds.tdformat`
