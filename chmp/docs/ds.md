@@ -7,7 +7,7 @@ license, (c) 2017 Christopher Prohm.
 
 
 ### `chmp.ds.define`
-`chmp.ds.define()`
+`chmp.ds.define(func)`
 
 Execute a function and return its result.
 
@@ -31,8 +31,20 @@ assert foo == 42
 Dictionary-like namespace object.
 
 
+#### `chmp.ds.Object.__repr__`
+`chmp.ds.Object.__repr__()`
+
+
+#### `chmp.ds.Object.__eq__`
+`chmp.ds.Object.__eq__(other)`
+
+
+#### `chmp.ds.Object.__ne__`
+`chmp.ds.Object.__ne__(other)`
+
+
 ### `chmp.ds.get_color_cycle`
-`chmp.ds.get_color_cycle(n, n=None)`
+`chmp.ds.get_color_cycle(n=None)`
 
 Return the matplotlib color cycle.
 
@@ -50,7 +62,7 @@ blue, green, red = get_color_cycle(3)
 
 
 ### `chmp.ds.mpl_set`
-`chmp.ds.mpl_set(box, xlabel, ylabel, title, suptitle, xscale, yscale, caption, xlim, ylim, xticks, yticks, xformatter, yformatter, left, top, bottom, right, wspace, hspace, subplot, legend, colorbar, invert, ax, grid, box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, xformatter=None, yformatter=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None, invert=None, ax=None, grid=None)`
+`chmp.ds.mpl_set(box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, xformatter=None, yformatter=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None, invert=None, ax=None, grid=None)`
 
 Set various style related options of MPL.
 
@@ -64,7 +76,7 @@ Set various style related options of MPL.
 
 
 ### `chmp.ds.edges`
-`chmp.ds.edges()`
+`chmp.ds.edges(x)`
 
 Create edges for use with pcolor.
 
@@ -78,31 +90,31 @@ pcolor(edges(x), edges(y), v)
 
 
 ### `chmp.ds.caption`
-`chmp.ds.caption(s, size, size=13, strip=True)`
+`chmp.ds.caption(s, size=13, strip=True)`
 
 Add captions to matplotlib graphs.
 
 
 ### `chmp.ds._caption`
-`chmp.ds._caption(s, size, size=13, strip=True)`
+`chmp.ds._caption(s, size=13, strip=True)`
 
 Add captions to matplotlib graphs.
 
 
 ### `chmp.ds.change_vspan`
-`chmp.ds.change_vspan(**kwargs)`
+`chmp.ds.change_vspan(x, y, **kwargs)`
 
 Plot changes in a quantity with vspans.
 
 
 ### `chmp.ds.change_plot`
-`chmp.ds.change_plot(**kwargs)`
+`chmp.ds.change_plot(x, y, **kwargs)`
 
 Plot changes in a quantity with pyplot's standard plot function.
 
 
 ### `chmp.ds.path`
-`chmp.ds.path(x, close=True, **kwargs)`
+`chmp.ds.path(x, y, close=True, **kwargs)`
 
 Plot a path given as a list of vertices.
 
@@ -126,7 +138,7 @@ axtext(0, 0, 'text')
 
 
 ### `chmp.ds.fix_categories`
-`chmp.ds.fix_categories(s, categories, other_category, inplace, groups, categories=None, other_category=None, inplace=False, groups=None, ordered=False)`
+`chmp.ds.fix_categories(s, categories=None, other_category=None, inplace=False, groups=None, ordered=False)`
 
 Fix the categories of a categorical series.
 
@@ -154,7 +166,7 @@ Fix the categories of a categorical series.
 
 
 ### `chmp.ds.find_high_frequency_categories`
-`chmp.ds.find_high_frequency_categories(s, min_frequency, min_frequency=0.02, n_max=None)`
+`chmp.ds.find_high_frequency_categories(s, min_frequency=0.02, n_max=None)`
 
 Find categories with high frequency.
 
@@ -169,7 +181,7 @@ Find categories with high frequency.
 
 
 ### `chmp.ds.cast_types`
-`chmp.ds.cast_types(numeric, categorical, numeric=None, categorical=None)`
+`chmp.ds.cast_types(numeric=None, categorical=None)`
 
 Build a transform to cast numerical / categorical columns.
 
@@ -177,13 +189,13 @@ All non-cast columns are stripped for the dataframe.
 
 
 ### `chmp.ds.find_categorical_columns`
-`chmp.ds.find_categorical_columns()`
+`chmp.ds.find_categorical_columns(df)`
 
 Find all categorical columns in the given dataframe.
 
 
 ### `chmp.ds.filter_low_frequency_categories`
-`chmp.ds.filter_low_frequency_categories(columns, min_frequency, other_category, n_max, columns=None, min_frequency=0.02, other_category=None, n_max=None)`
+`chmp.ds.filter_low_frequency_categories(columns=None, min_frequency=0.02, other_category=None, n_max=None)`
 
 Build a transformer to filter low frequency categories.
 
@@ -258,7 +270,7 @@ pipeline = build_pipeline(
 
 
 ### `chmp.ds.FuncTransformer`
-`chmp.ds.FuncTransformer()`
+`chmp.ds.FuncTransformer(func)`
 
 Simple **non-validating** function transformer.
 
@@ -268,10 +280,34 @@ Simple **non-validating** function transformer.
   the function to apply on transform
 
 
+#### `chmp.ds.FuncTransformer.fit`
+`chmp.ds.FuncTransformer.fit(x, y=None)`
+
+
+#### `chmp.ds.FuncTransformer.partial_fit`
+`chmp.ds.FuncTransformer.partial_fit(x, y=None)`
+
+
+#### `chmp.ds.FuncTransformer.transform`
+`chmp.ds.FuncTransformer.transform(x)`
+
+
 ### `chmp.ds.DataFrameEstimator`
-`chmp.ds.DataFrameEstimator()`
+`chmp.ds.DataFrameEstimator(est)`
 
 Add support for dataframe use to sklearn estimators.
+
+
+#### `chmp.ds.DataFrameEstimator.fit`
+`chmp.ds.DataFrameEstimator.fit(x, y=None, **kwargs)`
+
+
+#### `chmp.ds.DataFrameEstimator.predict`
+`chmp.ds.DataFrameEstimator.predict(x, y=None)`
+
+
+#### `chmp.ds.DataFrameEstimator.predict_proba`
+`chmp.ds.DataFrameEstimator.predict_proba(x, y=None)`
 
 
 ### `chmp.ds.FitInfo`
@@ -280,8 +316,16 @@ Add support for dataframe use to sklearn estimators.
 Extract and store meta data of the dataframe passed to fit.
 
 
+#### `chmp.ds.FitInfo.fit`
+`chmp.ds.FitInfo.fit(x, y=None)`
+
+
+#### `chmp.ds.FitInfo.transform`
+`chmp.ds.FitInfo.transform(x, y=None)`
+
+
 ### `chmp.ds.waterfall`
-`chmp.ds.waterfall(obj, col, base, total, end_annot, end_fmt, annot, fmt, cmap, xmin, total_kwargs, col=None, base=None, total=False, end_annot=None, end_fmt='.g', annot=False, fmt='+.2g', cmap='coolwarm', xmin=0, total_kwargs=None, annot_kwargs=None, **kwargs)`
+`chmp.ds.waterfall(obj, col=None, base=None, total=False, end_annot=None, end_fmt='.g', annot=False, fmt='+.2g', cmap='coolwarm', xmin=0, total_kwargs=None, annot_kwargs=None, **kwargs)`
 
 Plot a waterfall chart.
 
@@ -293,7 +337,7 @@ series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
 
 
 ### `chmp.ds.dashcb`
-`chmp.ds.dashcb(*inputs)`
+`chmp.ds.dashcb(app, output, *inputs)`
 
 Construct a dash callback using function annotations.
 
@@ -339,7 +383,7 @@ def update_display(value):
 
 
 ### `chmp.ds.dashmpl`
-`chmp.ds.dashmpl()`
+`chmp.ds.dashmpl(func)`
 
 Capture the current matplotlib figure.
 
@@ -349,9 +393,137 @@ Capture the current matplotlib figure.
 
 An enumeration.
 
+Initialize self.  See help(type(self)) for accurate signature.
+
+
+#### `chmp.ds.LoopState._generate_next_value_`
+`chmp.ds.LoopState._generate_next_value_(start, count, last_values)`
+
+
+#### `chmp.ds.LoopState._member_type_`
+`chmp.ds.LoopState._member_type_(*args, **kwargs)`
+
+The most base type
+
+Initialize self.  See help(type(self)) for accurate signature.
+
+
+##### `chmp.ds.LoopState._member_type_.__repr__`
+
+Return repr(self).
+
+
+##### `chmp.ds.LoopState._member_type_.__hash__`
+
+Return hash(self).
+
+
+##### `chmp.ds.LoopState._member_type_.__str__`
+
+Return str(self).
+
+
+##### `chmp.ds.LoopState._member_type_.__getattribute__`
+
+Return getattr(self, name).
+
+
+##### `chmp.ds.LoopState._member_type_.__setattr__`
+
+Implement setattr(self, name, value).
+
+
+##### `chmp.ds.LoopState._member_type_.__delattr__`
+
+Implement delattr(self, name).
+
+
+##### `chmp.ds.LoopState._member_type_.__lt__`
+
+Return self<value.
+
+
+##### `chmp.ds.LoopState._member_type_.__le__`
+
+Return self<=value.
+
+
+##### `chmp.ds.LoopState._member_type_.__eq__`
+
+Return self==value.
+
+
+##### `chmp.ds.LoopState._member_type_.__ne__`
+
+Return self!=value.
+
+
+##### `chmp.ds.LoopState._member_type_.__gt__`
+
+Return self>value.
+
+
+##### `chmp.ds.LoopState._member_type_.__ge__`
+
+Return self>=value.
+
+
+##### `chmp.ds.LoopState._member_type_.__new__`
+
+Create and return a new object.  See help(type) for accurate signature.
+
+
+##### `chmp.ds.LoopState._member_type_.__reduce_ex__`
+
+helper for pickle
+
+
+##### `chmp.ds.LoopState._member_type_.__reduce__`
+
+helper for pickle
+
+
+##### `chmp.ds.LoopState._member_type_.__subclasshook__`
+
+Abstract classes can override this to customize issubclass().
+
+This is invoked early on by abc.ABCMeta.__subclasscheck__().
+It should return True, False or NotImplemented.  If it returns
+NotImplemented, the normal algorithm is used.  Otherwise, it
+overrides the normal algorithm (and the outcome is cached).
+
+
+##### `chmp.ds.LoopState._member_type_.__init_subclass__`
+
+This method is called when a class is subclassed.
+
+The default implementation does nothing. It may be
+overridden to extend subclasses.
+
+
+##### `chmp.ds.LoopState._member_type_.__format__`
+
+default object formatter
+
+
+##### `chmp.ds.LoopState._member_type_.__sizeof__`
+
+__sizeof__() -> int
+size of object in memory, in bytes
+
+
+##### `chmp.ds.LoopState._member_type_.__dir__`
+
+__dir__() -> list
+default dir() implementation
+
+
+#### `chmp.ds.LoopState.__new__`
+`chmp.ds.LoopState.__new__(value)`
+
 
 ### `chmp.ds.Loop`
-`chmp.ds.Loop(time, stack, root, debounce, time=<built-in function time>, stack=None, root=None, debounce=0.1)`
+`chmp.ds.Loop(time=<built-in function time>, stack=None, root=None, debounce=0.1)`
 
 A flexible progressbar indicator.
 
@@ -375,8 +547,38 @@ The following format codes are recognized:
 To access nested loop use the getitem notation, e.g. `loop[1]`.
 
 
+#### `chmp.ds.Loop._print`
+`chmp.ds.Loop._print(str, width=120, end='\r', file=None, flush=False)`
+
+
+#### `chmp.ds.Loop.will_print`
+`chmp.ds.Loop.will_print(now=None)`
+
+Check whether the print invocation will be debounced.
+
+
+#### `chmp.ds.Loop.__getitem__`
+`chmp.ds.Loop.__getitem__(idx)`
+
+
+#### `chmp.ds.Loop.nest`
+`chmp.ds.Loop.nest(iterable, length=None)`
+
+
+#### `chmp.ds.Loop.get_info`
+`chmp.ds.Loop.get_info()`
+
+
+#### `chmp.ds.Loop.__str__`
+`chmp.ds.Loop.__str__()`
+
+
+#### `chmp.ds.Loop.__format__`
+`chmp.ds.Loop.__format__(format_spec)`
+
+
 ### `chmp.ds.tdformat`
-`chmp.ds.tdformat()`
+`chmp.ds.tdformat(time_delta)`
 
 Format a timedelta given in seconds.
 
@@ -388,37 +590,37 @@ Format a ASCII progressbar
 
 
 ### `chmp.ds.sha1`
-`chmp.ds.sha1()`
+`chmp.ds.sha1(obj)`
 
 Create a hash for a json-encode-able object
 
 
 ### `chmp.ds.random`
-`chmp.ds.random()`
+`chmp.ds.random(obj)`
 
 Return a random float in the range [0, 1)
 
 
 ### `chmp.ds.np_seed`
-`chmp.ds.np_seed()`
+`chmp.ds.np_seed(obj)`
 
 Return a seed usable by numpy.
 
 
 ### `chmp.ds.tf_seed`
-`chmp.ds.tf_seed()`
+`chmp.ds.tf_seed(obj)`
 
 Return a seed usable by tensorflow.
 
 
 ### `chmp.ds.std_seed`
-`chmp.ds.std_seed()`
+`chmp.ds.std_seed(obj)`
 
 Return a seed usable by python random module.
 
 
 ### `chmp.ds.shuffle`
-`chmp.ds.shuffle()`
+`chmp.ds.shuffle(obj, l)`
 
 Shuffle `l` in place using Fisher–Yates algorithm.
 

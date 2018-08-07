@@ -7,7 +7,7 @@ license, (c) 2017 Christopher Prohm.
 
 
 ### `chmp.parser.inspect_parser`
-`chmp.parser.inspect_parser()`
+`chmp.parser.inspect_parser(parser)`
 
 Recursively inspect a parser.
 

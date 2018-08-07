@@ -16,7 +16,7 @@ license, (c) 2017 Christopher Prohm.
 
 
 ### `chmp.label.annotate`
-`chmp.label.annotate()`
+`chmp.label.annotate(items)`
 
 Annotate data inside the ipython notebook.
 
@@ -59,7 +59,7 @@ the additional `get_latest` method on the returned object.
 
 
 ### `chmp.label.write_latest_labels`
-`chmp.label.write_latest_labels(annotator, skip_class, label_key, skip_class='skip', label_key='label', fname_key='item')`
+`chmp.label.write_latest_labels(annotator, skip_class='skip', label_key='label', fname_key='item')`
 
 Write the latest labels added to an annotator.
 
@@ -70,10 +70,75 @@ Write the latest labels added to an annotator.
 Abstract annotator without ties to IPython.
 
 
+#### `chmp.label.BaseAnnotator.get_latest`
+`chmp.label.BaseAnnotator.get_latest()`
+
+
+#### `chmp.label.BaseAnnotator.update_display`
+`chmp.label.BaseAnnotator.update_display()`
+
+Hook that is called, when new information should be shown.
+
+The default does nothing, to add custom behavior overwrite it in a
+subclass.
+
+
+#### `chmp.label.BaseAnnotator.clear`
+`chmp.label.BaseAnnotator.clear()`
+
+
+#### `chmp.label.BaseAnnotator.annotate`
+`chmp.label.BaseAnnotator.annotate(data)`
+
+
+#### `chmp.label.BaseAnnotator.next`
+`chmp.label.BaseAnnotator.next(item=None)`
+
+
+#### `chmp.label.BaseAnnotator.annotate_current`
+`chmp.label.BaseAnnotator.annotate_current(label)`
+
+
+#### `chmp.label.BaseAnnotator.repeat`
+`chmp.label.BaseAnnotator.repeat(idx)`
+
+
 ### `chmp.label.Annotator`
 `chmp.label.Annotator(classes, history_length=10)`
 
 IPython widget to quickly annotate data sets.
+
+
+#### `chmp.label.Annotator.build_display_value`
+`chmp.label.Annotator.build_display_value(item)`
+
+Build the display of the item being annotated.
+
+This class has to be overwritten in subclasses.
+
+#### Returns
+
+an HTML reprensetation of the item to display.
+
+
+#### `chmp.label.Annotator.clear`
+`chmp.label.Annotator.clear()`
+
+
+#### `chmp.label.Annotator.update_display`
+`chmp.label.Annotator.update_display()`
+
+
+#### `chmp.label.Annotator._build`
+`chmp.label.Annotator._build(classes)`
+
+
+#### `chmp.label.Annotator._build_label_button`
+`chmp.label.Annotator._build_label_button(label)`
+
+
+#### `chmp.label.Annotator._ipython_display_`
+`chmp.label.Annotator._ipython_display_(**kwargs)`
 
 
 ### `chmp.label.ImageAnnotator`
@@ -84,12 +149,20 @@ IPython widget to annotate image files.
 The widget expects a list of filenames.
 
 
+#### `chmp.label.ImageAnnotator.build_display_value`
+`chmp.label.ImageAnnotator.build_display_value(item)`
+
+
 ### `chmp.label.AudioAnnotator`
 `chmp.label.AudioAnnotator(classes, history_length=10)`
 
 IPython widget to annotate audio files.
 
 The widget expects a list of filenames.
+
+
+#### `chmp.label.AudioAnnotator.build_display_value`
+`chmp.label.AudioAnnotator.build_display_value(item)`
 
 
 ### `chmp.label.build_data_url`
