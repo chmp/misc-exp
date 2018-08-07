@@ -1,11 +1,11 @@
 # Collection of utility functions
 
-- [`chmp.distributed`](src/chmp/distributed): distributed execution of
+- [`chmp.distributed`](docs/distributed.md): distributed execution of
   functional pipelines
 - [`chmp.ds`](docs/ds.md): data science support
 - [`chmp.label`](docs/label.md): support for labeling in IPython notebooks
 - [`chmp.ml`](src/chmp/ml): machine learning helpers
-- [`chmp.parser`](src/chmp/parser): helpers to write parsers using functional
+- [`chmp.parser`](docs/parser.md): helpers to write parsers using functional
   composition
 
 Note, the individual modules are designed ot be easily copyable outside this
