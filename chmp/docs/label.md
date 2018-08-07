@@ -129,18 +129,6 @@ an HTML reprensetation of the item to display.
 `chmp.label.Annotator.update_display()`
 
 
-#### `chmp.label.Annotator._build`
-`chmp.label.Annotator._build(classes)`
-
-
-#### `chmp.label.Annotator._build_label_button`
-`chmp.label.Annotator._build_label_button(label)`
-
-
-#### `chmp.label.Annotator._ipython_display_`
-`chmp.label.Annotator._ipython_display_(**kwargs)`
-
-
 ### `chmp.label.ImageAnnotator`
 `chmp.label.ImageAnnotator(classes, history_length=10)`
 

@@ -10,10 +10,6 @@ license, (c) 2017 Christopher Prohm.
 `chmp.distributed.DaskCounter(items)`
 
 
-#### `chmp.distributed.DaskCounter._call`
-`chmp.distributed.DaskCounter._call(func)`
-
-
 #### `chmp.distributed.DaskCounter.elements`
 `chmp.distributed.DaskCounter.elements()`
 
@@ -56,14 +52,6 @@ dask bags are immutable
 `chmp.distributed.RuleSet.add(match, apply, help=None)`
 
 
-#### `chmp.distributed.RuleSet.__or__`
-`chmp.distributed.RuleSet.__or__(other)`
-
-
-#### `chmp.distributed.RuleSet.__call__`
-`chmp.distributed.RuleSet.__call__(*args)`
-
-
 ### `chmp.distributed.apply`
 `chmp.distributed.apply(transformation, obj)`
 
@@ -97,18 +85,6 @@ a = math.cos(a)
 ```
 
 
-#### `chmp.distributed.chained.__call__`
-`chmp.distributed.chained.__call__(obj)`
-
-
-#### `chmp.distributed.chained.__repr__`
-`chmp.distributed.chained.__repr__()`
-
-
-#### `chmp.distributed.chained.__iter__`
-`chmp.distributed.chained.__iter__()`
-
-
 ### `chmp.distributed.extension_rules`
 
 
@@ -127,10 +103,6 @@ Express repartition of a `dask.bag.Bag`, for non bags it is a nop-op.
 
 * **n** (*int*):
   the number of partitions
-
-
-#### `chmp.distributed.repartition.__call__`
-`chmp.distributed.repartition.__call__(obj)`
 
 
 ### `chmp.distributed.rules`

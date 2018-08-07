@@ -31,18 +31,6 @@ assert foo == 42
 Dictionary-like namespace object.
 
 
-#### `chmp.ds.Object.__repr__`
-`chmp.ds.Object.__repr__()`
-
-
-#### `chmp.ds.Object.__eq__`
-`chmp.ds.Object.__eq__(other)`
-
-
-#### `chmp.ds.Object.__ne__`
-`chmp.ds.Object.__ne__(other)`
-
-
 ### `chmp.ds.get_color_cycle`
 `chmp.ds.get_color_cycle(n=None)`
 
@@ -91,12 +79,6 @@ pcolor(edges(x), edges(y), v)
 
 ### `chmp.ds.caption`
 `chmp.ds.caption(s, size=13, strip=True)`
-
-Add captions to matplotlib graphs.
-
-
-### `chmp.ds._caption`
-`chmp.ds._caption(s, size=13, strip=True)`
 
 Add captions to matplotlib graphs.
 
@@ -396,132 +378,6 @@ An enumeration.
 Initialize self.  See help(type(self)) for accurate signature.
 
 
-#### `chmp.ds.LoopState._generate_next_value_`
-`chmp.ds.LoopState._generate_next_value_(start, count, last_values)`
-
-
-#### `chmp.ds.LoopState._member_type_`
-`chmp.ds.LoopState._member_type_(*args, **kwargs)`
-
-The most base type
-
-Initialize self.  See help(type(self)) for accurate signature.
-
-
-##### `chmp.ds.LoopState._member_type_.__repr__`
-
-Return repr(self).
-
-
-##### `chmp.ds.LoopState._member_type_.__hash__`
-
-Return hash(self).
-
-
-##### `chmp.ds.LoopState._member_type_.__str__`
-
-Return str(self).
-
-
-##### `chmp.ds.LoopState._member_type_.__getattribute__`
-
-Return getattr(self, name).
-
-
-##### `chmp.ds.LoopState._member_type_.__setattr__`
-
-Implement setattr(self, name, value).
-
-
-##### `chmp.ds.LoopState._member_type_.__delattr__`
-
-Implement delattr(self, name).
-
-
-##### `chmp.ds.LoopState._member_type_.__lt__`
-
-Return self<value.
-
-
-##### `chmp.ds.LoopState._member_type_.__le__`
-
-Return self<=value.
-
-
-##### `chmp.ds.LoopState._member_type_.__eq__`
-
-Return self==value.
-
-
-##### `chmp.ds.LoopState._member_type_.__ne__`
-
-Return self!=value.
-
-
-##### `chmp.ds.LoopState._member_type_.__gt__`
-
-Return self>value.
-
-
-##### `chmp.ds.LoopState._member_type_.__ge__`
-
-Return self>=value.
-
-
-##### `chmp.ds.LoopState._member_type_.__new__`
-
-Create and return a new object.  See help(type) for accurate signature.
-
-
-##### `chmp.ds.LoopState._member_type_.__reduce_ex__`
-
-helper for pickle
-
-
-##### `chmp.ds.LoopState._member_type_.__reduce__`
-
-helper for pickle
-
-
-##### `chmp.ds.LoopState._member_type_.__subclasshook__`
-
-Abstract classes can override this to customize issubclass().
-
-This is invoked early on by abc.ABCMeta.__subclasscheck__().
-It should return True, False or NotImplemented.  If it returns
-NotImplemented, the normal algorithm is used.  Otherwise, it
-overrides the normal algorithm (and the outcome is cached).
-
-
-##### `chmp.ds.LoopState._member_type_.__init_subclass__`
-
-This method is called when a class is subclassed.
-
-The default implementation does nothing. It may be
-overridden to extend subclasses.
-
-
-##### `chmp.ds.LoopState._member_type_.__format__`
-
-default object formatter
-
-
-##### `chmp.ds.LoopState._member_type_.__sizeof__`
-
-__sizeof__() -> int
-size of object in memory, in bytes
-
-
-##### `chmp.ds.LoopState._member_type_.__dir__`
-
-__dir__() -> list
-default dir() implementation
-
-
-#### `chmp.ds.LoopState.__new__`
-`chmp.ds.LoopState.__new__(value)`
-
-
 ### `chmp.ds.Loop`
 `chmp.ds.Loop(time=<built-in function time>, stack=None, root=None, debounce=0.1)`
 
@@ -547,18 +403,10 @@ The following format codes are recognized:
 To access nested loop use the getitem notation, e.g. `loop[1]`.
 
 
-#### `chmp.ds.Loop._print`
-`chmp.ds.Loop._print(str, width=120, end='\r', file=None, flush=False)`
-
-
 #### `chmp.ds.Loop.will_print`
 `chmp.ds.Loop.will_print(now=None)`
 
 Check whether the print invocation will be debounced.
-
-
-#### `chmp.ds.Loop.__getitem__`
-`chmp.ds.Loop.__getitem__(idx)`
 
 
 #### `chmp.ds.Loop.nest`
@@ -567,14 +415,6 @@ Check whether the print invocation will be debounced.
 
 #### `chmp.ds.Loop.get_info`
 `chmp.ds.Loop.get_info()`
-
-
-#### `chmp.ds.Loop.__str__`
-`chmp.ds.Loop.__str__()`
-
-
-#### `chmp.ds.Loop.__format__`
-`chmp.ds.Loop.__format__(format_spec)`
 
 
 ### `chmp.ds.tdformat`

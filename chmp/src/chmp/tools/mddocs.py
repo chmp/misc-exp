@@ -590,7 +590,8 @@ def get_member_names(obj):
             for k, v in vars(obj).items()
             if (
                 getattr(v, '__module__', None) == obj.__name__ and
-                getattr(v, '__doc__', None) is not None
+                getattr(v, '__doc__', None) is not None and
+                not k.startswith('_')
             )
         ]
 
@@ -598,7 +599,7 @@ def get_member_names(obj):
         return [
             k
             for k, v in vars(obj).items()
-            if callable(v) and k != '__init__'
+            if callable(v) and not k.startswith('_')
         ]
 
     else:
