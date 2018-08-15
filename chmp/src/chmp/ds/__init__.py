@@ -37,6 +37,20 @@ else:
     _HAS_SK_LEARN = True
 
 
+try:
+    from daft import PGM
+
+except ImportError:
+    class PGM:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    _HAS_DAFT = False
+
+else:
+    _HAS_DAFT = True
+
+
 def reload(*modules_or_module_names):
     mod = None
     for module_or_module_name in modules_or_module_names:
@@ -140,6 +154,7 @@ def mpl_set(
         invert=None,
         ax=None,
         grid=None,
+        axis=None,
 ):
     """Set various style related options of MPL.
 
@@ -258,6 +273,147 @@ def mpl_set(
                 raise RuntimeError()
 
             plt.grid(b, which, axis)
+
+    if axis is not None and axis is not True:
+        if axis is False:
+            axis = 'off'
+
+        plt.axis(axis)
+
+
+def pgm(*, ax=None, **kwargs):
+    """Wrapper around ``daft.PGM`` to allow fluid call chains.
+
+    Usage::
+
+        (
+            pgm(observed_style="inner", ax=ax1)
+            .node("z", r"$Z$", 1.5, 2)
+            .node("x", r"$X$", 1, 1)
+            .node("y", r"$Y$", 2, 1)
+            .edge("z", "x")
+            .edge("x", "y")
+            .edge("z", "y")
+            .render(xlim=(1, 5), ylim=(1, 5))
+        )
+
+    To annotate a node use::
+
+        .annotate(node_name, annotation_text)
+
+    """
+    if not _HAS_DAFT:
+        raise RuntimeError('daft is required for pgm support.')
+    
+    return _PGM(ax=ax, **kwargs)
+
+
+class _PGM(PGM):
+    def __init__(self, *, ax=None, **kwargs):
+        import matplotlib.pyplot as plt
+
+        super().__init__([1.0, 1.0], origin=[0.0, 0.0], **kwargs)
+
+        if ax is None:
+            ax = plt.gca()
+
+        self._ctx._ax = ax
+        self._ctx._figure = ax.get_figure()
+        self._annotations = []
+
+    def node(self, *args, **kwargs):
+        import daft
+
+        self.add_node(daft.Node(*args, **kwargs))
+        return self
+
+    def edge(self, *args, **kwargs):
+        self.add_edge(*args, **kwargs)
+        return self
+
+    def render(self, axis=False, xlim=None, ylim=None, **kwargs):
+        import matplotlib.pyplot as plt
+
+        if xlim is None or ylim is None:
+            data_xlim, data_ylim = self.get_limits()
+            if xlim is None:
+                xlim = data_xlim
+
+            if ylim is None:
+                ylim = data_ylim
+
+        kwargs.update(axis=axis, xlim=xlim, ylim=ylim)
+
+        super().render()
+
+        old_ax = plt.gca()
+        try:
+            plt.sca(self._ctx.ax())
+            for node, text in self._annotations:
+                x_extent = self.get_node_extent(node)
+                plt.text(x_extent.x, x_extent.y - 0.5 * x_extent.height, text, va='top', ha='center')
+
+            mpl_set(**kwargs)
+
+        finally:
+            plt.sca(old_ax)
+
+        return self
+
+    def annotate(self, node, text):
+        self._annotations.append((node, text))
+        return self
+
+    def get_node_extent(self, node):
+        # TODO: incorporate the complete logic of daft?
+        ctx = self._ctx
+
+        if isinstance(node, str):
+            node = self._nodes[node]
+
+        aspect = node.aspect if node.aspect is not None else ctx.aspect
+        height = node.scale * ctx.node_unit
+        width = aspect * height
+
+        center_x = ctx.grid_unit * node.x
+        center_y = ctx.grid_unit * node.y
+
+        return Object(
+            x=center_x,
+            y=center_y,
+            width=width,
+            height=height,
+            xmin=center_x - 0.5 * width,
+            xmax=center_x + 0.5 * width,
+            ymin=center_y - 0.5 * height,
+            ymax=center_y + 0.5 * height,
+        )
+
+    @property
+    def nodes(self):
+        return [*self._nodes.values()]
+
+    def get_limits(self):
+        nodes = self.nodes
+
+        if not nodes:
+            return (0, 1), (0, 1)
+
+        extent = self.get_node_extent(nodes[0])
+
+        xmin = extent.xmin
+        xmax = extent.xmax
+        ymin = extent.ymin
+        ymax = extent.ymax
+
+        for node in nodes[1:]:
+            extent = self.get_node_extent(node)
+            xmin= min(xmin, extent.xmin)
+            xmax= max(xmax, extent.xmax)
+            ymin= min(ymin, extent.ymin)
+            ymax= max(ymax, extent.ymax)
+
+        return (xmin, xmax), (ymin, ymax)
 
 
 def edges(x):
