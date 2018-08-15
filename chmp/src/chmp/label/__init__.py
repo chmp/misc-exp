@@ -29,12 +29,7 @@ _logger = logging.getLogger(__name__)
 
 
 def annotate(
-        items, *,
-        classes,
-        history_length=5,
-        display_value=None,
-        cls=None,
-        kwargs=None
+    items, *, classes, history_length=5, display_value=None, cls=None, kwargs=None
 ):
     """Annotate data inside the ipython notebook.
 
@@ -85,10 +80,10 @@ def annotate(
     if display_value is not None:
         kwargs.update(display_value=display_value)
 
-    if cls == 'audio':
+    if cls == "audio":
         annotator = AudioAnnotator(classes, **kwargs)
 
-    elif cls == 'image':
+    elif cls == "image":
         annotator = ImageAnnotator(classes, **kwargs)
 
     elif cls is not None:
@@ -99,8 +94,7 @@ def annotate(
 
     else:
         annotator = FunctionalAnnotator(
-            classes,
-            lambda item: '<pre>{}</pre>'.format(html.escape(repr(item))),
+            classes, lambda item: "<pre>{}</pre>".format(html.escape(repr(item)))
         )
 
     annotator.annotate(items)
@@ -115,18 +109,12 @@ def listdata(pattern, valid_lables=None):
 
     for fname in fnames:
         if has_label(fname):
-            d = dict(
-                get_label(fname),
-                file=os.path.abspath(fname),
-            )
+            d = dict(get_label(fname), file=os.path.abspath(fname))
 
         else:
-            d = dict(
-                label='<unlabeled>',
-                file=os.path.abspath(fname),
-            )
+            d = dict(label="<unlabeled>", file=os.path.abspath(fname))
 
-        if valid_lables is None or d['label'] in valid_lables:
+        if valid_lables is None or d["label"] in valid_lables:
             result.append(d)
 
     return result
@@ -134,7 +122,7 @@ def listdata(pattern, valid_lables=None):
 
 def get_label(fname):
     fname = get_label_fname(fname)
-    with open(fname, 'rt') as fobj:
+    with open(fname, "rt") as fobj:
         return json.load(fobj)
 
 
@@ -148,9 +136,7 @@ def find_unlabeled(pattern, recursive=False):
 
 def _find_predicate(pattern, recursive, predicate):
     return [
-        fname
-        for fname in glob.iglob(pattern, recursive=recursive)
-        if predicate(fname)
+        fname for fname in glob.iglob(pattern, recursive=recursive) if predicate(fname)
     ]
 
 
@@ -168,37 +154,40 @@ def write_label(*args, keep_existing=True, **kwargs):
         d = dict(d)
 
     else:
-        raise ValueError('invalid number of position arguments: {}'.format(len(args)))
+        raise ValueError("invalid number of position arguments: {}".format(len(args)))
 
     d.update(kwargs)
     label_fname = get_label_fname(fname)
 
     if keep_existing:
         if os.path.exists(label_fname):
-            _logger.info('found existing label file %s', label_fname)
-            with open(label_fname, 'rt') as fobj:
+            _logger.info("found existing label file %s", label_fname)
+            with open(label_fname, "rt") as fobj:
                 old_label = json.load(fobj)
 
-            d['old_label'] = old_label
+            d["old_label"] = old_label
 
-    if 'timestamp' not in d:
-        d['timestamp'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if "timestamp" not in d:
+        d["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    _logger.info('write file %s', label_fname)
-    with open(label_fname, 'w') as fobj:
+    _logger.info("write file %s", label_fname)
+    with open(label_fname, "w") as fobj:
         json.dump(d, fobj, indent=2, sort_keys=True)
 
 
 def get_label_fname(fname):
     label_fname, _ = os.path.splitext(fname)
-    label_fname = label_fname + '.label'
+    label_fname = label_fname + ".label"
 
     return label_fname
 
 
-def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_key='item'):
+def write_latest_labels(
+    annotator, skip_class="skip", label_key="label", fname_key="item"
+):
     """Write the latest labels added to an annotator.
     """
+
     def unpack(*dict_and_keys):
         d, *keys = dict_and_keys
         return tuple(d[k] for k in keys)
@@ -217,6 +206,7 @@ def write_latest_labels(annotator, skip_class='skip', label_key='label', fname_k
 class BaseAnnotator:
     """Abstract annotator without ties to IPython.
     """
+
     def __init__(self):
         self.data = None
         self.annotations = None
@@ -243,10 +233,10 @@ class BaseAnnotator:
 
     def annotate(self, data):
         if self.annotations is not None:
-            raise RuntimeError('call clear before annotating again')
+            raise RuntimeError("call clear before annotating again")
 
         self.annotations = Annotations()
-        self.data = [('order', idx, item) for idx, item in enumerate(data)]
+        self.data = [("order", idx, item) for idx, item in enumerate(data)]
         self.next()
 
     def next(self, item=None):
@@ -268,7 +258,9 @@ class BaseAnnotator:
             return
 
         reason, index, item = self.current_item
-        self.annotations.append(dict(index=index, reason=reason, item=item, label=label))
+        self.annotations.append(
+            dict(index=index, reason=reason, item=item, label=label)
+        )
         self.next()
 
     def repeat(self, idx):
@@ -278,8 +270,8 @@ class BaseAnnotator:
         if self.current_item is not None:
             self.data.insert(0, self.current_item)
 
-        index, item = self.annotations[idx]['index'], self.annotations[idx]['item']
-        item = 'repeat', index, item
+        index, item = self.annotations[idx]["index"], self.annotations[idx]["item"]
+        item = "repeat", index, item
 
         self.next(item)
 
@@ -287,6 +279,7 @@ class BaseAnnotator:
 class Annotator(BaseAnnotator):
     """IPython widget to quickly annotate data sets.
     """
+
     def __init__(self, classes, history_length=10):
         super().__init__()
         self.history_length = int(history_length)
@@ -310,13 +303,15 @@ class Annotator(BaseAnnotator):
 
     def update_display(self):
         if self.current_item is None:
-            self._html.value = 'No data to annotate'
-            self._info.value = '&nbsp;'
+            self._html.value = "No data to annotate"
+            self._info.value = "&nbsp;"
 
         else:
             reason, index, item = self.current_item
             self._html.value = self.build_display_value(item)
-            self._info.value = html.escape('index: {}, reason: {}'.format(index, reason))
+            self._info.value = html.escape(
+                "index: {}, reason: {}".format(index, reason)
+            )
 
         if len(self.annotations) > self.last_repeat:
             from ipywidgets import Button, Layout
@@ -328,7 +323,7 @@ class Annotator(BaseAnnotator):
 
                 repeat_button = Button(
                     description=f'{annotation["label"]} - {annotation["item"]!r}',
-                    layout=Layout(width='50%'),
+                    layout=Layout(width="50%"),
                 )
                 repeat_button.on_click(lambda b: self.repeat(idx))
 
@@ -336,38 +331,40 @@ class Annotator(BaseAnnotator):
 
             self.last_repeat = len(self.annotations)
 
-            repeats = repeats[:self.history_length]
+            repeats = repeats[: self.history_length]
             self._history.children = repeats
 
     def _build(self, classes):
         from ipywidgets import HTML, VBox, Layout, Box
 
-        self._html = HTML(value='No data to annotate')
-        self._info = HTML(value='&nbsp;')
-        self._history = VBox(layout=Layout(margin='1em 0em 0em 0em'))
+        self._html = HTML(value="No data to annotate")
+        self._info = HTML(value="&nbsp;")
+        self._history = VBox(layout=Layout(margin="1em 0em 0em 0em"))
 
-        self._widget = VBox([
-            self._html,
-            self._info,
-            Box([
-                self._build_label_button(label)
-                for label in classes
-            ], layout=Layout(flex_flow='row wrap')),
-            self._history,
-        ])
+        self._widget = VBox(
+            [
+                self._html,
+                self._info,
+                Box(
+                    [self._build_label_button(label) for label in classes],
+                    layout=Layout(flex_flow="row wrap"),
+                ),
+                self._history,
+            ]
+        )
 
     def _build_label_button(self, label):
         from ipywidgets import Button
 
         if not isinstance(label, collections.abc.Mapping):
-            label = {'label': label, 'style': ''}
+            label = {"label": label, "style": ""}
 
         else:
             label = dict(label)
-            label.setdefault('style', '')
+            label.setdefault("style", "")
 
-        b = Button(description=label['label'], button_style=label['style'])
-        b.on_click(lambda b: self.annotate_current(label['label']))
+        b = Button(description=label["label"], button_style=label["style"])
+        b.on_click(lambda b: self.annotate_current(label["label"]))
         return b
 
     def _ipython_display_(self, **kwargs):
@@ -379,6 +376,7 @@ class ImageAnnotator(Annotator):
 
     The widget expects a list of filenames.
     """
+
     def build_display_value(self, item):
         return '<img src="{url}"/>'.format(url=build_data_url(item))
 
@@ -388,6 +386,7 @@ class AudioAnnotator(Annotator):
 
     The widget expects a list of filenames.
     """
+
     def build_display_value(self, item):
         return '<audio src="{url}" controls autoplay/>'.format(url=build_data_url(item))
 
@@ -411,10 +410,10 @@ class Annotations(list):
         added = set()
 
         for item in reversed(self):
-            if item['index'] in added:
+            if item["index"] in added:
                 continue
 
-            added.add(item['index'])
+            added.add(item["index"])
             result.append(item)
 
         return result
@@ -441,24 +440,24 @@ def build_data_url(fname, mime_type=None):
             mime_type = _mime_types[ext]
 
         except AttributeError:
-            raise ValueError('unknown file extension {}'.format(ext))
+            raise ValueError("unknown file extension {}".format(ext))
 
-    with open(fname, 'rb') as fobj:
+    with open(fname, "rb") as fobj:
         data = fobj.read()
 
     data = base64.b64encode(data)
-    data = data.decode('ascii')
+    data = data.decode("ascii")
 
-    return 'data:{mime_type};base64,{data}'.format(mime_type=mime_type, data=data)
+    return "data:{mime_type};base64,{data}".format(mime_type=mime_type, data=data)
 
 
 _mime_types = {
-    '.gif': 'image.gif',
-    '.jpg': 'image/jpeg',
-    '.mp3': 'audio/mpeg',
-    '.ogg': 'audio/ogg',
-    '.png': 'image/png',
-    '.wav': 'audio/wav',
+    ".gif": "image.gif",
+    ".jpg": "image/jpeg",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".png": "image/png",
+    ".wav": "audio/wav",
 }
 
 
@@ -473,15 +472,13 @@ def annotate_bounding_boxes(images):
 
     bounding_boxer = BoundingBoxer()
     annotation_display = AnnotationDisplay()
-    label = Text(placeholder='label')
-    prev_button = Button(description='prev')
-    next_button = Button(description='next')
+    label = Text(placeholder="label")
+    prev_button = Button(description="prev")
+    next_button = Button(description="next")
 
-    widget = VBox([
-        HBox([label, prev_button, next_button]),
-        bounding_boxer,
-        annotation_display,
-    ])
+    widget = VBox(
+        [HBox([label, prev_button, next_button]), bounding_boxer, annotation_display]
+    )
 
     def show():
         if bounding_boxer.url:
@@ -491,7 +488,7 @@ def annotate_bounding_boxes(images):
             url = images[position]
 
         else:
-            url = ''
+            url = ""
 
         if callable(url):
             url = url()
@@ -506,12 +503,12 @@ def annotate_bounding_boxes(images):
         show()
 
     show()
-    jslink((bounding_boxer, '_annotations'), (annotation_display, '_annotations'))
-    jslink((bounding_boxer, 'current_tag'), (label, 'value'))
+    jslink((bounding_boxer, "_annotations"), (annotation_display, "_annotations"))
+    jslink((bounding_boxer, "current_tag"), (label, "value"))
 
     @bounding_boxer.on_msg
     def _(widget, ev, _):
-        if ev['type'] == 'keydown' and ev['which'] == 32:
+        if ev["type"] == "keydown" and ev["which"] == 32:
             _advance(+1)
 
     prev_button.on_click(lambda *_: _advance(-1))
@@ -522,15 +519,16 @@ def annotate_bounding_boxes(images):
 
 class BoundingBoxer(DOMWidget):
     """Allow to annotate an image with bounding boxes."""
-    _view_name = Unicode('BoundingBoxer').tag(sync=True)
-    _view_module = Unicode('de/cprohm/label/boundingBoxer').tag(sync=True)
-    _view_module_version = Unicode('0.1.0').tag(sync=True)
+
+    _view_name = Unicode("BoundingBoxer").tag(sync=True)
+    _view_module = Unicode("de/cprohm/label/boundingBoxer").tag(sync=True)
+    _view_module_version = Unicode("0.1.0").tag(sync=True)
 
     url = Unicode(None, allow_none=True).tag(sync=True)
     current_tag = Unicode().tag(sync=True)
     scale = Float(1.0).tag(sync=True)
 
-    _annotations = Unicode('[]').tag(sync=True)
+    _annotations = Unicode("[]").tag(sync=True)
 
     def __init__(self):
         super().__init__()
@@ -547,11 +545,12 @@ class BoundingBoxer(DOMWidget):
 
 class AnnotationDisplay(DOMWidget):
     """Widget to show and manipulate bounding box annotations."""
-    _view_name = Unicode('Annotations').tag(sync=True)
-    _view_module = Unicode('de/cprohm/label/boundingBoxer').tag(sync=True)
-    _view_module_version = Unicode('0.1.0').tag(sync=True)
 
-    _annotations = Unicode('[]').tag(sync=True)
+    _view_name = Unicode("Annotations").tag(sync=True)
+    _view_module = Unicode("de/cprohm/label/boundingBoxer").tag(sync=True)
+    _view_module_version = Unicode("0.1.0").tag(sync=True)
+
+    _annotations = Unicode("[]").tag(sync=True)
 
     def __init__(self):
         super().__init__()
@@ -567,14 +566,14 @@ class AnnotationDisplay(DOMWidget):
 
 
 def inject_bounding_boxer_js():
-    if getattr(inject_bounding_boxer_js, 'injected', False) is True:
+    if getattr(inject_bounding_boxer_js, "injected", False) is True:
         return
 
     inject_bounding_boxer_js.injected = True
     display_javascript(Javascript(_bounding_boxer_js))
 
 
-_bounding_boxer_js = r'''
+_bounding_boxer_js = r"""
 require.undef('de/cprohm/label/boundingBoxer');
 
 define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widgets) {
@@ -813,4 +812,4 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
     
     return {BoundingBoxer, Annotations};
 });
-'''
+"""

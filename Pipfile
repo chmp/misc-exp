@@ -47,3 +47,5 @@ python_version = "3.6"
 [scripts]
 test = "py.test chmp"
 docs = "python -m chmp.tools mddocs chmp/docs/src chmp/docs"
+notebook = "jupyter notebook"
+format = "black chmp/src"

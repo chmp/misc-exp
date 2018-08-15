@@ -50,7 +50,7 @@ blue, green, red = get_color_cycle(3)
 
 
 ### `chmp.ds.mpl_set`
-`chmp.ds.mpl_set(box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, xformatter=None, yformatter=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None, invert=None, ax=None, grid=None)`
+`chmp.ds.mpl_set(box=None, xlabel=None, ylabel=None, title=None, suptitle=None, xscale=None, yscale=None, caption=None, xlim=None, ylim=None, xticks=None, yticks=None, xformatter=None, yformatter=None, left=None, top=None, bottom=None, right=None, wspace=None, hspace=None, subplot=None, legend=None, colorbar=None, invert=None, ax=None, grid=None, axis=None)`
 
 Set various style related options of MPL.
 
@@ -61,6 +61,33 @@ Set various style related options of MPL.
   signature `(x_value, pos) -> label`.
 * **yformatter** (*Optional[callable]*):
   See `xformatter`.
+
+
+### `chmp.ds.pgm`
+`chmp.ds.pgm(**kwargs)`
+
+Wrapper around `daft.PGM` to allow fluid call chains.
+
+Usage:
+
+```
+(
+    pgm(observed_style="inner", ax=ax1)
+    .node("z", r"$Z$", 1.5, 2)
+    .node("x", r"$X$", 1, 1)
+    .node("y", r"$Y$", 2, 1)
+    .edge("z", "x")
+    .edge("x", "y")
+    .edge("z", "y")
+    .render(xlim=(1, 5), ylim=(1, 5))
+)
+```
+
+To annotate a node use:
+
+```
+.annotate(node_name, annotation_text)
+```
 
 
 ### `chmp.ds.edges`

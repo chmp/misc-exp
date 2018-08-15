@@ -36,8 +36,9 @@ class Model(NoOpContext):
                     scale=tf.nn.softplus(tf.get_variable('w_scale', shape=[n_features], dtype=floatx)),
                 )
     """
+
     def __init__(self):
-        self._scope = {'observed': {}}
+        self._scope = {"observed": {}}
         self._observed = None
         self._definition = None
         self._inference = None
@@ -60,27 +61,27 @@ class Model(NoOpContext):
         self._ensure_observed()
 
         if isinstance(key, tuple):
-            return tuple(self._scope['observed'][k] for k in key)
+            return tuple(self._scope["observed"][k] for k in key)
 
-        return self._scope['observed'][key]
+        return self._scope["observed"][key]
 
     def get(self, *args, **kwargs):
-        kwargs.setdefault('ensure_loss', 'loss' in args)
+        kwargs.setdefault("ensure_loss", "loss" in args)
         scope = self.build(**kwargs)
 
         res = []
         for k in args:
-            if k == 'loss':
-               res.append(scope['loss'])
+            if k == "loss":
+                res.append(scope["loss"])
 
-            elif k in scope['observed']:
-                res.append(scope['observed'][k])
+            elif k in scope["observed"]:
+                res.append(scope["observed"][k])
 
-            elif k in scope['latent']:
-                res.append(scope['latent'][k])
+            elif k in scope["latent"]:
+                res.append(scope["latent"][k])
 
             else:
-                raise KeyError(f'cannot get {k}')
+                raise KeyError(f"cannot get {k}")
 
         return res[0] if len(res) == 1 else tuple(res)
 
@@ -98,14 +99,14 @@ class Model(NoOpContext):
         scope = dict(self._scope, **scope)
         scope = Scope(scope, latent_strategy=latent_strategy)
 
-        with tf.variable_scope('inference', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope("inference", reuse=tf.AUTO_REUSE):
             self._inference(scope)
 
-        with tf.variable_scope('model', reuse=tf.AUTO_REUSE):
-            scope._scope['loss'] = self._definition(scope)
+        with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
+            scope._scope["loss"] = self._definition(scope)
 
-        if ensure_loss and scope._scope['loss'] is None:
-            scope._scope['loss'] = _build_kl_loss(scope._scope)
+        if ensure_loss and scope._scope["loss"] is None:
+            scope._scope["loss"] = _build_kl_loss(scope._scope)
 
         return scope.get()
 
@@ -117,7 +118,7 @@ class Model(NoOpContext):
             self._built = True
             return
 
-        with DictWrapper(self._scope['observed']) as s:
+        with DictWrapper(self._scope["observed"]) as s:
             self._observed(s)
 
         self._built = True
@@ -125,7 +126,7 @@ class Model(NoOpContext):
 
 class DictWrapper(NoOpContext):
     def __init__(self, d):
-        super().__setattr__('_target', d)
+        super().__setattr__("_target", d)
 
     def __setattr__(self, k, v):
         self._target[k] = v
@@ -144,23 +145,23 @@ class Scope:
             latent_strategy = sample_latent
 
         self._scope = dict(scope)
-        self._scope.setdefault('q', {})
-        self._scope.setdefault('p', {})
-        self._scope.setdefault('latent', {})
+        self._scope.setdefault("q", {})
+        self._scope.setdefault("p", {})
+        self._scope.setdefault("latent", {})
         self._latent_strategy = latent_strategy
 
     def __getattr__(self, key):
         scope = self._scope
 
-        if key in scope['latent']:
-            return scope['latent'][key]
+        if key in scope["latent"]:
+            return scope["latent"][key]
 
-        if key in scope['observed']:
-            return scope['observed'][key]
+        if key in scope["observed"]:
+            return scope["observed"][key]
 
-        if key in scope['q']:
+        if key in scope["q"]:
             self._latent_strategy(scope, key)
-            return scope['latent'][key]
+            return scope["latent"][key]
 
         raise AttributeError(key)
 
@@ -169,11 +170,11 @@ class Scope:
 
     @property
     def p(self):
-        return DictWrapper(self._scope['p'])
+        return DictWrapper(self._scope["p"])
 
     @property
     def q(self):
-        return DictWrapper(self._scope['q'])
+        return DictWrapper(self._scope["q"])
 
 
 def build(model, *defs, latent_strategy=None):
@@ -197,52 +198,58 @@ def build(model, *defs, latent_strategy=None):
 
 
 def _lookup_dist(scope, k):
-    return scope['p'][k] if k in scope['observed'] else scope['q'][k]
+    return scope["p"][k] if k in scope["observed"] else scope["q"][k]
 
 
 def sample_prior(scope, key):
-    scope['latent'][key] = scope['p'][key].sample()
+    scope["latent"][key] = scope["p"][key].sample()
 
 
 def sample_latent(scope, key):
-    scope['latent'][key] = scope['q'][key].sample()
+    scope["latent"][key] = scope["q"][key].sample()
 
 
 def sample_latent_no_grad(scope, key):
     import tensorflow as tf
 
-    scope['latent'][key] = tf.stop_gradient(scope['q'][key].sample())
+    scope["latent"][key] = tf.stop_gradient(scope["q"][key].sample())
 
 
 def average_latent(scope, key):
-    scope['latent'][key] = scope['q'][key].mean()
+    scope["latent"][key] = scope["q"][key].mean()
 
 
 def build_reparam_loss(model):
     import tensorflow as tf
 
     # TODO: raise warning if non-re-parametrizable
-    scope = model if isinstance(model, dict) else model.build(latent_strategy=sample_latent)
-    loss = tf.reduce_mean(scope['loss'])
+    scope = (
+        model if isinstance(model, dict) else model.build(latent_strategy=sample_latent)
+    )
+    loss = tf.reduce_mean(scope["loss"])
     return loss, loss
 
 
 def build_score_loss(model, var_list=None):
     import tensorflow as tf
 
-    scope = model if isinstance(model, dict) else model.build(latent_strategy=sample_latent_no_grad)
+    scope = (
+        model
+        if isinstance(model, dict)
+        else model.build(latent_strategy=sample_latent_no_grad)
+    )
 
     if var_list is None:
         var_list = tf.trainable_variables()
 
     grad_q = 0
-    for k, q in scope['q'].items():
-        v = scope['latent'][k]
+    for k, q in scope["q"].items():
+        v = scope["latent"][k]
         grad_q += q.log_prob(v)
 
     return (
-        tf.reduce_mean(scope['loss']),
-        tf.reduce_mean(scope['loss'] + tf.stop_gradient(scope['loss']) * grad_q),
+        tf.reduce_mean(scope["loss"]),
+        tf.reduce_mean(scope["loss"] + tf.stop_gradient(scope["loss"]) * grad_q),
     )
 
 
@@ -269,10 +276,7 @@ def relax_bernoulli(p, temperature=1.0):
     b_relaxed = tf.sigmoid(z / temperature)
 
     nu = tf.random_uniform(tf.shape(b))
-    nu_cond = (
-        (nu * (1 - p.probs)) * (1 - b) +
-        (1 - p.probs * nu) * b
-    )
+    nu_cond = (nu * (1 - p.probs)) * (1 - b) + (1 - p.probs * nu) * b
     z_cond = tf.log(p.probs / (1.0 - p.probs)) + tf.log(nu_cond / (1. - nu_cond))
 
     b_cond_relaxed = tf.sigmoid(z_cond / temperature)
@@ -297,7 +301,9 @@ def relax_categorical(p, temperature=1.0):
     import tensorflow as tf
 
     if isinstance(p, tf.distributions.Multinomial):
-        control_deps = [tf.assert_equal(p.total_count, 1.0, message='can only relax categoricals')]
+        control_deps = [
+            tf.assert_equal(p.total_count, 1.0, message="can only relax categoricals")
+        ]
         event_size = tf.shape(p.probs)[-1]
 
     else:
@@ -317,7 +323,7 @@ def relax_categorical(p, temperature=1.0):
     alpha = (1.0 - p.probs) / p.probs
     theta_b = tf.reduce_sum(p.probs * b, keep_dims=True, axis=-1)
 
-    u_i_exp = (1 - b)
+    u_i_exp = 1 - b
     u_b_exp = b + (1 - b) * p.probs / theta_b
 
     u_b = tf.random_uniform(tf.shape(p.probs)) ** (1.0 / (1.0 + alpha))
@@ -352,30 +358,37 @@ def build_relax_loss(model):
 
     scope = model.build(latent_strategy=relax_latent_strategy)
 
-    scope_cond_relaxed = dict(scope, latent=scope['latent_cond_relaxed'].copy(), p={}, loss=None)
-    scope_cond_relaxed = model.build(scope=scope_cond_relaxed, latent_strategy=raise_latent_strategy)
+    scope_cond_relaxed = dict(
+        scope, latent=scope["latent_cond_relaxed"].copy(), p={}, loss=None
+    )
+    scope_cond_relaxed = model.build(
+        scope=scope_cond_relaxed, latent_strategy=raise_latent_strategy
+    )
 
-    scope_relaxed = dict(scope, latent=scope['latent_relaxed'].copy(), p={}, loss=None)
-    scope_relaxed = model.build(scope=scope_relaxed, latent_strategy=raise_latent_strategy)
+    scope_relaxed = dict(scope, latent=scope["latent_relaxed"].copy(), p={}, loss=None)
+    scope_relaxed = model.build(
+        scope=scope_relaxed, latent_strategy=raise_latent_strategy
+    )
 
     grad_q = 0
-    for k, q in scope['q'].items():
-        v = scope['latent'][k]
+    for k, q in scope["q"].items():
+        v = scope["latent"][k]
         grad_q += q.log_prob(v)
 
     loss = (
-        scope['loss'] +
-        tf.stop_gradient(scope['loss'] - scope_cond_relaxed['loss']) * grad_q +
-        scope_relaxed['loss'] - scope_cond_relaxed['loss']
+        scope["loss"]
+        + tf.stop_gradient(scope["loss"] - scope_cond_relaxed["loss"]) * grad_q
+        + scope_relaxed["loss"]
+        - scope_cond_relaxed["loss"]
     )
 
-    return tf.reduce_mean(scope['loss']), tf.reduce_mean(loss)
+    return tf.reduce_mean(scope["loss"]), tf.reduce_mean(loss)
 
 
 def relax_latent_strategy(scope, key):
     import tensorflow as tf
 
-    p = scope['q'][key]
+    p = scope["q"][key]
 
     if isinstance(p, tf.distributions.Bernoulli):
         v, v_relaxed, v_cond_relaxed = relax_bernoulli(p)
@@ -387,34 +400,36 @@ def relax_latent_strategy(scope, key):
         v, v_relaxed, v_cond_relaxed = relax_categorical(p)
 
     elif isinstance(p, tf.distributions.Categorical):
-        raise NotImplementedError('use Multinomial with total_count = 1 or OneHotCategorical')
+        raise NotImplementedError(
+            "use Multinomial with total_count = 1 or OneHotCategorical"
+        )
 
     else:
         v = v_relaxed = v_cond_relaxed = p.sample()
         v = tf.stop_gradient(v)
 
-    scope.setdefault('latent', {})[key] = v
-    scope.setdefault('latent_relaxed', {})[key] = v_relaxed
-    scope.setdefault('latent_cond_relaxed', {})[key] = v_cond_relaxed
+    scope.setdefault("latent", {})[key] = v
+    scope.setdefault("latent_relaxed", {})[key] = v_relaxed
+    scope.setdefault("latent_cond_relaxed", {})[key] = v_cond_relaxed
 
 
 def raise_latent_strategy(scope, key):
     """Raise for non-existing latent variables"""
-    raise RuntimeError(f'latent variable {key} does not exit')
+    raise RuntimeError(f"latent variable {key} does not exit")
 
 
 def _build_kl_loss(scope):
     loss = 0
-    for k, p in scope['p'].items():
-        if k in scope['latent']:
-            v = scope['latent'][k]
+    for k, p in scope["p"].items():
+        if k in scope["latent"]:
+            v = scope["latent"][k]
 
         else:
-            v = scope['observed'][k]
+            v = scope["observed"][k]
 
         loss += p.log_prob(v)
 
-    for q in scope['q'].values():
+    for q in scope["q"].values():
         loss += q.entropy()
 
     return -loss

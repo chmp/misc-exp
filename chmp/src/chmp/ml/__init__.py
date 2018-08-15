@@ -5,7 +5,6 @@ license, (c) 2017 Christopher Prohm.
 """
 import contextlib
 import functools as ft
-import inspect
 import re
 
 
@@ -41,6 +40,7 @@ class PickableTFModel:
             model = pickle.load(fobj).restore()
 
     """
+
     __params__ = ()
 
     def __init__(self):
@@ -49,6 +49,7 @@ class PickableTFModel:
     def to_pickable(self, session=None):
         if session is None:
             import tensorflow as tf
+
             session = tf.get_default_session()
 
         init_kwargs = {k: getattr(self, k) for k in self.__params__}
@@ -72,6 +73,7 @@ class PickableTFModel:
     def valid_graph(graph=None):
         if graph is None:
             import tensorflow as tf
+
             graph = tf.get_default_graph()
 
         return graph.as_default()
@@ -80,9 +82,8 @@ class PickableTFModel:
 def vars_to_save():
     import tensorflow as tf
 
-    return (
-        set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)) |
-        set(tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS))
+    return set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)) | set(
+        tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS)
     )
 
 
@@ -128,7 +129,7 @@ def inject_session(func):
 
     if wrapper.__doc__ is not None:
         wrapper.__doc__ = _session_doc_pattern.sub(
-            lambda m: '\n'.join(m.group('indent') + l for l in _session_doc),
+            lambda m: "\n".join(m.group("indent") + l for l in _session_doc),
             wrapper.__doc__,
         )
 
@@ -136,12 +137,14 @@ def inject_session(func):
 
 
 _session_doc = [
-    ':param Optional[tf.Session] session:',
-    '    if not given, the default session will be passed. This argument has to',
-    '    be supplied as a keyword argument.',
+    ":param Optional[tf.Session] session:",
+    "    if not given, the default session will be passed. This argument has to",
+    "    be supplied as a keyword argument.",
 ]
 
-_session_doc_pattern = re.compile(r'^(?P<indent>[ ]*)\{\{session_doc\}\}\s+$', re.MULTILINE)
+_session_doc_pattern = re.compile(
+    r"^(?P<indent>[ ]*)\{\{session_doc\}\}\s+$", re.MULTILINE
+)
 
 
 def get_shape(v):
@@ -169,9 +172,7 @@ def get_variables(prefix, collection_key=None):
         collection_key = tf.GraphKeys.GLOBAL_VARIABLES
 
     return [
-        var
-        for var in tf.get_collection(collection_key)
-        if var.name.startswith(prefix)
+        var for var in tf.get_collection(collection_key) if var.name.startswith(prefix)
     ]
 
 
@@ -179,11 +180,11 @@ class Sample:
     def __init__(self, sample):
         self._sample = sample
 
-    def sample(self, sample_shape=(), seed=None, name=''):
+    def sample(self, sample_shape=(), seed=None, name=""):
         return self._sample
 
-    def prob(self, value, name=''):
+    def prob(self, value, name=""):
         raise RuntimeError()
 
-    def log_prob(self, value, name=''):
+    def log_prob(self, value, name=""):
         raise RuntimeError()

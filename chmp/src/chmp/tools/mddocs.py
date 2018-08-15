@@ -15,7 +15,7 @@ try:
     import docutils
 
 except ImportError:
-    print('this script requires docutils to be installed', file=sys.stderr)
+    print("this script requires docutils to be installed", file=sys.stderr)
     raise SystemExit(1)
 
 from docutils.core import publish_string
@@ -36,7 +36,7 @@ def transform_directories(src, dst, continue_on_error=False):
     docs_dir = os.path.abspath(dst)
 
     for fname in relwalk(src_dir):
-        if not fname.endswith('.md'):
+        if not fname.endswith(".md"):
             continue
 
         source = os.path.abspath(os.path.join(src_dir, fname))
@@ -44,9 +44,9 @@ def transform_directories(src, dst, continue_on_error=False):
 
         # NOTE: always generate docs, to include newest docstrings
 
-        _logger.info('transform %s -> %s', source, target)
+        _logger.info("transform %s -> %s", source, target)
 
-        with open(source, 'rt') as fobj:
+        with open(source, "rt") as fobj:
             content = fobj.read()
 
         try:
@@ -54,19 +54,19 @@ def transform_directories(src, dst, continue_on_error=False):
 
         except Exception as e:
             if continue_on_error:
-                _logger.error('could not transform %s', source, exc_info=True)
+                _logger.error("could not transform %s", source, exc_info=True)
                 continue
 
             else:
                 raise
 
-        with open(target, 'wt') as fobj:
+        with open(target, "wt") as fobj:
             fobj.write(content)
 
 
 def setup_rst_roles():
-    roles.register_canonical_role('class', rewrite_reference)
-    roles.register_canonical_role('func', rewrite_reference)
+    roles.register_canonical_role("class", rewrite_reference)
+    roles.register_canonical_role("func", rewrite_reference)
 
 
 def rewrite_reference(name, rawtext, text, lineno, inliner, options=None, content=None):
@@ -78,12 +78,12 @@ class TitledReference(Element):
     pass
 
 
-def relwalk(absroot, relroot='.'):
+def relwalk(absroot, relroot="."):
     for fname in os.listdir(absroot):
         relpath = os.path.join(relroot, fname)
         abspath = os.path.join(absroot, fname)
 
-        if fname in {'.', '..'}:
+        if fname in {".", ".."}:
             continue
 
         if os.path.isfile(abspath):
@@ -99,45 +99,46 @@ def transform(content, source):
     lines = []
 
     directive_map = {
-        'include': include,
-        'autofunction': autofunction,
-        'autoclass': autoclass,
-        'automethod': automethod,
-        'automodule': automodule,
-        'literalinclude': literalinclude,
+        "include": include,
+        "autofunction": autofunction,
+        "autoclass": autoclass,
+        "automethod": automethod,
+        "automodule": automodule,
+        "literalinclude": literalinclude,
     }
 
     for part in result:
-        if part['type'] == 'verbatim':
-            lines += [part['line']]
+        if part["type"] == "verbatim":
+            lines += [part["line"]]
 
-        elif part['type'] in directive_map:
-            lines += directive_map[part['type']](part, source)
+        elif part["type"] in directive_map:
+            lines += directive_map[part["type"]](part, source)
 
         else:
-            raise NotImplementedError('unknown parse fragmet {}'.format(part['type']))
+            raise NotImplementedError("unknown parse fragmet {}".format(part["type"]))
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def build_parser():
     simple_directives = [
-        'autofunction', 'include', 'autoclass', 'automethod', 'literalincldue',
+        "autofunction",
+        "include",
+        "autoclass",
+        "automethod",
+        "literalincldue",
     ]
 
     end_of_directive = p.first(
-        p.map(
-            lambda line: {'type': 'verbatim', 'line': line},
-            p.eq(''),
-        ),
+        p.map(lambda line: {"type": "verbatim", "line": line}, p.eq("")),
         p.end_of_sequence(),
     )
 
     def make_simple_parser(name):
         return p.sequential(
             p.map(
-                lambda line: {'type': name, 'line': line},
-                p.predicate(lambda line: line.startswith('.. {}::'.format(name))),
+                lambda line: {"type": name, "line": line},
+                p.predicate(lambda line: line.startswith(".. {}::".format(name))),
             ),
             end_of_directive,
         )
@@ -147,13 +148,11 @@ def build_parser():
     automodule_parser = p.sequential(
         p.build_object(
             p.map(
-                lambda line: {'type': 'automodule', 'line': line},
-                p.predicate(lambda line: line.startswith('.. automodule::'))
+                lambda line: {"type": "automodule", "line": line},
+                p.predicate(lambda line: line.startswith(".. automodule::")),
             ),
             p.repeat(
-                p.first(
-                    p.map(lambda line: {'members': True}, p.eq('    :members:')),
-                ),
+                p.first(p.map(lambda line: {"members": True}, p.eq("    :members:")))
             ),
         ),
         end_of_directive,
@@ -164,16 +163,16 @@ def build_parser():
             *simple_parsers,
             automodule_parser,
             p.map(
-                lambda line: {'type': 'verbatim', 'line': line},
+                lambda line: {"type": "verbatim", "line": line},
                 p.first(
                     p.fail_if(
-                        lambda line: line.startswith('..'),
-                        lambda line: 'unknown directive {!r}'.format(line),
+                        lambda line: line.startswith(".."),
+                        lambda line: "unknown directive {!r}".format(line),
                     ),
                     p.any(),
-                )
+                ),
             ),
-        ),
+        )
     )
 
 
@@ -197,12 +196,14 @@ def automodule(part, source):
 
 
 def autoobject(part, depth=1, header=3, skip_args=0):
-    what, signature = extract_label_signature(part['line'])
+    what, signature = extract_label_signature(part["line"])
 
     obj = import_object(what, depth=depth)
-    yield from document_object(obj, what, signature=signature, header=header, skip_args=skip_args)
+    yield from document_object(
+        obj, what, signature=signature, header=header, skip_args=skip_args
+    )
 
-    if part.get('members') is True:
+    if part.get("members") is True:
         for child, child_kwargs in get_members(what, obj, header=header, skip_args=0):
             yield from document_object(child, **child_kwargs)
 
@@ -217,11 +218,11 @@ def extract_label_signature(autodoc_line):
         >>> extract_label_signature(':: foo')
         'foo', None
     """
-    _, what = autodoc_line.split('::')
+    _, what = autodoc_line.split("::")
 
-    if '(' in what:
+    if "(" in what:
         signature = what.strip()
-        what, *_ = what.partition('(')
+        what, *_ = what.partition("(")
 
     else:
         signature = None
@@ -233,7 +234,7 @@ def extract_label_signature(autodoc_line):
 def get_members(parent_k, parent, header, skip_args=0):
     for k in get_member_names(parent):
         v = getattr(parent, k)
-        full_key = f'{parent_k}.{k}'
+        full_key = f"{parent_k}.{k}"
 
         yield v, dict(label=full_key, header=header + 1, skip_args=skip_args)
 
@@ -267,14 +268,14 @@ def document_object(obj, label, *, signature=None, header=3, skip_args=0):
             signature = format_signature(label, obj.__init__, skip=1 + skip_args)
 
         else:
-            signature = ''
+            signature = ""
 
-    yield '{} `{}`'.format('#' * header, label.strip())
+    yield "{} `{}`".format("#" * header, label.strip())
 
     if signature:
-        yield '`{}`'.format(signature)
+        yield "`{}`".format(signature)
 
-    yield ''
+    yield ""
     yield render_docstring(obj)
 
 
@@ -290,45 +291,45 @@ def format_signature(label, func, skip=0):
     keywords = [] if keywords is None else [keywords]
 
     args = (
-        ['{}'.format(arg) for arg in args[:len(args) - len(defaults)]] +
-        ['{}={!r}'.format(arg, default) for arg, default in zip(args[len(args) - len(defaults):], defaults)] +
-        ['*{}'.format(arg) for arg in varargs] +
-        ['**{}'.format(arg) for arg in keywords]
+        ["{}".format(arg) for arg in args[: len(args) - len(defaults)]]
+        + [
+            "{}={!r}".format(arg, default)
+            for arg, default in zip(args[len(args) - len(defaults) :], defaults)
+        ]
+        + ["*{}".format(arg) for arg in varargs]
+        + ["**{}".format(arg) for arg in keywords]
     )
 
-    return '{}({})'.format(label.strip(), ', '.join(args))
+    return "{}({})".format(label.strip(), ", ".join(args))
 
 
 def literalinclude(part, source):
-    line = part['line']
+    line = part["line"]
 
-    _, what = line.split('::')
+    _, what = line.split("::")
     what = what.strip()
 
     what = os.path.abspath(os.path.join(os.path.dirname(source), what))
     _, ext = os.path.splitext(what)
 
-    type_map = {
-        '.py': 'python',
-        '.sh': 'bash',
-    }
+    type_map = {".py": "python", ".sh": "bash"}
 
-    with open(what, 'r') as fobj:
+    with open(what, "r") as fobj:
         content = fobj.read()
 
-    yield '```' + type_map.get(ext.lower(), '')
+    yield "```" + type_map.get(ext.lower(), "")
     yield content
-    yield '```'
+    yield "```"
 
 
 def include(part, source):
-    line = part['line']
-    _, what = line.split('::')
+    line = part["line"]
+    _, what = line.split("::")
     what = what.strip()
 
     what = os.path.abspath(os.path.join(os.path.dirname(source), what))
 
-    with open(what, 'r') as fobj:
+    with open(what, "r") as fobj:
         content = fobj.read()
 
     yield content
@@ -339,31 +340,31 @@ def render_docstring(obj):
 
     For classes the docstring of the class and init are merged.
     """
-    doc = obj.__doc__ or ''
+    doc = obj.__doc__ or ""
     doc = unindent(doc)
 
     # merge the docstring of the __init__ method with the main docstring
     if inspect.isclass(obj) and obj.__init__.__doc__ is not None:
-        doc = doc + '\n\n' + unindent(obj.__init__.__doc__)
+        doc = doc + "\n\n" + unindent(obj.__init__.__doc__)
 
     return publish_string(
-        doc,
-        writer=MarkdownWriter(),
-        settings_overrides={'output_encoding': 'unicode'}
+        doc, writer=MarkdownWriter(), settings_overrides={"output_encoding": "unicode"}
     )
 
 
 class MarkdownWriter(Writer):
     def translate(self):
-        self.output = ''.join(self._translate(self.document))
+        self.output = "".join(self._translate(self.document))
 
     def _translate(self, node):
-        func = '_translate_{}'.format(type(node).__name__)
+        func = "_translate_{}".format(type(node).__name__)
         try:
             func = getattr(self, func)
 
         except AttributeError:
-            raise NotImplementedError('cannot translate %r (%r)' % (node, node.astext()))
+            raise NotImplementedError(
+                "cannot translate %r (%r)" % (node, node.astext())
+            )
 
         return func(node)
 
@@ -377,40 +378,40 @@ class MarkdownWriter(Writer):
         yield from self._translate_children(node)
 
     def _translate_title(self, node):
-        yield '#### %s\n' % node.astext()
-        yield '\n'
+        yield "#### %s\n" % node.astext()
+        yield "\n"
 
     def _translate_paragraph(self, node):
         yield from self._translate_children(node)
-        yield '\n\n'
+        yield "\n\n"
 
     def _translate_literal_block(self, node):
-        yield '```\n'
+        yield "```\n"
         yield node.astext()
-        yield '\n'
-        yield '```\n'
-        yield '\n'
+        yield "\n"
+        yield "```\n"
+        yield "\n"
 
     def _translate_Text(self, node):
         yield node.astext()
 
     def _translate_literal(self, node):
-        yield '`{}`'.format(node.astext())
+        yield "`{}`".format(node.astext())
 
     def _translate_bullet_list(self, node):
         for c in node.children:
-            prefixes = it.chain(['- ', ], it.repeat('  '))
+            prefixes = it.chain(["- "], it.repeat("  "))
 
-            child_content = ''.join(self._translate_children(c))
+            child_content = "".join(self._translate_children(c))
             child_content = child_content.splitlines()
             child_content = (l.strip() for l in child_content)
             child_content = (l for l in child_content if l)
-            child_content = '\n'.join(p + l for p, l in zip(prefixes, child_content))
-            child_content = child_content + '\n'
+            child_content = "\n".join(p + l for p, l in zip(prefixes, child_content))
+            child_content = child_content + "\n"
 
             yield child_content
 
-        yield '\n'
+        yield "\n"
 
     def _translate_field_list(self, node):
         by_section = {}
@@ -421,53 +422,53 @@ class MarkdownWriter(Writer):
             section, *parts = parts
 
             # indent parameter descriptions (as part of a list)
-            indent = '  ' if section in {'param', 'ivar', 'raises'} else ''
+            indent = "  " if section in {"param", "ivar", "raises"} else ""
 
-            body = ''.join(self._translate_children(body))
+            body = "".join(self._translate_children(body))
             body.strip()
-            body = '\n'.join(indent + line for line in body.splitlines())
+            body = "\n".join(indent + line for line in body.splitlines())
             body = body.rstrip()
 
-            if section in {'param', 'ivar', 'raises'}:
+            if section in {"param", "ivar", "raises"}:
                 if len(parts) == 2:
                     type, name = parts
 
                 elif len(parts) == 1:
                     name, = parts
-                    type = 'any'
+                    type = "any"
 
                 else:
                     raise RuntimeError()
 
-                value = f'* **{name}** (*{type}*):\n{body}\n'
+                value = f"* **{name}** (*{type}*):\n{body}\n"
 
-            elif section == 'returns':
-                value = f'{body}\n'
+            elif section == "returns":
+                value = f"{body}\n"
 
             else:
-                raise NotImplementedError('unknown section %r' % section)
+                raise NotImplementedError("unknown section %r" % section)
 
             by_section.setdefault(section, []).append(value)
 
         section_titles = {
-            'param': 'Parameters',
-            'returns': 'Returns',
-            'ivar': 'Instance variables',
-            'raises': 'Raises',
+            "param": "Parameters",
+            "returns": "Returns",
+            "ivar": "Instance variables",
+            "raises": "Raises",
         }
 
         for key in section_titles:
             if key in by_section:
-                yield f'#### {section_titles[key]}\n\n'
+                yield f"#### {section_titles[key]}\n\n"
 
                 for item in by_section[key]:
-                    yield f'{item}'
+                    yield f"{item}"
 
-                yield '\n'
+                yield "\n"
 
         unknown_sections = set(by_section) - set(section_titles)
         if unknown_sections:
-            raise ValueError('unknown sections %r' % unknown_sections)
+            raise ValueError("unknown sections %r" % unknown_sections)
 
     def _translate_definition_list(self, node):
         for child in node.children:
@@ -477,33 +478,35 @@ class MarkdownWriter(Writer):
                 node_name = type(subchild).__name__
                 children_by_type[node_name] = subchild
 
-            name = children_by_type['term'].astext()
-            definition = children_by_type['definition']
+            name = children_by_type["term"].astext()
+            definition = children_by_type["definition"]
 
-            body = ''.join(self._translate_children(definition))
+            body = "".join(self._translate_children(definition))
             body.strip()
-            body = '\n'.join('  ' + line for line in body.splitlines())
+            body = "\n".join("  " + line for line in body.splitlines())
             body = body.rstrip()
 
-            if 'classifier' not in children_by_type:
-                yield f'* **{name}**:\n{body}\n'
+            if "classifier" not in children_by_type:
+                yield f"* **{name}**:\n{body}\n"
 
             else:
-                arg_type = ''.join(self._translate_children(children_by_type['classifier']))
-                yield f'* **{name}** (*`{arg_type}`*):\n{body}\n'
+                arg_type = "".join(
+                    self._translate_children(children_by_type["classifier"])
+                )
+                yield f"* **{name}** (*`{arg_type}`*):\n{body}\n"
 
-        yield '\n'
+        yield "\n"
 
     def _translate_TitledReference(self, node):
-        yield '[{0}](#{1})'.format(
-            node.attributes['title'],
-            node.attributes['reference'].replace('.', '').lower(),
+        yield "[{0}](#{1})".format(
+            node.attributes["title"],
+            node.attributes["reference"].replace(".", "").lower(),
         )
 
     def _translate_strong(self, node):
-        yield '**'
+        yield "**"
         yield from self._translate_children(node)
-        yield '**'
+        yield "**"
 
     def _translate_reference(self, node):
         yield from self._translate_children(node)
@@ -512,28 +515,28 @@ class MarkdownWriter(Writer):
         yield from self._translate_children(node)
 
     def _translate_note(self, node):
-        return self._util_translate_admonition('Note', node)
+        return self._util_translate_admonition("Note", node)
 
     def _translate_warning(self, node):
-        return self._util_translate_admonition('Warning', node)
+        return self._util_translate_admonition("Warning", node)
 
     def _translate_system_message(self, node):
-        return self._util_translate_admonition('System Message', node)
+        return self._util_translate_admonition("System Message", node)
 
     def _translate_seealso(self, node):
-        return self._util_translate_admonition('See also', node)
+        return self._util_translate_admonition("See also", node)
 
     def _translate_todo(self, node):
-        return self._util_translate_admonition('Todo', node)
+        return self._util_translate_admonition("Todo", node)
 
     def _util_translate_admonition(self, title, node):
-        body = ''.join(self._translate_children(node))
+        body = "".join(self._translate_children(node))
         body = body.splitlines()
 
-        yield f'> **{title}:**\n'
-        yield '>\n'
-        yield from ('> ' + line for line in body)
-        yield '\n\n'
+        yield f"> **{title}:**\n"
+        yield ">\n"
+        yield from ("> " + line for line in body)
+        yield "\n\n"
 
 
 def unindent(doc):
@@ -547,7 +550,7 @@ def unindent(doc):
         for line in lines[1:]:
             yield line[indent:]
 
-    return '\n'.join(impl())
+    return "\n".join(impl())
 
 
 def find_indent(lines):
@@ -561,14 +564,14 @@ def find_indent(lines):
 
 
 def import_object(what, depth=1):
-    parts = what.split('.')
+    parts = what.split(".")
 
     if depth > 0:
-        mod = '.'.join(parts[:-depth]).strip()
+        mod = ".".join(parts[:-depth]).strip()
         what = parts[-depth:]
 
     else:
-        mod = '.'.join(parts).strip()
+        mod = ".".join(parts).strip()
         what = []
 
     obj = importlib.import_module(mod)
@@ -582,16 +585,16 @@ def import_object(what, depth=1):
 def get_member_names(obj):
     """Return all members names of the given object"""
     if inspect.ismodule(obj):
-        if hasattr(obj, '__all__'):
+        if hasattr(obj, "__all__"):
             return obj.__all__
 
         return [
             k
             for k, v in vars(obj).items()
             if (
-                getattr(v, '__module__', None) == obj.__name__ and
-                getattr(v, '__doc__', None) is not None and
-                not k.startswith('_')
+                getattr(v, "__module__", None) == obj.__name__
+                and getattr(v, "__doc__", None) is not None
+                and not k.startswith("_")
             )
         ]
 
@@ -600,14 +603,14 @@ def get_member_names(obj):
             k
             for k, v in vars(obj).items()
             if (
-                callable(v) and
-                getattr(v, '__doc__', None) is not None and
-                not k.startswith('_')
+                callable(v)
+                and getattr(v, "__doc__", None) is not None
+                and not k.startswith("_")
             )
         ]
 
     else:
-        raise ValueError(f'cannot get members of {obj!r}')
+        raise ValueError(f"cannot get members of {obj!r}")
 
 
 # register additional admonitions
@@ -619,7 +622,7 @@ class Todo(admonitions.BaseAdmonition):
     node_class = todo
 
 
-directives.register_directive('todo', Todo)
+directives.register_directive("todo", Todo)
 
 
 class seealso(Admonition, Element):
@@ -630,4 +633,4 @@ class SeeAlso(admonitions.BaseAdmonition):
     node_class = seealso
 
 
-directives.register_directive('seealso', SeeAlso)
+directives.register_directive("seealso", SeeAlso)

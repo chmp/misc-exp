@@ -1,13 +1,13 @@
 from chmp.tools.mddocs import transform
 
-doc = '''# Example module
+doc = """# Example module
 
 .. automodule:: chmp.tools.test_mddocs
     :members:
 
 
 example_example_example
-'''
+"""
 
 
 def test_examples():
@@ -15,13 +15,13 @@ def test_examples():
     result = transform(doc, __file__)
 
     # check that also members of classes are documented
-    assert 'foo_constructor' in result
-    assert 'foo_method' in result
-    assert 'example_example_example' in result
-    assert 'note_note_note' in result
-    assert 'warning_warning_warning' in result
-    assert 'seealso_seealso_seealso' in result
-    assert 'todo_todo_todo' in result
+    assert "foo_constructor" in result
+    assert "foo_method" in result
+    assert "example_example_example" in result
+    assert "note_note_note" in result
+    assert "warning_warning_warning" in result
+    assert "seealso_seealso_seealso" in result
+    assert "todo_todo_todo" in result
 
 
 def example_numpy():
@@ -83,6 +83,7 @@ def example_adminitions():
 
 class Foo:
     """Bar"""
+
     def __init__(self):
         """foo_constructor"""
         pass

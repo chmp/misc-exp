@@ -16,7 +16,12 @@ import sys
 import time
 
 try:
-    from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin, RegressorMixin
+    from sklearn.base import (
+        BaseEstimator,
+        TransformerMixin,
+        ClassifierMixin,
+        RegressorMixin,
+    )
 
 except ImportError:
     _HAS_SK_LEARN = False
@@ -33,6 +38,7 @@ except ImportError:
     class ClassifierMixin:
         pass
 
+
 else:
     _HAS_SK_LEARN = True
 
@@ -41,6 +47,7 @@ try:
     from daft import PGM
 
 except ImportError:
+
     class PGM:
         def __init__(self, *args, **kwargs):
             pass
@@ -82,12 +89,14 @@ def define(func):
 
 class Object:
     """Dictionary-like namespace object."""
+
     def __init__(*args, **kwargs):
         self, *args = args
 
         if len(args) > 1:
-            raise ValueError('Object(...) can be called with at '
-                             'most one positional argument')
+            raise ValueError(
+                "Object(...) can be called with at " "most one positional argument"
+            )
 
         elif len(args) == 0:
             seed = {}
@@ -101,8 +110,8 @@ class Object:
             setattr(self, k, v)
 
     def __repr__(self):
-        return 'Object({})'.format(
-            ', '.join('{}={!r}'.format(k, v) for k, v in vars(self).items())
+        return "Object({})".format(
+            ", ".join("{}={!r}".format(k, v) for k, v in vars(self).items())
         )
 
     def __eq__(self, other):
@@ -131,7 +140,7 @@ def get_color_cycle(n=None):
     """
     import matplotlib as mpl
 
-    cycle = mpl.rcParams['axes.prop_cycle'].by_key()['color']
+    cycle = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
 
     if n is None:
         return cycle
@@ -140,21 +149,33 @@ def get_color_cycle(n=None):
 
 
 def mpl_set(
-        box=None,
-        xlabel=None, ylabel=None,
-        title=None, suptitle=None,
-        xscale=None, yscale=None, caption=None,
-        xlim=None, ylim=None,
-        xticks=None, yticks=None,
-        xformatter=None, yformatter=None,
-        left=None, top=None, bottom=None, right=None, wspace=None, hspace=None,
-        subplot=None,
-        legend=None,
-        colorbar=None,
-        invert=None,
-        ax=None,
-        grid=None,
-        axis=None,
+    box=None,
+    xlabel=None,
+    ylabel=None,
+    title=None,
+    suptitle=None,
+    xscale=None,
+    yscale=None,
+    caption=None,
+    xlim=None,
+    ylim=None,
+    xticks=None,
+    yticks=None,
+    xformatter=None,
+    yformatter=None,
+    left=None,
+    top=None,
+    bottom=None,
+    right=None,
+    wspace=None,
+    hspace=None,
+    subplot=None,
+    legend=None,
+    colorbar=None,
+    invert=None,
+    ax=None,
+    grid=None,
+    axis=None,
 ):
     """Set various style related options of MPL.
 
@@ -234,7 +255,7 @@ def mpl_set(
 
     if legend is not None and legend is not False:
         if legend is True:
-            plt.legend(loc='best')
+            plt.legend(loc="best")
 
         else:
             plt.legend(**legend)
@@ -246,10 +267,10 @@ def mpl_set(
         plt.colorbar()
 
     if invert is not None:
-        if 'x' in invert:
+        if "x" in invert:
             plt.gca().invert_xaxis()
 
-        if 'y' in invert:
+        if "y" in invert:
             plt.gca().invert_yaxis()
 
     if grid is not None:
@@ -258,10 +279,10 @@ def mpl_set(
 
         for spec in grid:
             if isinstance(spec, bool):
-                b, which, axis = spec, 'major', 'both'
+                b, which, axis = spec, "major", "both"
 
             elif isinstance(spec, str):
-                b, which, axis = True, 'major', spec
+                b, which, axis = True, "major", spec
 
             elif isinstance(spec, tuple) and len(spec) == 2:
                 b, which, axis = True, spec[0], spec[1]
@@ -276,7 +297,7 @@ def mpl_set(
 
     if axis is not None and axis is not True:
         if axis is False:
-            axis = 'off'
+            axis = "off"
 
         plt.axis(axis)
 
@@ -303,8 +324,8 @@ def pgm(*, ax=None, **kwargs):
 
     """
     if not _HAS_DAFT:
-        raise RuntimeError('daft is required for pgm support.')
-    
+        raise RuntimeError("daft is required for pgm support.")
+
     return _PGM(ax=ax, **kwargs)
 
 
@@ -351,7 +372,13 @@ class _PGM(PGM):
             plt.sca(self._ctx.ax())
             for node, text in self._annotations:
                 x_extent = self.get_node_extent(node)
-                plt.text(x_extent.x, x_extent.y - 0.5 * x_extent.height, text, va='top', ha='center')
+                plt.text(
+                    x_extent.x,
+                    x_extent.y - 0.5 * x_extent.height,
+                    text,
+                    va="top",
+                    ha="center",
+                )
 
             mpl_set(**kwargs)
 
@@ -408,10 +435,10 @@ class _PGM(PGM):
 
         for node in nodes[1:]:
             extent = self.get_node_extent(node)
-            xmin= min(xmin, extent.xmin)
-            xmax= max(xmax, extent.xmax)
-            ymin= min(ymin, extent.ymin)
-            ymax= max(ymax, extent.ymax)
+            xmin = min(xmin, extent.xmin)
+            xmax = max(xmax, extent.xmax)
+            ymin = min(ymin, extent.ymin)
+            ymax = max(ymax, extent.ymax)
 
         return (xmin, xmax), (ymin, ymax)
 
@@ -429,11 +456,9 @@ def edges(x):
     import numpy as np
 
     centers = 0.5 * (x[1:] + x[:-1])
-    return np.concatenate((
-        [x[0] - 0.5 * (x[1] - x[0])],
-        centers,
-        [x[-1] + 0.5 * (x[-1] - x[-2])]
-    ))
+    return np.concatenate(
+        ([x[0] - 0.5 * (x[1] - x[0])], centers, [x[-1] + 0.5 * (x[-1] - x[-2])])
+    )
 
 
 def caption(s, size=13, strip=True):
@@ -444,22 +469,24 @@ def caption(s, size=13, strip=True):
         s = s.splitlines()
         s = (i.strip() for i in s)
         s = (i for i in s if i)
-        s = ' '.join(s)
+        s = " ".join(s)
 
-    plt.figtext(0.5, 0, s, wrap=True, size=size, va='bottom', ha='center')
+    plt.figtext(0.5, 0, s, wrap=True, size=size, va="bottom", ha="center")
 
 
 _caption = caption
 
 
 def change_vspan(
-        x, y, *,
-        data=None,
-        color=('w', '0.90'),
-        transform_x=None,
-        transform_y=None,
-        skip_nan=True,
-        **kwargs
+    x,
+    y,
+    *,
+    data=None,
+    color=("w", "0.90"),
+    transform_x=None,
+    transform_y=None,
+    skip_nan=True,
+    **kwargs,
 ):
     """Plot changes in a quantity with vspans.
     """
@@ -467,7 +494,8 @@ def change_vspan(
     import numpy as np
 
     x, y = _prepare_xy(
-        x, y,
+        x,
+        y,
         data=data,
         transform_x=transform_x,
         transform_y=transform_y,
@@ -485,18 +513,15 @@ def change_vspan(
 
 
 def change_plot(
-        x, y, *,
-        data=None,
-        transform_x=None,
-        transform_y=None,
-        skip_nan=True,
-        **kwargs
+    x, y, *, data=None, transform_x=None, transform_y=None, skip_nan=True, **kwargs
 ):
     """Plot changes in a quantity with pyplot's standard plot function.
     """
     import matplotlib.pyplot as plt
+
     x, y = _prepare_xy(
-        x, y,
+        x,
+        y,
         data=data,
         transform_x=transform_x,
         transform_y=transform_y,
@@ -594,7 +619,9 @@ def get_children(est):
     return []
 
 
-def fix_categories(s, categories=None, other_category=None, inplace=False, groups=None, ordered=False):
+def fix_categories(
+    s, categories=None, other_category=None, inplace=False, groups=None, ordered=False
+):
     """Fix the categories of a categorical series.
 
     :param pd.Series s:
@@ -629,9 +656,9 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
 
     if not pd_types.is_categorical(s):
         if inplace:
-            raise ValueError('cannot change the type inplace')
+            raise ValueError("cannot change the type inplace")
 
-        s = s.astype('category', )
+        s = s.astype("category")
 
     if categories is None:
         if groups is not None:
@@ -661,7 +688,8 @@ def fix_categories(s, categories=None, other_category=None, inplace=False, group
     if dangling_categories:
         if other_category is None:
             raise ValueError(
-                'dangling categories %s found, need other category to assign' % dangling_categories,
+                "dangling categories %s found, need other category to assign"
+                % dangling_categories
             )
 
         groups.setdefault(other_category, set()).update(set(removals) - set(remapped))
@@ -692,11 +720,7 @@ def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
         columns.
     """
     assert 0.0 < min_frequency < 1.0
-    s = (
-        s
-        .value_counts(normalize=True)
-        .pipe(lambda s: s[s > min_frequency])
-    )
+    s = s.value_counts(normalize=True).pipe(lambda s: s[s > min_frequency])
 
     if n_max is None:
         return list(s.index)
@@ -704,16 +728,12 @@ def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
     if len(s) <= n_max:
         return s
 
-    return list(
-        s
-        .sort_values(ascending=False)
-        .iloc[:n_max]
-        .index
-    )
+    return list(s.sort_values(ascending=False).iloc[:n_max].index)
 
 
 def as_frame(**kwargs):
     import pandas as pd
+
     return pd.DataFrame(kwargs)
 
 
@@ -735,14 +755,14 @@ def _cast_types(df, numeric, categorical):
             df = df.assign(**{col: df[col].astype(float)})
 
         except Exception as e:
-            raise RuntimeError(f'could not cast {col} to numeric') from e
+            raise RuntimeError(f"could not cast {col} to numeric") from e
 
     for col in categorical:
         try:
-            df = df.assign(**{col: df[col].astype('category')})
+            df = df.assign(**{col: df[col].astype("category")})
 
         except Exception as e:
-            raise RuntimeError(f'could not cast {col} to categorical') from e
+            raise RuntimeError(f"could not cast {col} to categorical") from e
 
     return df[sorted({*categorical, *numeric})]
 
@@ -752,14 +772,12 @@ def find_categorical_columns(df):
     """
     import pandas.api.types as pd_types
 
-    return [
-        k
-        for k, dtype in df.dtypes.items()
-        if pd_types.is_categorical_dtype(dtype)
-    ]
+    return [k for k, dtype in df.dtypes.items() if pd_types.is_categorical_dtype(dtype)]
 
 
-def filter_low_frequency_categories(columns=None, min_frequency=0.02, other_category=None, n_max=None):
+def filter_low_frequency_categories(
+    columns=None, min_frequency=0.02, other_category=None, n_max=None
+):
     """Build a transformer to filter low frequency categories.
 
     Usage::
@@ -777,7 +795,9 @@ def filter_low_frequency_categories(columns=None, min_frequency=0.02, other_cate
 
 
 class FilterLowFrequencyTransfomer(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=None, min_frequency=0.02, other_category='other', n_max=None):
+    def __init__(
+        self, columns=None, min_frequency=0.02, other_category="other", n_max=None
+    ):
         self.columns = columns
         self.min_frequency = min_frequency
         self.other_category = other_category
@@ -794,12 +814,14 @@ class FilterLowFrequencyTransfomer(BaseEstimator, TransformerMixin):
             try:
                 to_keep = find_high_frequency_categories(
                     df[col],
-                    min_frequency=self._get('min_frequency', col),
-                    n_max=self._get('n_max', col),
+                    min_frequency=self._get("min_frequency", col),
+                    n_max=self._get("n_max", col),
                 )
 
             except Exception as e:
-                raise RuntimeError(f'cannot determine high frequency categories for {col}')
+                raise RuntimeError(
+                    f"cannot determine high frequency categories for {col}"
+                )
 
             self._to_keep[col] = to_keep
 
@@ -807,12 +829,15 @@ class FilterLowFrequencyTransfomer(BaseEstimator, TransformerMixin):
 
     def transform(self, df, y=None):
         for col in self._columns:
-            df = df.assign(**{
-                col: fix_categories(
-                    df[col], self._to_keep[col],
-                    other_category=self._get('other_category', col),
-                )
-            })
+            df = df.assign(
+                **{
+                    col: fix_categories(
+                        df[col],
+                        self._to_keep[col],
+                        other_category=self._get("other_category", col),
+                    )
+                }
+            )
 
         return df
 
@@ -858,8 +883,8 @@ def column_transform(*args, **kwargs):
 
 
 def _column_transform(x, columns):
-    if not hasattr(x, 'assign'):
-        raise RuntimeError('can only transform objects with an assign method.')
+    if not hasattr(x, "assign"):
+        raise RuntimeError("can only transform objects with an assign method.")
 
     for c, func in columns.items():
         x = x.assign(**{c: func(x[c])})
@@ -884,7 +909,7 @@ def build_pipeline(**kwargs):
     import sklearn.pipeline as sk_pipeline
 
     if sys.version_info[:2] < (3, 6):
-        raise RuntimeError('pipeline factory requires deterministic kwarg order')
+        raise RuntimeError("pipeline factory requires deterministic kwarg order")
 
     return sk_pipeline.Pipeline(list(kwargs.items()))
 
@@ -909,6 +934,7 @@ class FuncTransformer(TransformerMixin, BaseEstimator):
     :param callable func:
         the function to apply on transform
     """
+
     def __init__(self, func):
         self.func = func
 
@@ -934,6 +960,7 @@ class FuncClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, df):
         import numpy as np
+
         return np.argmax(self.predict_proba(df), axis=1)
 
 
@@ -951,6 +978,7 @@ class FuncRegressor(BaseEstimator, RegressorMixin):
 class DataFrameEstimator(BaseEstimator):
     """Add support for dataframe use to sklearn estimators.
     """
+
     def __init__(self, est):
         self.est = est
 
@@ -992,7 +1020,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
                 self.levels_[col] = multi_type_sorted(x[col].unique())
 
             except Exception as e:
-                raise RuntimeError(f'cannot fit {col}') from e
+                raise RuntimeError(f"cannot fit {col}") from e
 
         return self
 
@@ -1001,24 +1029,28 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
             try:
                 assignments = {}
                 for level in self.levels_[col]:
-                    assignments[f'{col}_{level}'] = (x[col] == level).astype(float)
+                    assignments[f"{col}_{level}"] = (x[col] == level).astype(float)
 
                 x = x.drop([col], axis=1).assign(**assignments)
 
             except Exception as e:
-                raise RuntimeError(f'cannot transform {col}') from e
+                raise RuntimeError(f"cannot transform {col}") from e
 
         return x
 
 
 def multi_type_sorted(vals):
     import pandas as pd
-    return sorted(vals, key=lambda v: (type(v).__module__, type(v).__name__, pd.isnull(v), v))
+
+    return sorted(
+        vals, key=lambda v: (type(v).__module__, type(v).__name__, pd.isnull(v), v)
+    )
 
 
 class FitInfo(BaseEstimator, TransformerMixin):
     """Extract and store meta data of the dataframe passed to fit.
     """
+
     def __init__(self, extractor, target=None):
         self.extractor = extractor
         self.target = target
@@ -1044,6 +1076,7 @@ try:
     def pipeline_get_children(est):
         return est.steps
 
+
 except ImportError:
     pass
 
@@ -1061,13 +1094,19 @@ def _search_estimator(predicate, key, est):
 
 
 def waterfall(
-        obj,
-        col=None, base=None, total=False,
-        end_annot=None, end_fmt='.g',
-        annot=False, fmt='+.2g',
-        cmap='coolwarm',
-        xmin=0,
-        total_kwargs=None, annot_kwargs=None, **kwargs
+    obj,
+    col=None,
+    base=None,
+    total=False,
+    end_annot=None,
+    end_fmt=".g",
+    annot=False,
+    fmt="+.2g",
+    cmap="coolwarm",
+    xmin=0,
+    total_kwargs=None,
+    annot_kwargs=None,
+    **kwargs,
 ):
     """Plot a waterfall chart.
 
@@ -1080,7 +1119,7 @@ def waterfall(
     import numpy as np
 
     if len(obj.shape) == 2 and col is None:
-        raise ValueError('need a column with 2d objects')
+        raise ValueError("need a column with 2d objects")
 
     if col is not None:
         top = obj[col] if not callable(col) else col(obj)
@@ -1095,7 +1134,7 @@ def waterfall(
         bottom = top.shift(1).fillna(0)
 
     if annot is True:
-        annot = 'top'
+        annot = "top"
 
     if total_kwargs is None:
         total_kwargs = {}
@@ -1106,29 +1145,29 @@ def waterfall(
     if end_annot is None:
         end_annot = annot is not False
 
-    total_kwargs = {'color': (0.5, 0.75, 0.5), **total_kwargs}
+    total_kwargs = {"color": (0.5, 0.75, 0.5), **total_kwargs}
 
-    if annot == 'top':
-        annot_kwargs = {'va': 'bottom', 'ha': 'center', **annot_kwargs}
+    if annot == "top":
+        annot_kwargs = {"va": "bottom", "ha": "center", **annot_kwargs}
         annot_y = np.maximum(top, bottom)
         total_y = max(top.iloc[-1], 0)
 
-    elif annot == 'bottom':
-        annot_kwargs = {'va': 'bottom', 'ha': 'center', **annot_kwargs}
+    elif annot == "bottom":
+        annot_kwargs = {"va": "bottom", "ha": "center", **annot_kwargs}
         annot_y = np.minimum(top, bottom)
         total_y = min(top.iloc[-1], 0)
 
-    elif annot == 'center':
-        annot_kwargs = {'va': 'center', 'ha': 'center', **annot_kwargs}
+    elif annot == "center":
+        annot_kwargs = {"va": "center", "ha": "center", **annot_kwargs}
         annot_y = 0.5 * (top + bottom)
         total_y = 0.5 * top.iloc[-1]
 
     elif annot is not False:
-        raise ValueError(f'Cannot annotate with {annot}')
+        raise ValueError(f"Cannot annotate with {annot}")
 
     height = top - bottom
 
-    kwargs = {'color': colormap(height, cmap=cmap, center=True), **kwargs}
+    kwargs = {"color": colormap(height, cmap=cmap, center=True), **kwargs}
     plt.bar(xmin + np.arange(len(height)), height, bottom=bottom, **kwargs)
 
     if annot is not False:
@@ -1136,19 +1175,24 @@ def waterfall(
             if x == xmin:
                 continue
 
-            plt.text(x, y, ('%' + fmt) % v, **annot_kwargs)
+            plt.text(x, y, ("%" + fmt) % v, **annot_kwargs)
 
     if end_annot is not False:
-        plt.text(xmin, annot_y.iloc[0], ('%' + end_fmt) % top.iloc[0], **annot_kwargs)
+        plt.text(xmin, annot_y.iloc[0], ("%" + end_fmt) % top.iloc[0], **annot_kwargs)
 
         if total:
-            plt.text(xmin + len(annot_y), total_y, ('%' + end_fmt) % top.iloc[-1], **annot_kwargs)
+            plt.text(
+                xmin + len(annot_y),
+                total_y,
+                ("%" + end_fmt) % top.iloc[-1],
+                **annot_kwargs,
+            )
 
     for idx, p in zip(it.count(xmin), bottom):
         if idx == xmin:
             continue
 
-        plt.plot([idx - 1 - 0.4, idx + 0.4], [p, p], ls='--', color='0.5')
+        plt.plot([idx - 1 - 0.4, idx + 0.4], [p, p], ls="--", color="0.5")
 
     plt.xticks(xmin + np.arange(len(height)), list(height.index))
 
@@ -1157,11 +1201,12 @@ def waterfall(
         plt.plot(
             [xmin + len(bottom) - 1 - 0.4, xmin + len(bottom) + 0.4],
             [top.iloc[-1], top.iloc[-1]],
-            ls='--', color='0.5',
+            ls="--",
+            color="0.5",
         )
 
 
-def colormap(x, cmap='coolwarm', center=True, vmin=None, vmax=None, norm=None):
+def colormap(x, cmap="coolwarm", center=True, vmin=None, vmax=None, norm=None):
     import numpy as np
     import matplotlib.cm as cm
     import matplotlib.colors as colors
@@ -1187,7 +1232,7 @@ def colormap(x, cmap='coolwarm', center=True, vmin=None, vmax=None, norm=None):
     return cm.get_cmap(cmap)(x)
 
 
-def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
+def bar(s, cmap="viridis", color=None, norm=None, orientation="vertical"):
     import matplotlib.colors
     import matplotlib.pyplot as plt
 
@@ -1199,7 +1244,7 @@ def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
 
     indices = range(len(s))
 
-    if orientation == 'vertical':
+    if orientation == "vertical":
         plt.bar(indices, s, color=color)
         plt.xticks(indices, s.index)
 
@@ -1210,8 +1255,14 @@ def bar(s, cmap='viridis', color=None, norm=None, orientation='vertical'):
 
 # TODO: make sureit can be called with a dataframe
 def qplot(
-    x=None, y=None, data=None, alpha=1.0, fill_alpha=0.8, color=None, ax=None,
-    **line_kwargs
+    x=None,
+    y=None,
+    data=None,
+    alpha=1.0,
+    fill_alpha=0.8,
+    color=None,
+    ax=None,
+    **line_kwargs,
 ):
     import numpy as np
     import matplotlib.pyplot as plt
@@ -1220,13 +1271,13 @@ def qplot(
         x, y = y, x
 
     if y is None:
-        raise ValueError('need data to plot')
+        raise ValueError("need data to plot")
 
     if isinstance(y, tuple) or (isinstance(y, np.ndarray) and y.ndim == 2):
         y = tuple(y)
 
     else:
-        y = y,
+        y = (y,)
 
     if data is not None:
         y = tuple(data[c] for c in y)
@@ -1298,8 +1349,7 @@ def dashcb(app, output, *inputs, figure=False):
 
     def decorator(func):
         dash_inputs = [
-            _dash_cb_parse_annotation(dash.dependencies.Input, arg)
-            for arg in inputs
+            _dash_cb_parse_annotation(dash.dependencies.Input, arg) for arg in inputs
         ]
         dash_output = _dash_cb_parse_annotation(dash.dependencies.Output, output)
 
@@ -1321,28 +1371,25 @@ def dashmpl(func):
         func(*args, **kwargs)
 
         img = io.BytesIO()
-        plt.savefig(img, format='png')
+        plt.savefig(img, format="png")
         plt.close()
 
         img = base64.b64encode(img.getvalue())
-        img = img.decode('ascii')
-        return 'data:image/png;base64,' + img
+        img = img.decode("ascii")
+        return "data:image/png;base64," + img
 
     return impl
 
 
 def _dash_cb_parse_annotation(cls, s):
-    element, _, property = s.partition(':')
+    element, _, property = s.partition(":")
     return cls(element, property)
 
 
 def expand(low, high, change=0.05):
     center = 0.5 * (low + high)
     delta = 0.5 * (high - low)
-    return (
-        center - (1 + 0.5 * change) * delta,
-        center + (1 + 0.5 * change) * delta,
-    )
+    return (center - (1 + 0.5 * change) * delta, center + (1 + 0.5 * change) * delta)
 
 
 # ########################################################################## #
@@ -1351,17 +1398,17 @@ def expand(low, high, change=0.05):
 
 
 status_characters = it.accumulate([64, 128, 4, 32, 2, 16, 1, 8])
-status_characters = [chr(ord('\u2800') + v) for v in status_characters]
-status_characters = ['\u25AB', ' '] + status_characters
+status_characters = [chr(ord("\u2800") + v) for v in status_characters]
+status_characters = ["\u25AB", " "] + status_characters
 
-running_characters = ['-', '\\', '|', '/']
+running_characters = ["-", "\\", "|", "/"]
 
 
 class LoopState(enum.Enum):
-    pending = 'pending'
-    running = 'running'
-    done = 'done'
-    aborted = 'aborted'
+    pending = "pending"
+    running = "running"
+    done = "done"
+    aborted = "aborted"
 
 
 class LoopPrintDispatch:
@@ -1418,6 +1465,7 @@ class Loop:
     To access nested loop use the getitem notation, e.g. ``loop[1]``.
 
     """
+
     @classmethod
     def range(cls, *range_args, time=time.time, debounce=0.1):
         return cls.over(range(*range_args), time=time, debounce=debounce)
@@ -1432,10 +1480,10 @@ class Loop:
     print = LoopPrintDispatch()
 
     @staticmethod
-    def _static_print(str: str, width=120, end='\r', file=None, flush=False):
+    def _static_print(str: str, width=120, end="\r", file=None, flush=False):
         print(str.ljust(width)[:width], end=end, file=file, flush=flush)
 
-    def _print(self, str: str, width=120, end='\r', file=None, flush=False):
+    def _print(self, str: str, width=120, end="\r", file=None, flush=False):
         now = self.now()
         if not self.debouncer.should_run(now=now):
             return
@@ -1491,11 +1539,11 @@ class Loop:
             idx=self._root.idx,
         )
 
-        if info['fraction'] is not None:
-            info['expected'] = info['total'] / info['fraction']
+        if info["fraction"] is not None:
+            info["expected"] = info["total"] / info["fraction"]
 
         else:
-            info['expected'] = None
+            info["expected"] = None
 
         return info
 
@@ -1517,48 +1565,45 @@ class Loop:
     def __format__(self, format_spec):
         status = self.get_info()
 
-        if status['state'] is LoopState.pending:
-            return '[pending]'
+        if status["state"] is LoopState.pending:
+            return "[pending]"
 
-        elif status['state'] is LoopState.aborted:
+        elif status["state"] is LoopState.aborted:
             return f'[aborted. took {tdformat(status["total"])}]'
 
-        elif status['state'] is LoopState.done:
+        elif status["state"] is LoopState.done:
             return f'[done. took {tdformat(status["total"])}]'
 
-        elif status['state'] is not LoopState.running:
-            raise RuntimeError('unknown state')
+        elif status["state"] is not LoopState.running:
+            raise RuntimeError("unknown state")
 
         if not format_spec:
-            format_spec = '[bt/e'
+            format_spec = "[bt/e"
 
-        if format_spec[:1] == '[':
-            outer = '[', ']'
+        if format_spec[:1] == "[":
+            outer = "[", "]"
             format_spec = format_spec[1:]
 
         else:
-            outer = '', ''
+            outer = "", ""
 
-        if format_spec[:1] == '-':
-            join_char = ''
+        if format_spec[:1] == "-":
+            join_char = ""
             format_spec = format_spec[1:]
 
         else:
-            join_char = ' '
+            join_char = " "
 
-        result = [
-            self._loop_formats.get(c, lambda _: c)(status)
-            for c in format_spec
-        ]
+        result = [self._loop_formats.get(c, lambda _: c)(status) for c in format_spec]
         return outer[0] + join_char.join(result) + outer[1]
 
     _loop_formats = {
-        'B': lambda status: loop_bar(status, n=1),
-        'b': lambda status: loop_bar(status),
-        't': lambda status: tdformat(status["total"]),
-        'e': lambda status: tdformat(status["expected"]),
-        'r': lambda status: tdformat(status['expected'] - status['total']),
-        'f': lambda status: f"{status['fraction']:.1%}",
+        "B": lambda status: loop_bar(status, n=1),
+        "b": lambda status: loop_bar(status),
+        "t": lambda status: tdformat(status["total"]),
+        "e": lambda status: tdformat(status["expected"]),
+        "r": lambda status: tdformat(status["expected"] - status["total"]),
+        "f": lambda status: f"{status['fraction']:.1%}",
     }
 
 
@@ -1599,14 +1644,14 @@ class LoopFrame:
         self.state = LoopState.done
 
     def __repr__(self):
-        return 'LoopFrame(...) <state={!r}, start={!r}>'.format(self.state, self.start)
+        return "LoopFrame(...) <state={!r}, start={!r}>".format(self.state, self.start)
 
 
 def tdformat(time_delta):
     """Format a timedelta given in seconds.
     """
     if time_delta is None:
-        return '?'
+        return "?"
 
     # TODO: handle negative differences?
     time_delta = abs(time_delta)
@@ -1619,27 +1664,27 @@ def tdformat(time_delta):
         seconds=time_delta % 60,
     )
 
-    if d['weeks'] > 0:
-        return '{weeks}w {days}d'.format(**d)
+    if d["weeks"] > 0:
+        return "{weeks}w {days}d".format(**d)
 
-    elif d['days'] > 0:
-        return '{days}d {hours}h'.format(**d)
+    elif d["days"] > 0:
+        return "{days}d {hours}h".format(**d)
 
-    elif d['hours'] > 0:
-        return '{hours}h {minutes}m'.format(**d)
+    elif d["hours"] > 0:
+        return "{hours}h {minutes}m".format(**d)
 
-    elif d['minutes'] > 0:
-        return '{minutes}m {seconds:.0f}s'.format(**d)
+    elif d["minutes"] > 0:
+        return "{minutes}m {seconds:.0f}s".format(**d)
 
     else:
-        return '{seconds:.2f}s'.format(**d)
+        return "{seconds:.2f}s".format(**d)
 
 
 def loop_bar(status, n=10):
-    if status['fraction'] is not None:
-        return ascii_bar(status['fraction'], n=n)
+    if status["fraction"] is not None:
+        return ascii_bar(status["fraction"], n=n)
 
-    return running_characters[status['idx'] % len(running_characters)]
+    return running_characters[status["idx"] % len(running_characters)]
 
 
 def ascii_bar(u, n=10):
@@ -1650,7 +1695,11 @@ def ascii_bar(u, n=10):
     rest = max(0, n - done - 1)
 
     c = int(((n * u) % 1) * len(status_characters))
-    return status_characters[-1] * done + status_characters[c] + status_characters[0] * rest
+    return (
+        status_characters[-1] * done
+        + status_characters[c]
+        + status_characters[0] * rest
+    )
 
 
 # ###################################################################### #
@@ -1670,8 +1719,8 @@ def sha1(obj):
 
 
 def str_sha1(obj):
-    s = json.dumps(obj, indent=None, sort_keys=True, separators=(',', ':'))
-    s = s.encode('utf8')
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(",", ":"))
+    s = s.encode("utf8")
     return hashlib.sha1(s).hexdigest()
 
 

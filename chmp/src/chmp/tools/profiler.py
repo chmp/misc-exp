@@ -7,8 +7,8 @@ import vmprof
 
 
 @contextlib.contextmanager
-def collect_profile(fname='profile.dat'):
-    with open(fname, 'w+b') as fobj:
+def collect_profile(fname="profile.dat"):
+    with open(fname, "w+b") as fobj:
         vmprof.enable(fobj.fileno(), memory=False)
         try:
             yield Profile(fname)
@@ -47,20 +47,25 @@ def plot_profile(stats, show=False):
     ds = build_data(stats)
 
     p = figure(
-        active_scroll='wheel_zoom',
-        x_axis_label='Runtime [ms]', y_axis_label='Stack depth',
-        plot_width=800, plot_height=450,
+        active_scroll="wheel_zoom",
+        x_axis_label="Runtime [ms]",
+        y_axis_label="Stack depth",
+        plot_width=800,
+        plot_height=450,
     )
     p.tools.append(
-        HoverTool(tooltips=[
-            ("Name", "@name"),
-            ('File', '@file'),
-            ('Count', '@count'),
-            ('Type', '@type'),
-            ('Time', '@time'),
-        ], point_policy='follow_mouse')
+        HoverTool(
+            tooltips=[
+                ("Name", "@name"),
+                ("File", "@file"),
+                ("Count", "@count"),
+                ("Type", "@type"),
+                ("Time", "@time"),
+            ],
+            point_policy="follow_mouse",
+        )
     )
-    p.rect('x', 'y', 'width', 'height', color='color', source=ds, line_color='black')
+    p.rect("x", "y", "width", "height", color="color", source=ds, line_color="black")
 
     if show:
         do_show(p)
@@ -69,7 +74,7 @@ def plot_profile(stats, show=False):
         return p
 
 
-def build_data(stats, cmap='autumn', skip_empty=True):
+def build_data(stats, cmap="autumn", skip_empty=True):
     from bokeh.models import ColumnDataSource
     from matplotlib import cm
 
@@ -84,7 +89,12 @@ def build_data(stats, cmap='autumn', skip_empty=True):
 
     data = {}
     for d in _build_data(
-            tree, offset=0, depth=0, parent_count=tree.count, cmap=cmap, time_factor=time_factor
+        tree,
+        offset=0,
+        depth=0,
+        parent_count=tree.count,
+        cmap=cmap,
+        time_factor=time_factor,
     ):
         for k, v in d.items():
             data.setdefault(k, []).append(v)
@@ -94,24 +104,32 @@ def build_data(stats, cmap='autumn', skip_empty=True):
 
 def _build_data(node, *, offset, parent_count, depth, cmap, time_factor):
     r, g, b, a = cmap(random(node.name))
-    type, name, lineno, file = node.name.split(':')
+    type, name, lineno, file = node.name.split(":")
 
     yield dict(
         x=time_factor * (offset + node.count / 2) / 1e3,
         y=depth,
         width=time_factor * node.count / 1e3,
         height=0.95,
-        color='rgba({:.0f}, {:.0f}, {:.0f}, {:.0f})'.format(255 * r, 255 * g, 255 * b, 255 * a),
+        color="rgba({:.0f}, {:.0f}, {:.0f}, {:.0f})".format(
+            255 * r, 255 * g, 255 * b, 255 * a
+        ),
         name=name[:30],
-        file='{}:{}'.format(file[-30:], lineno),
+        file="{}:{}".format(file[-30:], lineno),
         count=node.count,
         type=type,
         time=format_time(time_factor * node.count),
     )
 
-    for child in sorted(node.children.values(), key=op.attrgetter('count'), reverse=True):
+    for child in sorted(
+        node.children.values(), key=op.attrgetter("count"), reverse=True
+    ):
         yield from _build_data(
-            child, offset=offset, depth=depth + 1, parent_count=node.count, cmap=cmap,
+            child,
+            offset=offset,
+            depth=depth + 1,
+            parent_count=node.count,
+            cmap=cmap,
             time_factor=time_factor,
         )
         offset += child.count
@@ -119,12 +137,12 @@ def _build_data(node, *, offset, parent_count, depth, cmap, time_factor):
 
 def format_time(time):
     if time < 1e3:
-        return '{.1f} µs'.format(time)
+        return "{.1f} µs".format(time)
 
     if time < 1e6:
-        return '{:.1f} ms'.format(time / 1e3)
+        return "{:.1f} ms".format(time / 1e3)
 
-    return '{:.1f} s'.format(time / 1e6)
+    return "{:.1f} s".format(time / 1e6)
 
 
 def sha1(obj):
@@ -134,8 +152,8 @@ def sha1(obj):
 
 
 def str_sha1(obj):
-    s = json.dumps(obj, indent=None, sort_keys=True, separators=(',', ':'))
-    s = s.encode('utf8')
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(",", ":"))
+    s = s.encode("utf8")
     return hashlib.sha1(s).hexdigest()
 
 

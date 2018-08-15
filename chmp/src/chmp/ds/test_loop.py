@@ -1,21 +1,16 @@
 import pytest
 
-from chmp.ds import (
-    Loop,
-    LoopState,
-
-    ascii_bar,
-    tdformat,
-)
+from chmp.ds import Loop, LoopState, ascii_bar, tdformat
 
 
 @pytest.mark.parametrize(
-    'time_delta, formatted', [
-        (30, '30.00s'),
-        (90, '1m 30s'),
-        (2 * 60 * 60 + 14 * 60 + 20, '2h 14m'),
-        (3 * 24 * 60 * 60 + 2 * 60 * 60 + 14 * 60 + 20, '3d 2h'),
-        (2 * 7 * 24 * 60 * 60 + 3 * 24 * 60 * 60 + 2, '2w 3d'),
+    "time_delta, formatted",
+    [
+        (30, "30.00s"),
+        (90, "1m 30s"),
+        (2 * 60 * 60 + 14 * 60 + 20, "2h 14m"),
+        (3 * 24 * 60 * 60 + 2 * 60 * 60 + 14 * 60 + 20, "3d 2h"),
+        (2 * 7 * 24 * 60 * 60 + 3 * 24 * 60 * 60 + 2, "2w 3d"),
     ],
 )
 def test_tdformat(time_delta, formatted):
@@ -24,19 +19,20 @@ def test_tdformat(time_delta, formatted):
 
 # NOTE: add 0.01 to ensure correct rounding behavior
 @pytest.mark.parametrize(
-    'progress,result', [
-        (0.401, u'⣿⣿⣿⣿▫▫▫▫▫▫'),
-        (0.411, u'⣿⣿⣿⣿ ▫▫▫▫▫'),
-        (0.421, u'⣿⣿⣿⣿⡀▫▫▫▫▫'),
-        (0.431, u'⣿⣿⣿⣿⣀▫▫▫▫▫'),
-        (0.441, u'⣿⣿⣿⣿⣄▫▫▫▫▫'),
-        (0.451, u'⣿⣿⣿⣿⣤▫▫▫▫▫'),
-        (0.461, u'⣿⣿⣿⣿⣦▫▫▫▫▫'),
-        (0.471, u'⣿⣿⣿⣿⣶▫▫▫▫▫'),
-        (0.481, u'⣿⣿⣿⣿⣷▫▫▫▫▫'),
-        (0.491, u'⣿⣿⣿⣿⣿▫▫▫▫▫'),
-        (0.501, u'⣿⣿⣿⣿⣿▫▫▫▫▫'),
-    ]
+    "progress,result",
+    [
+        (0.401, u"⣿⣿⣿⣿▫▫▫▫▫▫"),
+        (0.411, u"⣿⣿⣿⣿ ▫▫▫▫▫"),
+        (0.421, u"⣿⣿⣿⣿⡀▫▫▫▫▫"),
+        (0.431, u"⣿⣿⣿⣿⣀▫▫▫▫▫"),
+        (0.441, u"⣿⣿⣿⣿⣄▫▫▫▫▫"),
+        (0.451, u"⣿⣿⣿⣿⣤▫▫▫▫▫"),
+        (0.461, u"⣿⣿⣿⣿⣦▫▫▫▫▫"),
+        (0.471, u"⣿⣿⣿⣿⣶▫▫▫▫▫"),
+        (0.481, u"⣿⣿⣿⣿⣷▫▫▫▫▫"),
+        (0.491, u"⣿⣿⣿⣿⣿▫▫▫▫▫"),
+        (0.501, u"⣿⣿⣿⣿⣿▫▫▫▫▫"),
+    ],
 )
 def test_bar(progress, result):
     assert ascii_bar(progress) == result
@@ -44,28 +40,28 @@ def test_bar(progress, result):
 
 def test_loop():
     assert loop_test(range(10), lambda x: x) == [
-        '[⣿▫▫▫▫▫▫▫▫▫ 1.00s / 10.00s]',
-        '[⣿⣿▫▫▫▫▫▫▫▫ 2.00s / 10.00s]',
-        '[⣿⣿⣿▫▫▫▫▫▫▫ 3.00s / 10.00s]',
-        '[⣿⣿⣿⣿▫▫▫▫▫▫ 4.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿▫▫▫▫▫ 5.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿⣿▫▫▫▫ 6.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿⣿⣿▫▫▫ 7.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿⣿⣿⣿▫▫ 8.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿⣿⣿⣿⣿▫ 9.00s / 10.00s]',
-        '[⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ 10.00s / 10.00s]',
-        '[done. took 10.00s]',
+        "[⣿▫▫▫▫▫▫▫▫▫ 1.00s / 10.00s]",
+        "[⣿⣿▫▫▫▫▫▫▫▫ 2.00s / 10.00s]",
+        "[⣿⣿⣿▫▫▫▫▫▫▫ 3.00s / 10.00s]",
+        "[⣿⣿⣿⣿▫▫▫▫▫▫ 4.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿▫▫▫▫▫ 5.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿⣿▫▫▫▫ 6.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿⣿⣿▫▫▫ 7.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿⣿⣿⣿▫▫ 8.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿⣿⣿⣿⣿▫ 9.00s / 10.00s]",
+        "[⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿ 10.00s / 10.00s]",
+        "[done. took 10.00s]",
     ]
 
 
 def test_loop_no_length():
     assert loop_test(iter(range(5)), lambda x: x) == [
-        r'[- 1.00s / ?]',
-        r'[\ 2.00s / ?]',
-        r'[| 3.00s / ?]',
-        r'[/ 4.00s / ?]',
-        r'[- 5.00s / ?]',
-        r'[done. took 5.00s]',
+        r"[- 1.00s / ?]",
+        r"[\ 2.00s / ?]",
+        r"[| 3.00s / ?]",
+        r"[/ 4.00s / ?]",
+        r"[- 5.00s / ?]",
+        r"[done. took 5.00s]",
     ]
 
 
@@ -73,9 +69,7 @@ def test_loop_exception():
     def raise_(i):
         raise ValueError
 
-    assert loop_test(range(10), raise_) == [
-        '[aborted. took 1.00s]',
-    ]
+    assert loop_test(range(10), raise_) == ["[aborted. took 1.00s]"]
 
 
 def loop_test(iterable, action):
@@ -85,12 +79,12 @@ def loop_test(iterable, action):
         for loop, i in Loop.over(iterable, time=MockTime()):
             loop.now.time = i + 1
             action(i)
-            result += ['{loop}'.format(loop=loop)]
+            result += ["{loop}".format(loop=loop)]
 
     except ValueError:
         pass
 
-    result += ['{loop}'.format(loop=loop)]
+    result += ["{loop}".format(loop=loop)]
 
     return result
 
@@ -118,7 +112,7 @@ def test_single():
     states += [loop.get_info()]
 
     for s in states:
-        s.pop('idx')
+        s.pop("idx")
 
     assert states == expected_states
 
@@ -134,7 +128,7 @@ def test_nested():
     states += [loop.get_info()]
 
     for s in states:
-        s.pop('idx')
+        s.pop("idx")
 
     assert states == expected_states
 
@@ -151,7 +145,7 @@ def test_nested_nested():
     states += [loop.get_info()]
 
     for s in states:
-        s.pop('idx')
+        s.pop("idx")
 
     assert states == expected_states
 

@@ -1,8 +1,5 @@
 # coding=utf8
-from chmp.ds import (
-    shuffle,
-    shuffled,
-)
+from chmp.ds import shuffle, shuffled
 
 
 def test_shuffle():

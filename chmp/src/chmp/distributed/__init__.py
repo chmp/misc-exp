@@ -13,21 +13,20 @@ import toolz
 from toolz import curry, curried
 
 __all__ = [
-    'DaskCounter',
-    'DaskDict',
-    'RuleSet',
-
-    'apply',
-    'chained',
-    'extension_rules',
-    'mean',
-    'repartition',
-    'rules',
-    'reduction_rules',
-    'std',
-    'stdlib_rules',
-    'toolz_rules',
-    'var',
+    "DaskCounter",
+    "DaskDict",
+    "RuleSet",
+    "apply",
+    "chained",
+    "extension_rules",
+    "mean",
+    "repartition",
+    "rules",
+    "reduction_rules",
+    "std",
+    "stdlib_rules",
+    "toolz_rules",
+    "var",
 ]
 
 
@@ -48,14 +47,14 @@ class RuleSet(object):
 
     def __call__(self, *args):
         for rule in self.rules:
-            match = rule['match']
+            match = rule["match"]
             does_match = match(self, *args)
 
             if does_match:
-                apply = rule['apply']
+                apply = rule["apply"]
                 return apply(self, *args)
 
-        raise RuntimeWarning('no matching rule')
+        raise RuntimeWarning("no matching rule")
 
 
 def eq(obj):
@@ -137,10 +136,14 @@ stdlib_rules.add(eq(list), lambda _, __, obj: obj)
 stdlib_rules.add(eq(dict), lambda _, __, obj: DaskDict(obj))
 stdlib_rules.add(eq(dict.items), lambda _, __, obj: DaskDict(obj).items())
 stdlib_rules.add(eq(it.chain.from_iterable), lambda _, __, obj: obj.flatten())
-stdlib_rules.add(eq(collections.Counter), lambda _, __, obj: DaskCounter(obj.frequencies()))
+stdlib_rules.add(
+    eq(collections.Counter), lambda _, __, obj: DaskCounter(obj.frequencies())
+)
 
 # TODO: add warning that this is inefficient for large collections
-stdlib_rules.add(eq(sorted), lambda _, __, obj: obj.repartition(1).map_partitions(sorted))
+stdlib_rules.add(
+    eq(sorted), lambda _, __, obj: obj.repartition(1).map_partitions(sorted)
+)
 
 
 # ########################################################################### #
@@ -152,12 +155,16 @@ stdlib_rules.add(eq(sorted), lambda _, __, obj: obj.repartition(1).map_partition
 
 def _map_items(impl):
     "impl: func(f, k, v)"
-    return lambda _, f, o: DaskDict(DaskDict(o).items().map(lambda t: impl(f.args[0], t[0], t[1])))
+    return lambda _, f, o: DaskDict(
+        DaskDict(o).items().map(lambda t: impl(f.args[0], t[0], t[1]))
+    )
 
 
 def _filter_items(impl):
     "impl: func(f, k, v)"
-    return lambda _, f, o: DaskDict(DaskDict(o).items().filter(lambda t: impl(f.args[0], t[0], t[1])))
+    return lambda _, f, o: DaskDict(
+        DaskDict(o).items().filter(lambda t: impl(f.args[0], t[0], t[1]))
+    )
 
 
 def _toolz_item_filter(_, func, obj):
@@ -181,7 +188,9 @@ toolz_rules.add(eq(curried.map), lambda _, f, o: _call(o.map, f))
 toolz_rules.add(eq(curried.filter), lambda _, f, o: _call(o.filter, f))
 toolz_rules.add(eq(curried.pluck), lambda _, f, o: _call(o.pluck, f))
 toolz_rules.add(eq(curried.join), _toolz_join)
-toolz_rules.add(eq(curried.countby), lambda _, f, o: DaskDict(_call(o.map, f).frequencies()))
+toolz_rules.add(
+    eq(curried.countby), lambda _, f, o: DaskDict(_call(o.map, f).frequencies())
+)
 toolz_rules.add(eq(curried.groupby), lambda _, f, o: DaskDict(_call(o.groupby, f)))
 toolz_rules.add(eq(curried.keymap), _map_items(lambda f, k, v: (f(k), v)))
 toolz_rules.add(eq(curried.valmap), _map_items(lambda f, k, v: (k, f(v))))
@@ -231,6 +240,7 @@ toolz_rules.add(eq(curried.update_in), _raise(NotImplementedError))
 class reduction(object):
     """Represent a reduction suited for parallelization with `dask.bag`.
     """
+
     pass
 
 
@@ -243,7 +253,7 @@ def mean(l):
         s1 = next(l)
 
     except StopIteration:
-        raise RuntimeError('cannot compute the mean of an empty iterable')
+        raise RuntimeError("cannot compute the mean of an empty iterable")
 
     for x in l:
         s1 += x
@@ -325,6 +335,7 @@ class chained(object):
         a = math.cos(a)
 
     """
+
     def __init__(self, *funcs):
         self.funcs = funcs
 
@@ -335,7 +346,7 @@ class chained(object):
         return obj
 
     def __repr__(self):
-        return 'tztz.chained({})'.format(', '.join(repr(func) for func in self.funcs))
+        return "tztz.chained({})".format(", ".join(repr(func) for func in self.funcs))
 
     def __iter__(self):
         return iter(self.funcs)
@@ -354,6 +365,7 @@ class repartition(object):
     :param int n:
         the number of partitions
     """
+
     def __init__(self, n):
         self.n = n
 
