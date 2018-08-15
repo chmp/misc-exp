@@ -99,8 +99,7 @@ def transform(content, source, inventory=None):
         inventory = {}
 
     reference_resolver = resolver = ChainResolver(
-        InventoryResolver(inventory=inventory),
-        GithubLinkResolver(),
+        InventoryResolver(inventory=inventory), GithubLinkResolver()
     )
 
     content_lines = [line.rstrip() for line in content.splitlines()]
@@ -121,7 +120,9 @@ def transform(content, source, inventory=None):
             lines += [part["line"]]
 
         elif part["type"] in directive_map:
-            lines += directive_map[part["type"]](part, source, reference_resolver=reference_resolver)
+            lines += directive_map[part["type"]](
+                part, source, reference_resolver=reference_resolver
+            )
 
         else:
             raise NotImplementedError("unknown parse fragmet {}".format(part["type"]))
@@ -201,7 +202,9 @@ def autoclass(part, source, *, reference_resolver):
 
 
 def automodule(part, source, *, reference_resolver):
-    yield from autoobject(part, header=2, depth=0, reference_resolver=reference_resolver)
+    yield from autoobject(
+        part, header=2, depth=0, reference_resolver=reference_resolver
+    )
 
 
 def autoobject(part, *, reference_resolver, depth=1, header=3, skip_args=0):
@@ -209,15 +212,19 @@ def autoobject(part, *, reference_resolver, depth=1, header=3, skip_args=0):
 
     obj = import_object(what, depth=depth)
     yield from document_object(
-        obj, what,
-        signature=signature, header=header,
+        obj,
+        what,
+        signature=signature,
+        header=header,
         skip_args=skip_args,
         reference_resolver=reference_resolver,
     )
 
     if part.get("members") is True:
         for child, child_kwargs in get_members(what, obj, header=header, skip_args=0):
-            yield from document_object(child, **child_kwargs, reference_resolver=reference_resolver)
+            yield from document_object(
+                child, **child_kwargs, reference_resolver=reference_resolver
+            )
 
 
 def extract_label_signature(autodoc_line):
@@ -254,7 +261,9 @@ def get_members(parent_k, parent, header, skip_args=0):
             yield from get_members(full_key, v, header=header + 1, skip_args=1)
 
 
-def document_object(obj, label, *, reference_resolver, signature=None, header=3, skip_args=0):
+def document_object(
+    obj, label, *, reference_resolver, signature=None, header=3, skip_args=0
+):
     """Document an object.
 
     :param label:
@@ -362,7 +371,7 @@ def render_docstring(obj, reference_resolver):
     return publish_string(
         doc,
         writer=MarkdownWriter(reference_resolver=reference_resolver),
-        settings_overrides={"output_encoding": "unicode"}
+        settings_overrides={"output_encoding": "unicode"},
     )
 
 
@@ -670,22 +679,22 @@ class ChainResolver:
 
 class GithubLinkResolver:
     def resolve(self, ref, kind=None):
-        return '#{}'.format(ref.replace('.', '').lower())
+        return "#{}".format(ref.replace(".", "").lower())
 
 
 class InventoryResolver:
     def __init__(self, inventory):
         self.inventory = inventory
         self.order = [
-            'py:module',
-            'py:class',
-            'py:function',
-            'py:exception',
-            'py:method',
-            'py:classmethod',
-            'py:staticmethod',
-            'py:attribute',
-            'py:data',
+            "py:module",
+            "py:class",
+            "py:function",
+            "py:exception",
+            "py:method",
+            "py:classmethod",
+            "py:staticmethod",
+            "py:attribute",
+            "py:data",
         ]
 
     def resolve(self, ref, kind=None):
@@ -703,7 +712,7 @@ class InventoryResolver:
             except KeyError:
                 continue
 
-        raise KeyError('could not find {}'.format(ref))
+        raise KeyError("could not find {}".format(ref))
 
 
 def load_inventory(uris):
@@ -714,17 +723,14 @@ def load_inventory(uris):
     inventory = {}
 
     for base_uri in uris:
-        object_inv_uri = f'{base_uri}/objects.inv'
+        object_inv_uri = f"{base_uri}/objects.inv"
         r = requests.get(object_inv_uri)
         r.raise_for_status()
 
         with io.BytesIO(r.content) as fobj:
-            sub_inventory = InventoryFile.load(fobj, base_uri, lambda a, b: f'{a}/{b}')
+            sub_inventory = InventoryFile.load(fobj, base_uri, lambda a, b: f"{a}/{b}")
 
         for section, data in sub_inventory.items():
             inventory.setdefault(section, {}).update(data)
 
-    return dict(
-        uris=uris,
-        inventory=inventory,
-    )
+    return dict(uris=uris, inventory=inventory)
