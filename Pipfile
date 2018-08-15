@@ -47,6 +47,14 @@ python_version = "3.6"
 
 [scripts]
 test = "py.test chmp"
-docs = "python -m chmp.tools mddocs chmp/docs/src chmp/docs"
+docs = """
+    python -m chmp.tools mddocs \
+        --inventory http://daft-pgm.org \
+        --inventory https://matplotlib.org \
+        --inventory http://www.numpy.org \
+        --inventory https://pandas.pydata.org \
+        --inventory https://docs.python.org/3 \
+        chmp/docs/src chmp/docs
+"""
 notebook = "jupyter notebook"
 format = "black chmp/src"

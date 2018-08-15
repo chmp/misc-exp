@@ -66,7 +66,7 @@ Set various style related options of MPL.
 ### `chmp.ds.pgm`
 `chmp.ds.pgm(**kwargs)`
 
-Wrapper around `daft.PGM` to allow fluid call chains.
+Wrapper around [daft.PGM](http://daft-pgm.org/api/#daft.PGM) to allow fluid call chains.
 
 Usage:
 

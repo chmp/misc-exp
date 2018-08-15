@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import importlib
 import inspect
+import io
 import itertools as it
 import logging
 import os
@@ -29,7 +30,7 @@ from chmp import parser as p
 _logger = logging.getLogger(__name__)
 
 
-def transform_directories(src, dst, continue_on_error=False):
+def transform_directories(src, dst, continue_on_error=False, inventory=None):
     setup_rst_roles()
 
     src_dir = os.path.abspath(src)
@@ -50,7 +51,7 @@ def transform_directories(src, dst, continue_on_error=False):
             content = fobj.read()
 
         try:
-            content = transform(content, source)
+            content = transform(content, source, inventory=inventory)
 
         except Exception as e:
             if continue_on_error:
@@ -93,7 +94,15 @@ def relwalk(absroot, relroot="."):
             yield from relwalk(abspath, relpath)
 
 
-def transform(content, source):
+def transform(content, source, inventory=None):
+    if inventory is None:
+        inventory = {}
+
+    reference_resolver = resolver = ChainResolver(
+        InventoryResolver(inventory=inventory),
+        GithubLinkResolver(),
+    )
+
     content_lines = [line.rstrip() for line in content.splitlines()]
     result = p.parse(parser, content_lines)
     lines = []
@@ -112,7 +121,7 @@ def transform(content, source):
             lines += [part["line"]]
 
         elif part["type"] in directive_map:
-            lines += directive_map[part["type"]](part, source)
+            lines += directive_map[part["type"]](part, source, reference_resolver=reference_resolver)
 
         else:
             raise NotImplementedError("unknown parse fragmet {}".format(part["type"]))
@@ -179,33 +188,36 @@ def build_parser():
 parser = build_parser()
 
 
-def autofunction(part, source):
-    return autoobject(part)
+def autofunction(part, source, *, reference_resolver):
+    return autoobject(part, reference_resolver=reference_resolver)
 
 
-def automethod(part, source):
-    return autoobject(part, depth=2, skip_args=1)
+def automethod(part, source, *, reference_resolver):
+    return autoobject(part, depth=2, skip_args=1, reference_resolver=reference_resolver)
 
 
-def autoclass(part, source):
-    return autoobject(part)
+def autoclass(part, source, *, reference_resolver):
+    return autoobject(part, reference_resolver=reference_resolver)
 
 
-def automodule(part, source):
-    yield from autoobject(part, header=2, depth=0)
+def automodule(part, source, *, reference_resolver):
+    yield from autoobject(part, header=2, depth=0, reference_resolver=reference_resolver)
 
 
-def autoobject(part, depth=1, header=3, skip_args=0):
+def autoobject(part, *, reference_resolver, depth=1, header=3, skip_args=0):
     what, signature = extract_label_signature(part["line"])
 
     obj = import_object(what, depth=depth)
     yield from document_object(
-        obj, what, signature=signature, header=header, skip_args=skip_args
+        obj, what,
+        signature=signature, header=header,
+        skip_args=skip_args,
+        reference_resolver=reference_resolver,
     )
 
     if part.get("members") is True:
         for child, child_kwargs in get_members(what, obj, header=header, skip_args=0):
-            yield from document_object(child, **child_kwargs)
+            yield from document_object(child, **child_kwargs, reference_resolver=reference_resolver)
 
 
 def extract_label_signature(autodoc_line):
@@ -242,7 +254,7 @@ def get_members(parent_k, parent, header, skip_args=0):
             yield from get_members(full_key, v, header=header + 1, skip_args=1)
 
 
-def document_object(obj, label, *, signature=None, header=3, skip_args=0):
+def document_object(obj, label, *, reference_resolver, signature=None, header=3, skip_args=0):
     """Document an object.
 
     :param label:
@@ -276,7 +288,7 @@ def document_object(obj, label, *, signature=None, header=3, skip_args=0):
         yield "`{}`".format(signature)
 
     yield ""
-    yield render_docstring(obj)
+    yield render_docstring(obj, reference_resolver=reference_resolver)
 
 
 def format_signature(label, func, skip=0):
@@ -335,7 +347,7 @@ def include(part, source):
     yield content
 
 
-def render_docstring(obj):
+def render_docstring(obj, reference_resolver):
     """Render the docstring for an object.
 
     For classes the docstring of the class and init are merged.
@@ -348,11 +360,17 @@ def render_docstring(obj):
         doc = doc + "\n\n" + unindent(obj.__init__.__doc__)
 
     return publish_string(
-        doc, writer=MarkdownWriter(), settings_overrides={"output_encoding": "unicode"}
+        doc,
+        writer=MarkdownWriter(reference_resolver=reference_resolver),
+        settings_overrides={"output_encoding": "unicode"}
     )
 
 
 class MarkdownWriter(Writer):
+    def __init__(self, reference_resolver):
+        super().__init__()
+        self.reference_resolver = reference_resolver
+
     def translate(self):
         self.output = "".join(self._translate(self.document))
 
@@ -498,9 +516,9 @@ class MarkdownWriter(Writer):
         yield "\n"
 
     def _translate_TitledReference(self, node):
-        yield "[{0}](#{1})".format(
+        yield "[{0}]({1})".format(
             node.attributes["title"],
-            node.attributes["reference"].replace(".", "").lower(),
+            self.reference_resolver.resolve(node.attributes["reference"]),
         )
 
     def _translate_strong(self, node):
@@ -634,3 +652,79 @@ class SeeAlso(admonitions.BaseAdmonition):
 
 
 directives.register_directive("seealso", SeeAlso)
+
+
+class ChainResolver:
+    def __init__(self, *resolvers):
+        self.resolvers = resolvers
+
+    def resolve(self, ref, kind=None):
+        for resolver in self.resolvers:
+            try:
+                return resolver.resolve(ref, kind)
+            except KeyError:
+                pass
+
+        raise KeyError()
+
+
+class GithubLinkResolver:
+    def resolve(self, ref, kind=None):
+        return '#{}'.format(ref.replace('.', '').lower())
+
+
+class InventoryResolver:
+    def __init__(self, inventory):
+        self.inventory = inventory
+        self.order = [
+            'py:module',
+            'py:class',
+            'py:function',
+            'py:exception',
+            'py:method',
+            'py:classmethod',
+            'py:staticmethod',
+            'py:attribute',
+            'py:data',
+        ]
+
+    def resolve(self, ref, kind=None):
+        if kind is None:
+            kind = self.order
+
+        elif isinstance(kind, str):
+            kind = [kind]
+
+        for sec in kind:
+            try:
+                *_, uri, _ = self.inventory.get(sec, {})[ref]
+                return uri
+
+            except KeyError:
+                continue
+
+        raise KeyError('could not find {}'.format(ref))
+
+
+def load_inventory(uris):
+    import requests
+    from sphinx.util.inventory import InventoryFile
+
+    uris = list(uris)
+    inventory = {}
+
+    for base_uri in uris:
+        object_inv_uri = f'{base_uri}/objects.inv'
+        r = requests.get(object_inv_uri)
+        r.raise_for_status()
+
+        with io.BytesIO(r.content) as fobj:
+            sub_inventory = InventoryFile.load(fobj, base_uri, lambda a, b: f'{a}/{b}')
+
+        for section, data in sub_inventory.items():
+            inventory.setdefault(section, {}).update(data)
+
+    return dict(
+        uris=uris,
+        inventory=inventory,
+    )

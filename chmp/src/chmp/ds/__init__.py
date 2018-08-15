@@ -303,7 +303,7 @@ def mpl_set(
 
 
 def pgm(*, ax=None, **kwargs):
-    """Wrapper around ``daft.PGM`` to allow fluid call chains.
+    """Wrapper around :class:`daft.PGM` to allow fluid call chains.
 
     Usage::
 
