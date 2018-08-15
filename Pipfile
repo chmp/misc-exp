@@ -33,9 +33,10 @@ tornado = "<5.0"
 chmp-app-causality = {editable = true, path = "./20180107-Causality/chmp-app-causality"}
 chmp-app-kwdetect = {editable = true, path = "./20170813-KeywordDetection/chmp-app-kwdetect"}
 daft = "*"
+sphinx = "*"
 
 [dev-packages]
-jupyter = {extras = ["notebook"]}
+jupyter = "*"
 black = "==18.6b4"
 docutils = "*"
 twine = "*"
