@@ -12,6 +12,9 @@ import importlib
 import io
 import itertools as it
 import json
+import math
+import os.path
+import pickle
 import sys
 import time
 
@@ -85,6 +88,28 @@ def define(func):
 
     """
     return func()
+
+
+def cached(path):
+    """Similar to ``define``, but cache to a file.
+    """
+    def decorator(func):
+        if os.path.exists(path):
+            print('load cache', path)
+            with open(path, 'rb') as fobj:
+                return pickle.load(fobj)
+
+        else:
+            print('compute')
+            result = func()
+
+            print('save cache', path)
+            with open(path, 'wb') as fobj:
+                pickle.dump(result, fobj)
+
+            return result
+
+    return decorator
 
 
 class Object:
@@ -302,7 +327,7 @@ def mpl_set(
         plt.axis(axis)
 
 
-def pgm(*, ax=None, **kwargs):
+class pgm:
     """Wrapper around :class:`daft.PGM` to allow fluid call chains.
 
     Usage::
@@ -322,74 +347,150 @@ def pgm(*, ax=None, **kwargs):
 
         .annotate(node_name, annotation_text)
 
-    """
-    if not _HAS_DAFT:
-        raise RuntimeError("daft is required for pgm support.")
+    Nodes can also be created without explicit lables (in which case the node
+    name is used)::
 
-    return _PGM(ax=ax, **kwargs)
+        .node("z", 1, 1)
+        node("z", "label", 1, 1)
+
+    """
+    def __init__(self, *, ax=None, nodes=(), edges=(), annotations=(), **kwargs):
+        if not _HAS_DAFT:
+            raise RuntimeError("daft is required for pgm support.")
+
+        self.ax = ax
+        self.daft_kwargs = kwargs
+
+        self._nodes = list(nodes)
+        self._edges = list(edges)
+        self._annotations = list(annotations)
+
+    def update(self, nodes=None, edges=None, annotations=None):
+        if nodes is None:
+            nodes = self._nodes
+
+        if edges is None:
+            edges = self._edges
+
+        if annotations is None:
+            annotations = self._annotations
+
+        return type(self)(
+            nodes=nodes,
+            edges=edges,
+            annotations=annotations,
+            ax=self.ax,
+            **self.daft_kwargs,
+        )
+
+    def node(self, *args, edgecolor=None, facecolor=None, **kwargs):
+        if edgecolor is not None:
+            kwargs.setdefault('plot_params', {}).update(edgecolor=edgecolor)
+
+        if facecolor is not None:
+            kwargs.setdefault('plot_params', {}).update(facecolor=facecolor)
+
+        node = Object(kwargs=kwargs)
+        if len(args) == 3:
+            node.name, node.x, node.y = args
+            node.label = node.name
+
+        else:
+            node.name, node.label, node.x, node.y = args
+
+        return self.update(nodes=self._nodes + [node])
+
+    def edge(self, from_node, to_node, **kwargs):
+        edge = Object(
+            from_node=from_node,
+            to_node=to_node,
+            kwargs=kwargs,
+        )
+        return self.update(edges=self._edges + [edge])
+
+    def edges(self, from_nodes, to_nodes, **kwargs):
+        current = self
+        for from_node, to_node in it.product(from_nodes,to_nodes):
+            current = current.edge(from_node, to_node, **kwargs)
+        return current
+
+    def remove(self, incoming=(), outgoing=()):
+        """Remove edges that point in or out of a the specified nodes.
+        """
+        incoming = set(incoming)
+        outgoing = set(outgoing)
+        edges_to_keep = [
+            edge
+            for edge in self._edges
+            if (
+                edge.from_node not in outgoing and
+                edge.to_node not in incoming
+            )
+        ]
+
+        return self.update(edges=edges_to_keep)
+
+    def annotate(self, node, text):
+        annotation = Object(node=node, text=text)
+        return self.update(annotations=self._annotations + [annotation])
+
+    def render(self, ax=None, axis=False, xlim=None, ylim=None, **kwargs):
+        import daft
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            if self.ax is not None:
+                ax = self.ax
+
+            else:
+                ax = plt.gca()
+
+        pgm = _PGM(ax=ax)
+
+        for node in self._nodes:
+            daft_node = daft.Node(
+                node.name, node.label, node.x, node.y, **node.kwargs,
+            )
+            pgm.add_node(daft_node)
+
+        for edge in self._edges:
+            pgm.add_edge(edge.from_node, edge.to_node, **edge.kwargs)
+
+        for annot in self._annotations:
+            self._render_annotation(pgm, annot)
+
+        if xlim is None or ylim is None:
+            data_xlim, data_ylim = pgm.get_limits()
+            if xlim is None:
+                xlim = expand(*data_xlim, 0.10)
+
+            if ylim is None:
+                ylim = expand(*data_ylim, 0.10)
+
+        pgm.render()
+        mpl_set(**kwargs, axis=axis, xlim=xlim, ylim=ylim, ax=ax)
+
+        return pgm
+
+    def _render_annotation(self, pgm, annot):
+        extent = pgm.get_node_extent(annot.node)
+        pgm._ctx._ax.text(
+            extent.x,
+            extent.y - 0.5 * extent.height,
+            annot.text,
+            va="top",
+            ha="center",
+        )
+
+    def _ipython_display_(self):
+        self.render()
 
 
 class _PGM(PGM):
     def __init__(self, *, ax=None, **kwargs):
-        import matplotlib.pyplot as plt
-
         super().__init__([1.0, 1.0], origin=[0.0, 0.0], **kwargs)
-
-        if ax is None:
-            ax = plt.gca()
-
         self._ctx._ax = ax
         self._ctx._figure = ax.get_figure()
-        self._annotations = []
-
-    def node(self, *args, **kwargs):
-        import daft
-
-        self.add_node(daft.Node(*args, **kwargs))
-        return self
-
-    def edge(self, *args, **kwargs):
-        self.add_edge(*args, **kwargs)
-        return self
-
-    def render(self, axis=False, xlim=None, ylim=None, **kwargs):
-        import matplotlib.pyplot as plt
-
-        if xlim is None or ylim is None:
-            data_xlim, data_ylim = self.get_limits()
-            if xlim is None:
-                xlim = data_xlim
-
-            if ylim is None:
-                ylim = data_ylim
-
-        kwargs.update(axis=axis, xlim=xlim, ylim=ylim)
-
-        super().render()
-
-        old_ax = plt.gca()
-        try:
-            plt.sca(self._ctx.ax())
-            for node, text in self._annotations:
-                x_extent = self.get_node_extent(node)
-                plt.text(
-                    x_extent.x,
-                    x_extent.y - 0.5 * x_extent.height,
-                    text,
-                    va="top",
-                    ha="center",
-                )
-
-            mpl_set(**kwargs)
-
-        finally:
-            plt.sca(old_ax)
-
-        return self
-
-    def annotate(self, node, text):
-        self._annotations.append((node, text))
-        return self
 
     def get_node_extent(self, node):
         # TODO: incorporate the complete logic of daft?
@@ -416,12 +517,8 @@ class _PGM(PGM):
             ymax=center_y + 0.5 * height,
         )
 
-    @property
-    def nodes(self):
-        return [*self._nodes.values()]
-
     def get_limits(self):
-        nodes = self.nodes
+        nodes = list(self._nodes.values())
 
         if not nodes:
             return (0, 1), (0, 1)
@@ -576,6 +673,49 @@ def axtext(*args, **kwargs):
     plt.text(*args, **kwargs)
 
 
+def plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs):
+    """Plot isocontours of the maximum likelihood Gaussian for ``x, y``.
+
+    :param q:
+        the quantiles to show.
+    """
+    import numpy as np
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import scipy.special
+
+    if ax is not None:
+        plt.sca(ax)
+
+    kwargs.setdefault("facecolor", "none")
+    kwargs.setdefault("edgecolor", "k")
+
+    q = np.atleast_1d(q)
+
+    x = np.asarray(df[x])
+    y = np.asarray(df[y])
+
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    mx = np.mean(x)
+    my = np.mean(y)
+    xx = np.mean((x - mx) * (x - mx))
+    yy = np.mean((y - my) * (y - my))
+    xy = np.mean((x - mx) * (y - my))
+
+    cov = np.asarray([[xx, xy], [xy, yy]])
+    eigvals, eigvects = np.linalg.eig(cov)
+
+    dx, dy = eigvects[:, 0]
+    angle = math.atan2(dy, dx) / (2 * math.pi) * 360
+
+    for _q in q:
+        s = (2 ** 0.5) * scipy.special.erfinv(q)
+        artist = mpl.patches.Ellipse((mx, my), *(s * eigvals), angle, **kwargs)
+        plt.gca().add_artist(artist)
+
+
 def _prepare_xy(x, y, data=None, transform_x=None, transform_y=None, skip_nan=True):
     if data is not None:
         x = data[x]
@@ -617,6 +757,32 @@ def _dict_of_optionals(**kwargs):
 @ft.singledispatch
 def get_children(est):
     return []
+
+
+def to_markdown(df, index=False):
+    """Return a string containg the markdown of the table.
+
+    Depends on the ``tabulate`` dependency.
+    """
+    from tabulate import tabulate
+    return tabulate(df, tablefmt="pipe", headers="keys", showindex=index)
+
+
+def index_query(obj, expression, scalar=False):
+    """Execute a query expression on the index and return matching rows.
+
+    :param scalar:
+        if True, return only the first item. Setting ``scalar=True``
+        raises an error if the resulting object has have more than one
+        entry.
+    """
+    res = obj.loc[obj.index.to_frame().query(expression).index]
+
+    if scalar:
+        assert res.size == 1
+        return res.iloc[0]
+
+    return res
 
 
 def fix_categories(
@@ -734,7 +900,20 @@ def find_high_frequency_categories(s, min_frequency=0.02, n_max=None):
 def as_frame(**kwargs):
     import pandas as pd
 
-    return pd.DataFrame(kwargs)
+    return pd.DataFrame().assign(**kwargs)
+
+
+def pd_has_ordered_assign():
+    import pandas as pd
+    py_major, py_minor, *_ = sys.version_info
+    pd_major, pd_minor, *_ = pd.__version__.split('.')
+    pd_major = int(pd_major)
+    pd_minor = int(pd_minor)
+
+    return (
+        (py_major, py_minor) >= (3, 6) and
+        (pd_major, pd_minor) >= (0, 23)
+    )
 
 
 def cast_types(numeric=None, categorical=None):
@@ -1402,6 +1581,18 @@ status_characters = [chr(ord("\u2800") + v) for v in status_characters]
 status_characters = ["\u25AB", " "] + status_characters
 
 running_characters = ["-", "\\", "|", "/"]
+
+
+def loop_over(iterable, label=None):
+    if label is not None:
+        label = ' {}'.format(label)
+
+    else:
+        label = ''
+
+    for loop, item in Loop.over(iterable):
+        yield item
+        loop.print('{}{}'.format(loop, label))
 
 
 class LoopState(enum.Enum):
