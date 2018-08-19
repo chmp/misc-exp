@@ -34,6 +34,8 @@ chmp-app-causality = {editable = true, path = "./20180107-Causality/chmp-app-cau
 chmp-app-kwdetect = {editable = true, path = "./20170813-KeywordDetection/chmp-app-kwdetect"}
 daft = "*"
 sphinx = "*"
+seaborn = "*"
+tabulate = "*"
 
 [dev-packages]
 jupyter = "*"
@@ -42,6 +44,7 @@ docutils = "*"
 twine = "*"
 wheel = "*"
 invoke = "*"
+blackcellmagic = "*"
 
 [requires]
 python_version = "3.6"
@@ -52,4 +55,3 @@ test = "invoke test"
 docs = "invoke docs"
 format = "invoke format"
 notebook = "jupyter notebook"
-
