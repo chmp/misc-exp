@@ -93,18 +93,19 @@ def define(func):
 def cached(path):
     """Similar to ``define``, but cache to a file.
     """
+
     def decorator(func):
         if os.path.exists(path):
-            print('load cache', path)
-            with open(path, 'rb') as fobj:
+            print("load cache", path)
+            with open(path, "rb") as fobj:
                 return pickle.load(fobj)
 
         else:
-            print('compute')
+            print("compute")
             result = func()
 
-            print('save cache', path)
-            with open(path, 'wb') as fobj:
+            print("save cache", path)
+            with open(path, "wb") as fobj:
                 pickle.dump(result, fobj)
 
             return result
@@ -354,6 +355,7 @@ class pgm:
         node("z", "label", 1, 1)
 
     """
+
     def __init__(self, *, ax=None, nodes=(), edges=(), annotations=(), **kwargs):
         if not _HAS_DAFT:
             raise RuntimeError("daft is required for pgm support.")
@@ -385,10 +387,10 @@ class pgm:
 
     def node(self, *args, edgecolor=None, facecolor=None, **kwargs):
         if edgecolor is not None:
-            kwargs.setdefault('plot_params', {}).update(edgecolor=edgecolor)
+            kwargs.setdefault("plot_params", {}).update(edgecolor=edgecolor)
 
         if facecolor is not None:
-            kwargs.setdefault('plot_params', {}).update(facecolor=facecolor)
+            kwargs.setdefault("plot_params", {}).update(facecolor=facecolor)
 
         node = Object(kwargs=kwargs)
         if len(args) == 3:
@@ -401,16 +403,12 @@ class pgm:
         return self.update(nodes=self._nodes + [node])
 
     def edge(self, from_node, to_node, **kwargs):
-        edge = Object(
-            from_node=from_node,
-            to_node=to_node,
-            kwargs=kwargs,
-        )
+        edge = Object(from_node=from_node, to_node=to_node, kwargs=kwargs)
         return self.update(edges=self._edges + [edge])
 
     def edges(self, from_nodes, to_nodes, **kwargs):
         current = self
-        for from_node, to_node in it.product(from_nodes,to_nodes):
+        for from_node, to_node in it.product(from_nodes, to_nodes):
             current = current.edge(from_node, to_node, **kwargs)
         return current
 
@@ -422,10 +420,7 @@ class pgm:
         edges_to_keep = [
             edge
             for edge in self._edges
-            if (
-                edge.from_node not in outgoing and
-                edge.to_node not in incoming
-            )
+            if (edge.from_node not in outgoing and edge.to_node not in incoming)
         ]
 
         return self.update(edges=edges_to_keep)
@@ -448,9 +443,7 @@ class pgm:
         pgm = _PGM(ax=ax)
 
         for node in self._nodes:
-            daft_node = daft.Node(
-                node.name, node.label, node.x, node.y, **node.kwargs,
-            )
+            daft_node = daft.Node(node.name, node.label, node.x, node.y, **node.kwargs)
             pgm.add_node(daft_node)
 
         for edge in self._edges:
@@ -475,11 +468,7 @@ class pgm:
     def _render_annotation(self, pgm, annot):
         extent = pgm.get_node_extent(annot.node)
         pgm._ctx._ax.text(
-            extent.x,
-            extent.y - 0.5 * extent.height,
-            annot.text,
-            va="top",
-            ha="center",
+            extent.x, extent.y - 0.5 * extent.height, annot.text, va="top", ha="center"
         )
 
     def _ipython_display_(self):
@@ -765,6 +754,7 @@ def to_markdown(df, index=False):
     Depends on the ``tabulate`` dependency.
     """
     from tabulate import tabulate
+
     return tabulate(df, tablefmt="pipe", headers="keys", showindex=index)
 
 
@@ -905,15 +895,13 @@ def as_frame(**kwargs):
 
 def pd_has_ordered_assign():
     import pandas as pd
+
     py_major, py_minor, *_ = sys.version_info
-    pd_major, pd_minor, *_ = pd.__version__.split('.')
+    pd_major, pd_minor, *_ = pd.__version__.split(".")
     pd_major = int(pd_major)
     pd_minor = int(pd_minor)
 
-    return (
-        (py_major, py_minor) >= (3, 6) and
-        (pd_major, pd_minor) >= (0, 23)
-    )
+    return (py_major, py_minor) >= (3, 6) and (pd_major, pd_minor) >= (0, 23)
 
 
 def cast_types(numeric=None, categorical=None):
@@ -1582,17 +1570,34 @@ status_characters = ["\u25AB", " "] + status_characters
 
 running_characters = ["-", "\\", "|", "/"]
 
+current_loop = None
+current_label = None
+
 
 def loop_over(iterable, label=None):
+    global current_loop, current_label
     if label is not None:
-        label = ' {}'.format(label)
+        current_label = label
 
-    else:
-        label = ''
-
-    for loop, item in Loop.over(iterable):
+    for current_loop, item in Loop.over(iterable):
         yield item
-        loop.print('{}{}'.format(loop, label))
+
+        if current_loop.will_print():
+            label = " {}".format(current_label) if current_label is not None else ""
+            current_loop.print("{}{}".format(current_loop, label))
+
+
+def loop_nest(iterable, label=None):
+    global current_loop, current_label
+    if label is not None:
+        current_label = label
+
+    for item in current_loop.nest(iterable):
+        yield item
+
+        if current_loop.will_print():
+            label = " {}".format(current_label) if current_label is not None else ""
+            current_loop.print("{}{}".format(current_loop, label))
 
 
 class LoopState(enum.Enum):

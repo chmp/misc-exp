@@ -25,6 +25,12 @@ assert foo == 42
 ```
 
 
+### `chmp.ds.cached`
+`chmp.ds.cached(path)`
+
+Similar to `define`, but cache to a file.
+
+
 ### `chmp.ds.Object`
 `chmp.ds.Object(*args, **kwargs)`
 
@@ -89,6 +95,20 @@ To annotate a node use:
 .annotate(node_name, annotation_text)
 ```
 
+Nodes can also be created without explicit lables (in which case the node
+name is used):
+
+```
+.node("z", 1, 1)
+node("z", "label", 1, 1)
+```
+
+
+#### `chmp.ds.pgm.remove`
+`chmp.ds.pgm.remove(incoming=(), outgoing=())`
+
+Remove edges that point in or out of a the specified nodes.
+
 
 ### `chmp.ds.edges`
 `chmp.ds.edges(x)`
@@ -144,6 +164,38 @@ Usage:
 ```
 axtext(0, 0, 'text')
 ```
+
+
+### `chmp.ds.plot_gaussian_contour`
+`chmp.ds.plot_gaussian_contour(df, x, y, **kwargs)`
+
+Plot isocontours of the maximum likelihood Gaussian for `x, y`.
+
+#### Parameters
+
+* **q** (*any*):
+  the quantiles to show.
+
+
+### `chmp.ds.to_markdown`
+`chmp.ds.to_markdown(df, index=False)`
+
+Return a string containg the markdown of the table.
+
+Depends on the `tabulate` dependency.
+
+
+### `chmp.ds.index_query`
+`chmp.ds.index_query(obj, expression, scalar=False)`
+
+Execute a query expression on the index and return matching rows.
+
+#### Parameters
+
+* **scalar** (*any*):
+  if True, return only the first item. Setting `scalar=True`
+  raises an error if the resulting object has have more than one
+  entry.
 
 
 ### `chmp.ds.fix_categories`
