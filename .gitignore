@@ -12,3 +12,4 @@ profile.dat
 *.code-workspace
 .pytest_cache/
 /.inventory.json.bz2
+/.env

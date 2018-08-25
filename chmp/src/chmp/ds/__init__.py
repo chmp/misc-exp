@@ -328,6 +328,27 @@ def mpl_set(
         plt.axis(axis)
 
 
+def qlineplot(*, x, y, hue, data, ci=0.95):
+    """Plot  median as line, quantiles as shading.
+    """
+    import matplotlib.pyplot as plt
+
+    agg_data = data.groupby([x, hue])[y].quantile([1 - ci, 0.5, ci]).unstack()
+    hue_values = data[hue].unique()
+
+    for color, hue_value in colorize(hue_values):
+        subset = agg_data.xs(hue_value, level=hue)
+        plt.fill_between(subset.index, subset.iloc[:, 0], subset.iloc[:, 2], alpha=0.2)
+
+    for color, hue_value in colorize(hue_values):
+        subset = agg_data.xs(hue_value, level=hue)
+        plt.plot(subset.index, subset.iloc[:, 1], label=hue_value, marker=".")
+
+    plt.legend(loc="best")
+    plt.xlabel(x)
+    plt.ylabel(y)
+
+
 class pgm:
     """Wrapper around :class:`daft.PGM` to allow fluid call chains.
 

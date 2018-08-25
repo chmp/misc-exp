@@ -69,6 +69,12 @@ Set various style related options of MPL.
   See `xformatter`.
 
 
+### `chmp.ds.qlineplot`
+`chmp.ds.qlineplot()`
+
+Plot  median as line, quantiles as shading.
+
+
 ### `chmp.ds.pgm`
 `chmp.ds.pgm(**kwargs)`
 
