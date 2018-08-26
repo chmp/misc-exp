@@ -147,7 +147,24 @@ class Object:
         return not (self == other)
 
 
+class daterange:
+    def __init__(self, start, end, step):
+        self.start = start
+        self.end = end
+        self.step = step
+
+    def __len__(self):
+        return int((self.end - self.start) / self.step)
+
+    def __iter__(self):
+        current = self.start
+        while current < self.end:
+            yield current
+            current += self.step
+
+
 def colorize(items):
+    """Given an iterable, yield ``(color, item)`` pairs."""
     cycle = get_color_cycle()
     return zip(it.cycle(cycle), items)
 
