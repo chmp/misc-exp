@@ -36,6 +36,7 @@ daft = "*"
 sphinx = "*"
 seaborn = "*"
 tabulate = "*"
+xlrd = "*"
 
 [dev-packages]
 jupyter = "*"
