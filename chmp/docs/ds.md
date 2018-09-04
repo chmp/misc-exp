@@ -37,6 +37,12 @@ Similar to `define`, but cache to a file.
 Dictionary-like namespace object.
 
 
+### `chmp.ds.colorize`
+`chmp.ds.colorize(items)`
+
+Given an iterable, yield `(color, item)` pairs.
+
+
 ### `chmp.ds.get_color_cycle`
 `chmp.ds.get_color_cycle(n=None)`
 

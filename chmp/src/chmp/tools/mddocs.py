@@ -136,7 +136,7 @@ def build_parser():
         "include",
         "autoclass",
         "automethod",
-        "literalincldue",
+        "literalinclude",
     ]
 
     end_of_directive = p.first(
@@ -324,7 +324,7 @@ def format_signature(label, func, skip=0):
     return "{}({})".format(label.strip(), ", ".join(args))
 
 
-def literalinclude(part, source):
+def literalinclude(part, source, reference_resolver=None):
     line = part["line"]
 
     _, what = line.split("::")
@@ -343,7 +343,7 @@ def literalinclude(part, source):
     yield "```"
 
 
-def include(part, source):
+def include(part, source, reference_resolver=None):
     line = part["line"]
     _, what = line.split("::")
     what = what.strip()
