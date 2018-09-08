@@ -1,4 +1,6 @@
-from chmp.ds import Object
+from chmp.ds import Object, compute_moi, orient
+
+import numpy as np
 
 
 def test_object():
@@ -12,3 +14,32 @@ def test_object():
     assert a.b == 3
 
     assert vars(a) == dict(a=2, b=3)
+
+
+def test_orient_random():
+    np.random.seed(42_42_42)
+    pos = np.random.uniform(-1, +1, size=(100, 3))
+    pos = np.transpose(
+        np.stack(
+            [pos[:, 0] - pos[:, 1], pos[:, 0] * pos[:, 1] ** 2, pos[:, 1] * pos[:, 2]]
+        )
+    )
+
+    pos = orient(pos)
+    moi = compute_moi(pos)
+
+    # all non digaonal elements are zero
+    np.testing.assert_almost_equal(moi - np.diag(np.diag(moi)), 0)
+
+    # the diagonal is increasing
+    np.testing.assert_array_equal(np.diff(np.diag(moi)) > 0, True)
+
+
+def test_orient_straight_line():
+    u = np.linspace(-10, +10, 10)
+    pos = np.stack([0.5 ** 0.5 * u, 0.5 ** 0.5 * u]).T
+
+    opos = orient(pos)
+
+    np.testing.assert_almost_equal(opos[:, 0], u)
+    np.testing.assert_almost_equal(opos[:, 1], 0)

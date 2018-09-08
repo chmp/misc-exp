@@ -163,6 +163,45 @@ class daterange:
             current += self.step
 
 
+def orient(pos):
+    """Given a set of points orient them such that the moment of inertia is diagonal.
+
+    :param pos:
+        an array-like of the shape ``(npoints, ndim)``.
+    :returns:
+        an array with the same shape as ``pos`` oriented.
+    """
+    import numpy as np
+
+    pos = np.asarray(pos)
+    delta = pos - np.mean(pos, axis=0, keepdims=True)
+    moi = compute_moi(delta)
+    eigvals, eigvects = np.linalg.eig(moi)
+    idx = np.argsort(eigvals)
+    rot = eigvects[:, idx]
+
+    return delta @ rot
+
+
+def compute_moi(pos):
+    """Compute the moment of inertia tensor of a point cloud.
+
+    :param pos:
+        an array-like of the shape ``(npoints, ndim)``.
+    :returns:
+        the moment of inertia tensor with shape ``(ndim, ndim)``.
+    """
+    import numpy as np
+
+    pos2 = np.sum(pos ** 2.0, axis=1)
+    ident = np.eye(pos.shape[1])
+    ident = ident[None, ...]
+
+    return np.sum(
+        pos2[:, None, None] * ident - pos[:, None, :] * pos[:, :, None], axis=0
+    )
+
+
 def colorize(items):
     """Given an iterable, yield ``(color, item)`` pairs."""
     cycle = get_color_cycle()

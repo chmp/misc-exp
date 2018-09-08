@@ -37,6 +37,36 @@ Similar to `define`, but cache to a file.
 Dictionary-like namespace object.
 
 
+### `chmp.ds.orient`
+`chmp.ds.orient(pos)`
+
+Given a set of points orient them such that the moment of inertia is diagonal.
+
+#### Parameters
+
+* **pos** (*any*):
+  an array-like of the shape `(npoints, ndim)`.
+
+#### Returns
+
+an array with the same shape as `pos` oriented.
+
+
+### `chmp.ds.compute_moi`
+`chmp.ds.compute_moi(pos)`
+
+Compute the moment of inertia tensor of a point cloud.
+
+#### Parameters
+
+* **pos** (*any*):
+  an array-like of the shape `(npoints, ndim)`.
+
+#### Returns
+
+the moment of inertia tensor with shape `(ndim, ndim)`.
+
+
 ### `chmp.ds.colorize`
 `chmp.ds.colorize(items)`
 
