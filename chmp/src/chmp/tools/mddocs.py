@@ -31,8 +31,7 @@ _logger = logging.getLogger(__name__)
 
 
 def transform_directories(src, dst, continue_on_error=False, inventory=None):
-    setup_rst_roles()
-
+    """Transform whole directory while rendering a subset of sphinx markup."""
     src_dir = os.path.abspath(src)
     docs_dir = os.path.abspath(dst)
 
@@ -46,12 +45,8 @@ def transform_directories(src, dst, continue_on_error=False, inventory=None):
         # NOTE: always generate docs, to include newest docstrings
 
         _logger.info("transform %s -> %s", source, target)
-
-        with open(source, "rt") as fobj:
-            content = fobj.read()
-
         try:
-            content = transform(content, source, inventory=inventory)
+            transform_file(source, target, inventory=inventory)
 
         except Exception as e:
             if continue_on_error:
@@ -61,8 +56,18 @@ def transform_directories(src, dst, continue_on_error=False, inventory=None):
             else:
                 raise
 
-        with open(target, "wt") as fobj:
-            fobj.write(content)
+
+def transform_file(source, target, inventory=None):
+    """Transform one file while rendering a subset of sphinx markup."""
+    setup_rst_roles()
+
+    with open(source, "rt") as fobj:
+        content = fobj.read()
+
+    content = transform(content, source, inventory=inventory)
+
+    with open(target, "wt") as fobj:
+        fobj.write(content)
 
 
 def setup_rst_roles():

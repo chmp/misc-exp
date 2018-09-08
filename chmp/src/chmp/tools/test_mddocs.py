@@ -1,4 +1,4 @@
-from chmp.tools.mddocs import transform
+from chmp.tools.mddocs import transform, transform_file
 
 doc = """# Example module
 
@@ -22,6 +22,23 @@ def test_examples():
     assert "warning_warning_warning" in result
     assert "seealso_seealso_seealso" in result
     assert "todo_todo_todo" in result
+
+
+def test_multifile_exampele(tmpdir):
+    tmpdir.join("root.md").write(root_source)
+    tmpdir.join("example.md").write(doc)
+
+    source = str(tmpdir.join("root.md"))
+    target = str(tmpdir.join("target.md"))
+    transform_file(source, target)
+
+
+root_source = """# Root
+
+.. literalinclude:: example.md
+
+.. include:: example.md
+"""
 
 
 def example_numpy():
