@@ -6,5 +6,5 @@ setup(
     package_dir={"": "src"},
     tests_require=["pytest"],
     use_scm_version={"root": "..", "relative_to": __file__},
-    setup_requires=['setuptools_scm'],
+    setup_requires=["setuptools_scm"],
 )

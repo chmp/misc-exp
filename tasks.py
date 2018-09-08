@@ -31,13 +31,9 @@ def test(c):
 def docs(c):
     run(
         c,
-        "python",
-        "-m",
-        "chmp.tools",
-        "mddocs",
+        *["python", "-m", "chmp.tools", "mddocs"],
         *(part for inventory in inventories for part in ["--inventory", inventory]),
-        "chmp/docs/src",
-        "chmp/docs",
+        *["chmp/docs/src", "chmp/docs"],
     )
 
 
