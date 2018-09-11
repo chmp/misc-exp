@@ -5,6 +5,7 @@ license, (c) 2017 Christopher Prohm.
 """
 import base64
 import collections
+import datetime
 import enum
 import functools as ft
 import hashlib
@@ -2050,3 +2051,50 @@ def shuffle(obj, l):
     for i in range(n - 1):
         j = randrange((obj, i), i, n)
         l[i], l[j] = l[j], l[i]
+
+
+# ########################################################################### #
+#                                                                             #
+#                     Helper for datetime handling in pandas                  #
+#                                                                             #
+# ########################################################################### #
+
+
+def to_start_of_day(s):
+    """Return the start of the day for the datetime given in ``s``."""
+    import pandas as pd
+
+    s = pd.to_datetime({"year": s.dt.year, "month": s.dt.month, "day": s.dt.day})
+    s = pd.Series(s)
+    return s
+
+
+def to_time_in_day(s):
+    """Return the timediff relative to the start of the day of ``s``."""
+    return s - to_start_of_day(s)
+
+
+def to_start_of_week(s):
+    """Return the start of the week for the datetime given ``s``."""
+    s = to_start_of_day(s)
+    return s - s.dt.dayofweek * datetime.timedelta(days=1)
+
+
+def to_time_in_week(s):
+    """Return the timedelta relative to weekstart for the datetime given in ``s``.
+    """
+    return s - to_start_of_week(s)
+
+
+def to_start_of_year(s):
+    """Return the start of the year for the datetime given in ``s``."""
+    import pandas as pd
+
+    s = pd.to_datetime({"year": s.dt.year, "month": 1, "day": 1})
+    s = pd.Series(s)
+    return s
+
+
+def to_time_in_year(s):
+    """Return the timediff relative to the start of the year for ``s``."""
+    return s - to_start_of_year(s)

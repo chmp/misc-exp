@@ -547,3 +547,39 @@ Shuffle `l` in place using Fisher–Yates algorithm.
 
 See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
 
+
+### `chmp.ds.to_start_of_day`
+`chmp.ds.to_start_of_day(s)`
+
+Return the start of the day for the datetime given in `s`.
+
+
+### `chmp.ds.to_time_in_day`
+`chmp.ds.to_time_in_day(s)`
+
+Return the timediff relative to the start of the day of `s`.
+
+
+### `chmp.ds.to_start_of_week`
+`chmp.ds.to_start_of_week(s)`
+
+Return the start of the week for the datetime given `s`.
+
+
+### `chmp.ds.to_time_in_week`
+`chmp.ds.to_time_in_week(s)`
+
+Return the timedelta relative to weekstart for the datetime given in `s`.
+
+
+### `chmp.ds.to_start_of_year`
+`chmp.ds.to_start_of_year(s)`
+
+Return the start of the year for the datetime given in `s`.
+
+
+### `chmp.ds.to_time_in_year`
+`chmp.ds.to_time_in_year(s)`
+
+Return the timediff relative to the start of the year for `s`.
+
