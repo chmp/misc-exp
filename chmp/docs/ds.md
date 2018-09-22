@@ -548,6 +548,12 @@ Shuffle `l` in place using Fisher–Yates algorithm.
 See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
 
 
+### `chmp.ds.timeshift_index`
+`chmp.ds.timeshift_index(obj, dt)`
+
+Return a shallow copy of `obj` with its datetime index shifted by `dt`.
+
+
 ### `chmp.ds.to_start_of_day`
 `chmp.ds.to_start_of_day(s)`
 
@@ -555,7 +561,7 @@ Return the start of the day for the datetime given in `s`.
 
 
 ### `chmp.ds.to_time_in_day`
-`chmp.ds.to_time_in_day(s)`
+`chmp.ds.to_time_in_day(s, unit=None)`
 
 Return the timediff relative to the start of the day of `s`.
 
@@ -567,7 +573,7 @@ Return the start of the week for the datetime given `s`.
 
 
 ### `chmp.ds.to_time_in_week`
-`chmp.ds.to_time_in_week(s)`
+`chmp.ds.to_time_in_week(s, unit=None)`
 
 Return the timedelta relative to weekstart for the datetime given in `s`.
 
@@ -579,7 +585,7 @@ Return the start of the year for the datetime given in `s`.
 
 
 ### `chmp.ds.to_time_in_year`
-`chmp.ds.to_time_in_year(s)`
+`chmp.ds.to_time_in_year(s, unit=None)`
 
 Return the timediff relative to the start of the year for `s`.
 

@@ -1,7 +1,9 @@
+import datetime
 import pandas as pd
 import pandas.util.testing as pdt
 
 from chmp.ds import (
+    timeshift_index,
     to_start_of_day,
     to_start_of_week,
     to_start_of_year,
@@ -57,3 +59,17 @@ def test_to_time_in_year():
     actual = to_time_in_year(s)
 
     pdt.assert_series_equal(actual, expected)
+
+
+def test_timeshift_index():
+    df = pd.DataFrame(
+        dict(val=range(2)),
+        index=pd.to_datetime(["2011-01-01 10:00:00", "2014-02-03 11:23:00"]),
+    )
+    expected = pd.DataFrame(
+        dict(val=range(2)),
+        index=pd.to_datetime(["2011-01-02 10:00:00", "2014-02-04 11:23:00"]),
+    )
+    actual = timeshift_index(df, datetime.timedelta(days=1))
+
+    pdt.assert_frame_equal(actual, expected)

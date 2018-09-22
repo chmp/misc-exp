@@ -19,6 +19,8 @@ import pickle
 import sys
 import time
 
+from typing import Callable, Union
+
 try:
     from sklearn.base import (
         BaseEstimator,
@@ -1754,7 +1756,10 @@ class Loop:
     print = LoopPrintDispatch()
 
     @staticmethod
-    def _static_print(str: str, width=120, end="\r", file=None, flush=False):
+    def _static_print(str: Union[str, Callable[[], str]], width=120, end="\r", file=None, flush=False):
+        if callable(str):
+            str = str()
+
         print(str.ljust(width)[:width], end=end, file=file, flush=flush)
 
     def _print(self, str: str, width=120, end="\r", file=None, flush=False):
@@ -2058,6 +2063,11 @@ def shuffle(obj, l):
 #                     Helper for datetime handling in pandas                  #
 #                                                                             #
 # ########################################################################### #
+def timeshift_index(obj, dt):
+    """Return a shallow copy of ``obj`` with its datetime index shifted by ``dt``."""
+    obj = obj.copy(deep=False)
+    obj.index = obj.index + dt
+    return obj
 
 
 def to_start_of_day(s):
@@ -2069,9 +2079,12 @@ def to_start_of_day(s):
     return s
 
 
-def to_time_in_day(s):
+def to_time_in_day(s, unit=None):
     """Return the timediff relative to the start of the day of ``s``."""
-    return s - to_start_of_day(s)
+    import pandas as pd
+
+    s = s - to_start_of_day(s)
+    return s if unit is None else s / pd.to_timedelta(1, unit=unit)
 
 
 def to_start_of_week(s):
@@ -2080,10 +2093,13 @@ def to_start_of_week(s):
     return s - s.dt.dayofweek * datetime.timedelta(days=1)
 
 
-def to_time_in_week(s):
+def to_time_in_week(s, unit=None):
     """Return the timedelta relative to weekstart for the datetime given in ``s``.
     """
-    return s - to_start_of_week(s)
+    import pandas as pd
+
+    s = s - to_start_of_week(s)
+    return s if unit is None else s / pd.to_timedelta(1, unit=unit)
 
 
 def to_start_of_year(s):
@@ -2095,6 +2111,9 @@ def to_start_of_year(s):
     return s
 
 
-def to_time_in_year(s):
+def to_time_in_year(s, unit=None):
     """Return the timediff relative to the start of the year for ``s``."""
-    return s - to_start_of_year(s)
+    import pandas as pd
+
+    s = s - to_start_of_year(s)
+    return s if unit is None else s / pd.to_timedelta(1, unit=unit)
