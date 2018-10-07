@@ -1,0 +1,191 @@
+import numpy as np
+import pytest
+import torch
+
+from ._model import (
+    get_number_of_samples,
+    pack,
+    unpack,
+    sized_generator,
+    parallel_concat,
+)
+from . import TorchModel, Flatten, iter_batch_indices, iter_batched
+
+
+def build_example_model():
+    return TorchModel(
+        module=torch.nn.Sequential(
+            torch.nn.Linear(in_features=10, out_features=1), Flatten()
+        ),
+        loss=torch.nn.MSELoss(),
+        optimizer=torch.optim.Adam,
+    )
+
+
+def test_torch_model__example_linear_regression():
+    model = build_example_model()
+    model.fit(
+        np.random.normal(size=(100, 10)).astype("float32"),
+        np.random.normal(size=100).astype("float32"),
+    )
+    y_pred = model.predict(np.random.normal(size=(100, 10)).astype("float32"))
+    assert len(y_pred) == 100
+
+
+def test_torch_model__example_linear_regression__generators():
+    model = build_example_model()
+
+    def fit_data():
+        while True:
+            for _ in range(32):
+                x = np.random.normal(size=(32, 10)).astype("float32")
+                y = np.random.normal(size=32).astype("float32")
+                yield x, y
+
+    def pred_data():
+        while True:
+            yield np.random.normal(size=(10, 10)).astype("float32")
+
+    model.fit_generator(fit_data(), steps_per_epoch=3, epochs=10)
+    y_pred = model.predict_generator(pred_data(), steps=10)
+    assert len(y_pred) == 100
+
+
+def test_torch_model__example_linear_regression__finite_generators():
+    model = build_example_model()
+
+    def fit_data():
+        for _ in range(10):
+            for _ in range(32):
+                x = np.random.normal(size=(32, 10)).astype("float32")
+                y = np.random.normal(size=32).astype("float32")
+                yield x, y
+
+    def pred_data():
+        for _ in range(10):
+            yield np.random.normal(size=(10, 10)).astype("float32")
+
+    model.fit_generator(fit_data(), steps_per_epoch=32)
+    y_pred = model.predict_generator(pred_data())
+    assert len(y_pred) == 100
+
+
+def test_iter_batched__example():
+    data = [np.arange(96), np.random.randint(0, 1024, size=(96, 3))]
+    actual = list(iter_batched(data, batch_size=32))
+
+    assert len(actual) == 3
+    assert actual[0] == (pytest.approx(data[0][0:32]), pytest.approx(data[1][0:32]))
+    assert actual[1] == (pytest.approx(data[0][32:64]), pytest.approx(data[1][32:64]))
+    assert actual[2] == (pytest.approx(data[0][64:96]), pytest.approx(data[1][64:96]))
+
+
+def test_iter_batched__partial_complete():
+    data = [np.arange(96), np.random.randint(0, 1024, size=(96, 3))]
+    actual = list(iter_batched(data, batch_size=50))
+
+    assert len(actual) == 1
+    assert actual[0] == (pytest.approx(data[0][0:50]), pytest.approx(data[1][0:50]))
+
+
+def test_iter_batched__partial_incomplete():
+    data = [np.arange(96), np.random.randint(0, 1024, size=(96, 3))]
+    actual = list(iter_batched(data, batch_size=50, only_complete=False))
+
+    assert len(actual) == 2
+    assert actual[0] == (pytest.approx(data[0][0:50]), pytest.approx(data[1][0:50]))
+    assert actual[1] == (pytest.approx(data[0][50:96]), pytest.approx(data[1][50:96]))
+
+
+def test_iter_batched__reversed():
+    data = [np.arange(96), np.random.randint(0, 1024, size=(96, 3))]
+    indices = np.arange(96)[::-1]
+
+    actual = list(iter_batched(data, batch_size=32, indices=indices))
+
+    assert len(actual) == 3
+
+    # NOTE: note the inversion of the data via [::-1]
+    assert actual[0] == (
+        pytest.approx(data[0][::-1][0:32]),
+        pytest.approx(data[1][::-1][0:32]),
+    )
+    assert actual[1] == (
+        pytest.approx(data[0][::-1][32:64]),
+        pytest.approx(data[1][::-1][32:64]),
+    )
+    assert actual[2] == (
+        pytest.approx(data[0][::-1][64:96]),
+        pytest.approx(data[1][::-1][64:96]),
+    )
+
+
+def test_iter_batched__no_data():
+    with pytest.raises(ValueError):
+        list(iter_batched({}))
+
+
+def test_iter_batched__not_enough_data():
+    with pytest.raises(ValueError):
+        list(iter_batched([np.zeros(32)], batch_size=64))
+
+
+def test_assert_consistent_shape():
+    with pytest.raises(ValueError):
+        get_number_of_samples()
+
+    with pytest.raises(ValueError):
+        get_number_of_samples(None, None)
+
+    with pytest.raises(ValueError):
+        get_number_of_samples(np.zeros([10]), np.zeros([20]))
+
+    assert get_number_of_samples(np.zeros([10]), np.zeros([10, 20])) == 10
+
+    assert get_number_of_samples(None, np.zeros([10]), np.zeros([10, 20])) == 10
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        [(None,), (None,)],
+        [(0,), (0,)],
+        [(0, [1, 2]), (0, (1, 2))],
+        [(None, [1, 2]), (None, (1, 2))],
+        [(0, (1, 2), {"a": 3, "b": 4}), (0, (1, 2), {"a": 3, "b": 4})],
+    ],
+)
+def test_pack_unpack(input, expected):
+    assert unpack(*pack(*input)) == expected
+
+
+def test_sized_generator__sized_content():
+    i = sized_generator(lambda: iter([1, 2, 3]), length=3)
+
+    assert len(i) == 3
+    assert list(i) == [1, 2, 3]
+
+
+def test_parallel_concat():
+    assert parallel_concat([[[10, 20], [5]], [[30, 40], [6]]]) == (
+        pytest.approx(np.asarray([10, 20, 30, 40])),
+        pytest.approx(np.asarray([5, 6])),
+    )
+
+
+def test_parallel_concat_no_items():
+    with pytest.raises(ValueError):
+        parallel_concat([])
+
+
+def test_parallel_concat_different_subitems():
+    with pytest.raises(ValueError):
+        # NOTE: the first entry has 2 items, the second only one
+        parallel_concat([[[10, 20], [5]], [[30, 40]]])
+
+
+def test_iter_batch_indices():
+    actual = np.sort(
+        np.concatenate(list(iter_batch_indices(100, batch_size=10, shuffle=True)))
+    )
+    assert actual == pytest.approx(np.arange(100))
