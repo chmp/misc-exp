@@ -1654,30 +1654,45 @@ current_loop = None
 current_label = None
 
 
-def loop_over(iterable, label=None):
+def loop_over(iterable, label: Union[str, Callable[[], str]] = None, keep=False):
+    """Simplified interface to Loop.over.
+
+    :param label:
+        if a callable, it should return a str that is used as the loop label.
+    """
     global current_loop, current_label
     if label is not None:
         current_label = label
 
     for current_loop, item in Loop.over(iterable):
         yield item
+        current_loop.print(lambda: "{}{}".format(current_loop, get_current_label()))
 
-        if current_loop.will_print():
-            label = " {}".format(current_label) if current_label is not None else ""
-            current_loop.print("{}{}".format(current_loop, label))
+    current_loop.print(
+        "{}{}".format(current_loop, get_current_label()),
+        force=True,
+        end="\n" if keep else "\r",
+    )
 
 
-def loop_nest(iterable, label=None):
+def loop_nest(iterable, label: Union[str, Callable[[], str]] = None):
     global current_loop, current_label
     if label is not None:
         current_label = label
 
     for item in current_loop.nest(iterable):
         yield item
+        current_loop.print(lambda: "{}{}".format(current_loop, get_current_label()))
 
-        if current_loop.will_print():
-            label = " {}".format(current_label) if current_label is not None else ""
-            current_loop.print("{}{}".format(current_loop, label))
+
+def get_current_label():
+    if current_label is None:
+        return ""
+
+    if callable(current_label):
+        return " {}".format(current_label())
+
+    return " {}".format(current_label)
 
 
 class LoopState(enum.Enum):
@@ -1756,15 +1771,24 @@ class Loop:
     print = LoopPrintDispatch()
 
     @staticmethod
-    def _static_print(str: Union[str, Callable[[], str]], width=120, end="\r", file=None, flush=False):
+    def _static_print(
+        str: Union[str, Callable[[], str]],
+        width=120,
+        end="\r",
+        file=None,
+        flush=False,
+        force=False,
+    ):
         if callable(str):
             str = str()
 
         print(str.ljust(width)[:width], end=end, file=file, flush=flush)
 
-    def _print(self, str: str, width=120, end="\r", file=None, flush=False):
+    def _print(
+        self, str: str, width=120, end="\r", file=None, flush=False, force=False
+    ):
         now = self.now()
-        if not self.debouncer.should_run(now=now):
+        if not force and not self.debouncer.should_run(now=now):
             return
 
         self.debouncer.invoked(now=now)

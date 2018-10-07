@@ -459,6 +459,17 @@ def update_display(value):
 Capture the current matplotlib figure.
 
 
+### `chmp.ds.loop_over`
+`chmp.ds.loop_over(iterable, label=None, keep=False)`
+
+Simplified interface to Loop.over.
+
+#### Parameters
+
+* **label** (*any*):
+  if a callable, it should return a str that is used as the loop label.
+
+
 ### `chmp.ds.LoopState`
 `chmp.ds.LoopState(*args, **kwargs)`
 
