@@ -4,11 +4,18 @@ Helper to construct models with pytorch.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x11bd0d9d8>, flatten=False)`
+`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x113eb19d8>, flatten=False)`
+
+A attention / transformer model.
+
+Note: this model also supports soft-masks. They must never be `0`. The
+hard masks must be binary `{0, 1}`.
+
+Masks be two-dimensional and compatible with `n_query, n_search`.
 
 
 #### `chmp.torch_util.Transformer.compute_weights`
-`chmp.torch_util.Transformer.compute_weights(search_x, query_x, mask)`
+`chmp.torch_util.Transformer.compute_weights(search_x, query_x, mask, soft_mask=None)`
 
 Compute weights with shape `(batch_size, n_samples, n_keys)`.
 
@@ -50,7 +57,7 @@ Compute a softmax with certain elements masked out.
 
 
 ### `chmp.torch_util.TorchModel`
-`chmp.torch_util.TorchModel(module, optimizer, loss, regularization=None)`
+`chmp.torch_util.TorchModel(module, optimizer, loss=None, regularization=None)`
 
 Helper to add simple numpy integration to torch model.
 
@@ -61,10 +68,29 @@ Helper to add simple numpy integration to torch model.
 * **optimizer** (*any*):
   a factory for the optimizer to use
 * **loss** (*any*):
-  the loss function to use, with signature `(pred, target) -> loss`
+  the `loss` function to use, with signature
+  `(pred, target) -> loss`. If `None`, the module is assumed to
+  return the loss itself.
 * **regularization** (*any*):
   if given a callable, with signature `(module) -> loss`, that should
   return a regularization loss
+
+For all functions `x` and `y` can not only be `numpy` arrays, but
+also structured data, such as dicts or lists / tuples. The former are
+passed to the module as keyword arguments, the latter as varargs.
+
+For example:
+
+```
+# NOTE: this module does not define parameters
+class Model(torch.nn.Module):
+    def forward(self, a, b):
+        return a + b
+
+
+model = TorchModel(module=Model, loss=MSELoss())
+model.fit(x={"a": [...], "b": [...]}, y=[...])
+```
 
 
 #### `chmp.torch_util.TorchModel.fit_generator`

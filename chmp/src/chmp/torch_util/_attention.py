@@ -8,6 +8,14 @@ def noop_value_module(_, y):
 
 
 class Transformer(torch.nn.Module):
+    """A attention / transformer model.
+
+    Note: this model also supports soft-masks. They must never be ``0``. The
+    hard masks must be binary ``{0, 1}``.
+
+    Masks be two-dimensional and compatible with ``n_query, n_search``.
+    """
+
     def __init__(
         self,
         key_module=None,
@@ -25,25 +33,16 @@ class Transformer(torch.nn.Module):
         self.query_module = query_module
         self.value_module = value_module
 
-    def forward(self, x):
-        return self.predict(
-            search_x=x["search_x"],
-            search_y=x["search_y"],
-            query_x=x["query_x"],
-            mask=x.get("mask"),
-        )
-
-    def predict(self, search_x, search_y, query_x, mask=None):
-        if mask is None:
-            mask = torch.ones(query_x.shape[0], search_x.shape[0], dtype=torch.int64)
-
+    def forward(self, search_x, search_y, query_x, mask=None, soft_mask=None):
         # shape: batch_size, n_values
         values = self.value_module(search_x, search_y)
         value_ndim = values.ndimension()
 
         values = self._ensure_value_shape(values)
 
-        p = self.compute_weights(search_x=search_x, query_x=query_x, mask=mask)
+        p = self.compute_weights(
+            search_x=search_x, query_x=query_x, mask=mask, soft_mask=soft_mask
+        )
 
         # sum over samples
         # shape: batch_size, n_keys, n_values,
@@ -60,7 +59,7 @@ class Transformer(torch.nn.Module):
         else:
             return res
 
-    def compute_weights(self, search_x, query_x, mask):
+    def compute_weights(self, search_x, query_x, mask, soft_mask=None):
         """Compute weights with shape ``(batch_size, n_samples, n_keys)``.
         """
         # shape: batch_size, n_keys, key_size,
@@ -76,8 +75,15 @@ class Transformer(torch.nn.Module):
             keys.size(-1) ** 0.5
         )
 
+        if soft_mask is not None:
+            logits = logits + torch.log(soft_mask[:, :, None])
+
         # shape: batch_size, n_samples, n_keys,
-        p = masked_softmax(logits, mask[:, :, None], dim=1)
+        if mask is not None:
+            p = masked_softmax(logits, mask[:, :, None], dim=1)
+
+        else:
+            p = torch.nn.functional.softmax(logits, dim=1)
 
         return p
 

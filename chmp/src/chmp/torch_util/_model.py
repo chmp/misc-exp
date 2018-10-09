@@ -15,13 +15,31 @@ class TorchModel:
     :param optimizer:
         a factory for the optimizer to use
     :param loss:
-        the loss function to use, with signature ``(pred, target) -> loss``
+        the ``loss`` function to use, with signature
+        ``(pred, target) -> loss``. If ``None``, the module is assumed to
+        return the loss itself.
     :param regularization:
         if given a callable, with signature ``(module) -> loss``, that should
         return a regularization loss
+
+    For all functions ``x`` and ``y`` can not only be ``numpy`` arrays, but
+    also structured data, such as dicts or lists / tuples. The former are
+    passed to the module as keyword arguments, the latter as varargs.
+
+    For example::
+
+        # NOTE: this module does not define parameters
+        class Model(torch.nn.Module):
+            def forward(self, a, b):
+                return a + b
+
+
+        model = TorchModel(module=Model, loss=MSELoss())
+        model.fit(x={"a": [...], "b": [...]}, y=[...])
+
     """
 
-    def __init__(self, module, optimizer, loss, regularization=None):
+    def __init__(self, module, optimizer, loss=None, regularization=None):
         self.module = module
         self.optimizer = optimizer
         self.loss = loss
@@ -109,18 +127,27 @@ class TorchModel:
 
     def _batch_step(self, optimizer, batch_x, batch_y):
         optimizer.zero_grad()
-        batch_pred = self.module(batch_x)
-        loss = self.loss(batch_pred, batch_y)
+        batch_pred = self._call_module(batch_x)
+
+        loss = self._compute_loss(batch_pred, batch_y)
         loss = self._add_regularization(loss)
 
         loss.backward()
         optimizer.step()
 
-    def _add_regularization(self, loss):
-        if not self.regularization:
-            return loss
+    def _compute_loss(self, pred, y):
+        if self.loss is not None:
+            return self.loss(pred, y)
 
-        return loss + self.regularization(self.module)
+        else:
+            return pred
+
+    def _add_regularization(self, loss):
+        if self.regularization is not None:
+            return loss + self.regularization(self.module)
+
+        else:
+            return loss
 
     def predict(self, x=None, batch_size=None, verbose=False):
         keys, values = pack(x)
@@ -134,7 +161,7 @@ class TorchModel:
             batch_values = list_as_tensor(batch_values)
             batch_x, = unpack(keys, batch_values)
 
-            pred = self.module(batch_x)
+            pred = self._call_module(batch_x)
 
             pred_keys, pred_values = pack(pred)
             pred_values = list_torch_to_numpy(pred_values)
@@ -180,7 +207,7 @@ class TorchModel:
 
             batch_x, = generic_as_tensor(batch_x)
 
-            pred = self.module(batch_x)
+            pred = self._call_module(batch_x)
 
             pred_keys, pred_values = pack(pred)
             pred_values = list_torch_to_numpy(pred_values)
@@ -192,6 +219,16 @@ class TorchModel:
 
         result, = unpack_batches(batch_keys_values_pairs)
         return result
+
+    def _call_module(self, x):
+        if isinstance(x, (tuple, list)):
+            return self.module(*x)
+
+        elif isinstance(x, dict):
+            return self.module(**x)
+
+        else:
+            return self.module(x)
 
 
 def generic_as_tensor(*objs):
