@@ -7,8 +7,8 @@ from . import NormalModule, WeightsHS, fixed
 
 
 def test_kl_divergence__gamma__log_normal():
-    q = torch.distributions.LogNormal(torch.zeros(2), torch.ones(2))
-    p = torch.distributions.Gamma(torch.ones(2), torch.ones(2))
+    p = torch.distributions.LogNormal(torch.zeros(2), torch.ones(2))
+    q = torch.distributions.Gamma(torch.ones(2), torch.ones(2))
 
     torch.distributions.kl_divergence(p, q)
 

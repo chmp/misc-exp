@@ -39,39 +39,98 @@ class TorchModel:
 
     """
 
-    def __init__(self, module, optimizer, loss=None, regularization=None):
+    def __init__(
+        self,
+        module,
+        optimizer="Adam",
+        loss=None,
+        regularization=None,
+        optimizer_kwargs=None,
+    ):
+        if isinstance(optimizer, str):
+            optimizer = getattr(torch.optim, optimizer)
+
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
+
         self.module = module
-        self.optimizer = optimizer
+        self.optimizer_factory = optimizer
         self.loss = loss
         self.regularization = regularization
+        self.optimizer_kwargs = optimizer_kwargs
+
+        self.optimizer = None
 
     def fit(
-        self, x=None, y=None, *, batch_size=None, epochs=1, shuffle=True, verbose=False
+        self,
+        x=None,
+        y=None,
+        *,
+        batch_size=None,
+        epochs=1,
+        shuffle=True,
+        verbose=False,
+        callbacks=None,
+        dtype="float32",
     ):
+        dtype_x, dtype_y = ensure_tuple(dtype, 2)
+        x = apply_dtype(dtype_x, x)
+        y = apply_dtype(dtype_y, y)
         keys, values = pack(x, y)
         n_samples = get_number_of_samples(*values)
 
-        optimizer = self.optimizer(self.module.parameters())
+        self.optimizer = self._build_optimizer()
+
+        # NOTE: may require optimizer
+        callbacks, history = self._build_callbacks(callbacks)
+
+        train_logs = {}
+        callbacks.on_train_begin(train_logs)
 
         for epoch in optional_loop(range(epochs), verbose=verbose):
+            epoch_logs = {}
+            callbacks.on_epoch_begin(epoch, epoch_logs)
+
             indices = None if not shuffle else shuffled_indices(n_samples)
 
-            for batch_values in optional_loop_nest(
-                iter_batched(values, batch_size=batch_size, indices=indices),
-                verbose=verbose,
-                label=f"fit (epoch {epoch:,d} / {epochs:,d})",
+            msg = self._fit_message(epoch, epochs)
+
+            for batch, batch_values in enumerate(
+                optional_loop_nest(
+                    iter_batched(values, batch_size=batch_size, indices=indices),
+                    verbose=verbose,
+                    label=lambda: msg,
+                )
             ):
+                batch_logs = {}
+
+                callbacks.on_batch_begin(batch, batch_logs)
                 batch_values = list_as_tensor(batch_values)
                 batch_x, batch_y = unpack(keys, batch_values)
 
-                self._batch_step(optimizer, batch_x, batch_y)
+                batch_logs["loss"] = self._batch_step(self.optimizer, batch_x, batch_y)
+                msg = self._fit_message(epoch, epochs, batch_logs["loss"])
+                callbacks.on_batch_end(batch, batch_logs)
+
+            callbacks.on_epoch_end(epoch, epoch_logs)
+
+        callbacks.on_train_end(train_logs)
 
         if verbose:
             print("\n")
 
-        return self
+        return history
 
-    def fit_generator(self, generator, *, steps_per_epoch=1, epochs=None, verbose=True):
+    def fit_generator(
+        self,
+        generator,
+        *,
+        steps_per_epoch=1,
+        epochs=None,
+        verbose=True,
+        callbacks=None,
+        dtype="float32",
+    ):
         """Fit the model on a dynamically generated dataset.
 
         :param generator:
@@ -85,19 +144,25 @@ class TorchModel:
         :returns:
             itself.
         """
+        dtype_x, dtype_y = ensure_tuple(dtype, 2)
+
         generator = iter(generator)
-        optimizer = self.optimizer(self.module.parameters())
         epoch_sequence = it.count() if epochs is None else range(epochs)
+        self.optimizer = self._build_optimizer()
+
+        # NOTE: may require optimizer
+        callbacks, history = self._build_callbacks(callbacks)
+        train_logs = {}
+        callbacks.on_train_begin(train_logs)
 
         for epoch in optional_loop(epoch_sequence, verbose=verbose):
-            for _ in optional_loop_nest(
-                range(steps_per_epoch),
-                verbose=verbose,
-                label=(
-                    f"fit (epoch {epoch:,d} / {epochs:,d})"
-                    if epochs is not None
-                    else f"fit (epoch {epoch:,d} / ?)"
-                ),
+            epoch_logs = {}
+            callbacks.on_epoch_begin(epoch, epoch_logs)
+
+            msg = self._fit_message(epoch, epochs)
+
+            for batch in optional_loop_nest(
+                range(steps_per_epoch), verbose=verbose, label=lambda: msg
             ):
                 try:
                     batch_x, batch_y = next(generator)
@@ -111,29 +176,68 @@ class TorchModel:
                             "Generator did not yield enough batches for fit."
                         )
 
+                batch_logs = {}
+                callbacks.on_batch_begin(batch, batch_logs)
+
+                batch_x = apply_dtype(dtype_x, batch_x)
+                batch_y = apply_dtype(dtype_y, batch_y)
                 batch_x, batch_y = generic_as_tensor(batch_x, batch_y)
 
-                self._batch_step(optimizer, batch_x, batch_y)
+                batch_logs["loss"] = self._batch_step(self.optimizer, batch_x, batch_y)
+                msg = self._fit_message(epoch, epochs, batch_logs["loss"])
+
+                callbacks.on_batch_end(batch, batch_logs)
 
             # if the epoch was not aborted
             else:
+                callbacks.on_epoch_end(epoch, epoch_logs)
                 continue
 
             # else break
             break
 
+        callbacks.on_train_end(train_logs)
+
         if verbose:
             print("\n")
 
+        return history
+
+    def _fit_message(self, epoch, epochs, loss=None):
+        epochs_format = ",d" if epochs is not None else ""
+        epochs = epochs if epochs is not None else "?"
+
+        if loss is None:
+            return f"(epoch {epoch:,d} / {epochs:{epochs_format}})"
+
+        else:
+            return f"{loss:.3g} (epoch {epoch:,d} / {epochs:{epochs_format}})"
+
+    def _build_callbacks(self, callbacks):
+        callbacks = CallbackList.ensure_callback(callbacks)
+        history = History()
+        callbacks.append(history)
+        callbacks.set_model(self)
+
+        return callbacks, history
+
+    def _build_optimizer(self):
+        return self.optimizer_factory(self.module.parameters(), **self.optimizer_kwargs)
+
     def _batch_step(self, optimizer, batch_x, batch_y):
-        optimizer.zero_grad()
-        batch_pred = self._call_module(batch_x)
+        def closure():
+            optimizer.zero_grad()
+            batch_pred = self._call_module(batch_x)
 
-        loss = self._compute_loss(batch_pred, batch_y)
-        loss = self._add_regularization(loss)
+            loss = self._compute_loss(batch_pred, batch_y)
+            loss = self._add_regularization(loss)
 
-        loss.backward()
-        optimizer.step()
+            loss.backward()
+            return loss
+
+        loss = optimizer.step(closure)
+
+        return float(loss)
 
     def _compute_loss(self, pred, y):
         if self.loss is not None:
@@ -149,7 +253,8 @@ class TorchModel:
         else:
             return loss
 
-    def predict(self, x=None, batch_size=None, verbose=False):
+    def predict(self, x=None, batch_size=None, verbose=False, dtype="float32"):
+        x = apply_dtype(dtype, x)
         keys, values = pack(x)
         batch_keys_values_pairs = []
 
@@ -174,7 +279,9 @@ class TorchModel:
         result, = unpack_batches(batch_keys_values_pairs)
         return result
 
-    def predict_generator(self, generator, *, steps=None, verbose=True):
+    def predict_generator(
+        self, generator, *, steps=None, verbose=True, dtype="float32"
+    ):
         """Predict on a generator.
 
         :param generator:
@@ -205,6 +312,7 @@ class TorchModel:
                         "Generator did not yield enough batches for predict"
                     )
 
+            batch_x = apply_dtype(dtype, batch_x)
             batch_x, = generic_as_tensor(batch_x)
 
             pred = self._call_module(batch_x)
@@ -367,6 +475,42 @@ def get_number_of_samples(*values):
     return n_samples
 
 
+def ensure_tuple(obj, length):
+    if not isinstance(obj, tuple):
+        return tuple(obj for _ in range(length))
+
+    return obj
+
+
+def apply_dtype(dtype, arg):
+    if arg is None and dtype is None:
+        return None
+
+    if arg is None and dtype is not None:
+        raise ValueError("cannot convert ...")
+
+    if dtype is None:
+        return arg
+
+    # "broadcat" scalar dtypes to structured args
+    if isinstance(arg, dict) and not isinstance(dtype, dict):
+        dtype = {k: dtype for k in arg}
+
+    if isinstance(arg, tuple) and not isinstance(dtype, tuple):
+        dtype = tuple(dtype for _ in arg)
+
+    # NOTE: always use the dtype as the reference, to allow passing
+    # non-exact type matches, i.e., pandas.DataFrames for dict.
+    if isinstance(dtype, dict):
+        return {k: np.asarray(arg[k], dtype=dtype[k]) for k in dtype}
+
+    elif isinstance(dtype, tuple):
+        return tuple(np.asarray(arg[i], dtype=dtype[i]) for i in range(len(dtype)))
+
+    else:
+        return np.asarray(arg, dtype=dtype)
+
+
 def pack(*args):
     """Pack arguments of different types into a list.
 
@@ -382,7 +526,7 @@ def pack(*args):
     values = []
 
     for arg in args:
-        if isinstance(arg, (list, tuple)):
+        if isinstance(arg, tuple):
             keys.append(len(arg))
             values.extend(arg)
 
@@ -438,3 +582,142 @@ class sized_generator:
 
     def __iter__(self):
         return iter(self.generator())
+
+
+class Callback:
+    def __init__(self):
+        self.model = None
+
+    def set_model(self, model):
+        self.model = model
+
+    def on_epoch_begin(self, epoch, logs=None):
+        pass
+
+    def on_epoch_end(self, epoch, logs=None):
+        pass
+
+    def on_batch_begin(self, batch, logs=None):
+        pass
+
+    def on_batch_end(self, batch, logs=None):
+        pass
+
+    def on_train_begin(self, logs=None):
+        pass
+
+    def on_train_end(self, logs=None):
+        pass
+
+
+class CallbackList(Callback):
+    @classmethod
+    def ensure_callback(cls, obj):
+        if isinstance(obj, cls):
+            return obj
+
+        elif isinstance(obj, (list, tuple)):
+            return cls(obj)
+
+        elif obj is None:
+            return cls([])
+
+        else:
+            return cls([obj])
+
+    def __init__(self, callbacks):
+        super().__init__()
+        self.callbacks = callbacks
+
+    def append(self, callback):
+        self.callbacks.append(callback)
+
+    def on_epoch_begin(self, epoch, logs=None):
+        for callback in self.callbacks:
+            callback.on_epoch_begin(epoch, logs)
+
+    def on_epoch_end(self, epoch, logs=None):
+        for callback in self.callbacks:
+            callback.on_epoch_end(epoch, logs)
+
+    def on_batch_begin(self, batch, logs=None):
+        for callback in self.callbacks:
+            callback.on_batch_begin(batch, logs)
+
+    def on_batch_end(self, batch, logs=None):
+        for callback in self.callbacks:
+            callback.on_batch_end(batch, logs)
+
+    def on_train_begin(self, logs=None):
+        for callback in self.callbacks:
+            callback.on_train_begin(logs)
+
+    def on_train_end(self, logs=None):
+        for callback in self.callbacks:
+            callback.on_train_end(logs)
+
+
+class History(Callback):
+    def __init__(self):
+        super().__init__()
+
+        self.epoch = []
+        self.history = {}
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.epoch.append(epoch)
+        for k, v in logs.items():
+            self.history.setdefault(k, []).append(v)
+
+
+class LossHistory(Callback):
+    def __init__(self):
+        super().__init__()
+        self.current_epoch = 0
+
+        self.epoch = []
+        self.batch = []
+        self.loss = []
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.current_epoch = epoch
+
+    def on_batch_end(self, batch, logs=None):
+        self.epoch.append(self.current_epoch)
+        self.batch.append(batch)
+        self.loss.append(logs.get("loss"))
+
+    def on_train_end(self, logs=None):
+        self.current_epoch = None
+        self.epoch = np.asanyarray(self.epoch)
+        self.batch = np.asarray(self.batch)
+        self.loss = np.asarray(self.loss)
+
+
+class TerminateOnNaN(Callback):
+    def __init__(self):
+        super().__init__()
+        self.current_epoch = 0
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.current_epoch = epoch
+
+    def on_batch_end(self, batch, logs=None):
+        loss = logs.get("loss")
+        if loss is not None and not np.isfinite(loss):
+            raise RuntimeError(
+                f"non-finite loss {loss} in epoch {self.current_epoch}, batch {batch}"
+            )
+
+
+class LearningRateScheduler(Callback):
+    def __init__(self, cls, **kwargs):
+        super().__init__()
+        self.cls = cls
+        self.kwargs = kwargs
+
+    def on_train_begin(self, logs=None):
+        self.scheduler = self.cls(self.model.optimizer, **self.kwargs)
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.scheduler.step()

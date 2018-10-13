@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
@@ -8,6 +9,7 @@ from ._model import (
     unpack,
     sized_generator,
     parallel_concat,
+    apply_dtype,
 )
 from . import TorchModel, Flatten, iter_batch_indices, iter_batched
 
@@ -24,11 +26,8 @@ def build_example_model():
 
 def test_torch_model__example_linear_regression():
     model = build_example_model()
-    model.fit(
-        np.random.normal(size=(100, 10)).astype("float32"),
-        np.random.normal(size=100).astype("float32"),
-    )
-    y_pred = model.predict(np.random.normal(size=(100, 10)).astype("float32"))
+    model.fit(np.random.normal(size=(100, 10)), np.random.normal(size=100))
+    y_pred = model.predict(np.random.normal(size=(100, 10)))
     assert len(y_pred) == 100
 
 
@@ -38,13 +37,13 @@ def test_torch_model__example_linear_regression__generators():
     def fit_data():
         while True:
             for _ in range(32):
-                x = np.random.normal(size=(32, 10)).astype("float32")
-                y = np.random.normal(size=32).astype("float32")
+                x = np.random.normal(size=(32, 10))
+                y = np.random.normal(size=32)
                 yield x, y
 
     def pred_data():
         while True:
-            yield np.random.normal(size=(10, 10)).astype("float32")
+            yield np.random.normal(size=(10, 10))
 
     model.fit_generator(fit_data(), steps_per_epoch=3, epochs=10)
     y_pred = model.predict_generator(pred_data(), steps=10)
@@ -57,13 +56,13 @@ def test_torch_model__example_linear_regression__finite_generators():
     def fit_data():
         for _ in range(10):
             for _ in range(32):
-                x = np.random.normal(size=(32, 10)).astype("float32")
-                y = np.random.normal(size=32).astype("float32")
+                x = np.random.normal(size=(32, 10))
+                y = np.random.normal(size=32)
                 yield x, y
 
     def pred_data():
         for _ in range(10):
-            yield np.random.normal(size=(10, 10)).astype("float32")
+            yield np.random.normal(size=(10, 10))
 
     model.fit_generator(fit_data(), steps_per_epoch=32)
     y_pred = model.predict_generator(pred_data())
@@ -150,8 +149,8 @@ def test_assert_consistent_shape():
     [
         [(None,), (None,)],
         [(0,), (0,)],
-        [(0, [1, 2]), (0, (1, 2))],
-        [(None, [1, 2]), (None, (1, 2))],
+        [(0, (1, 2)), (0, (1, 2))],
+        [(None, (1, 2)), (None, (1, 2))],
         [(0, (1, 2), {"a": 3, "b": 4}), (0, (1, 2), {"a": 3, "b": 4})],
     ],
 )
@@ -189,3 +188,82 @@ def test_iter_batch_indices():
         np.concatenate(list(iter_batch_indices(100, batch_size=10, shuffle=True)))
     )
     assert actual == pytest.approx(np.arange(100))
+
+
+def test_apply_dtype__single_type():
+    x = apply_dtype("float32", [[1, 2], [3, 4], [5, 6]])
+
+    assert x.shape == (3, 2)
+    assert x.dtype == np.float32
+
+
+def test_apply_dtype__single_type_y():
+    y = apply_dtype("float32", [1, 2, 3])
+
+    assert y.shape == (3,)
+    assert y.dtype == np.float32
+
+
+def test_apply_dtype__separate_types():
+    x, y = apply_dtype(("float16", "float64"), ([[1, 2], [3, 4], [5, 6]], [7, 8, 9]))
+
+    assert x.shape == (3, 2)
+    assert x.dtype == np.float16
+
+    assert y.shape == (3,)
+    assert y.dtype == np.float64
+
+
+def test_apply_dtype__pandas_dataframe():
+    x = pd.DataFrame().assign(a=[1, 2, 3], b=[1, 2, 3])
+    x = apply_dtype("float32", x)
+
+    assert x.shape == (3, 2)
+    assert x.dtype == np.float32
+
+
+def test_apply_dtype__pandas_series():
+    y = pd.Series([1, 2, 3])
+    y = apply_dtype("float32", y)
+
+    assert y.shape == (3,)
+    assert y.dtype == np.float32
+
+
+def test_apply_dtype__noop():
+    x = apply_dtype(None, [[1, 2], [3, 4], [5, 6]])
+
+    assert type(x) is list
+
+
+def test_apply_dtype__dict():
+    x = apply_dtype("float32", {"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    assert type(x) is dict
+    assert x["a"].dtype == np.float32
+    assert x["b"].dtype == np.float32
+
+
+def test_apply_dtype__pandas_dict():
+    x = pd.DataFrame().assign(a=[1, 2, 3], b=[1, 2, 3])
+    x = apply_dtype({"a": "float16", "b": "float32"}, x)
+
+    assert type(x) is dict
+    assert x["a"].dtype == np.float16
+    assert x["b"].dtype == np.float32
+
+
+def test_apply_dtype__tuple_arg():
+    x = apply_dtype("float32", ([1, 2, 3], [4, 5, 6]))
+
+    assert type(x) is tuple
+    assert x[0].dtype == np.float32
+    assert x[1].dtype == np.float32
+
+
+def test_apply_dtype__tuple():
+    x = apply_dtype(("float16", "float32"), ([1, 2, 3], [4, 5, 6]))
+
+    assert type(x) is tuple
+    assert x[0].dtype == np.float16
+    assert x[1].dtype == np.float32

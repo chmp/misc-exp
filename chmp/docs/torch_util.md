@@ -4,7 +4,7 @@ Helper to construct models with pytorch.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x113eb19d8>, flatten=False)`
+`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x11d6389d8>, flatten=False)`
 
 A attention / transformer model.
 
@@ -56,8 +56,20 @@ A linear interaction.
 Compute a softmax with certain elements masked out.
 
 
+### `chmp.torch_util.LearningRateScheduler`
+`chmp.torch_util.LearningRateScheduler(cls, **kwargs)`
+
+
+### `chmp.torch_util.LossHistory`
+`chmp.torch_util.LossHistory()`
+
+
+### `chmp.torch_util.TerminateOnNaN`
+`chmp.torch_util.TerminateOnNaN()`
+
+
 ### `chmp.torch_util.TorchModel`
-`chmp.torch_util.TorchModel(module, optimizer, loss=None, regularization=None)`
+`chmp.torch_util.TorchModel(module, optimizer='Adam', loss=None, regularization=None, optimizer_kwargs=None)`
 
 Helper to add simple numpy integration to torch model.
 
@@ -215,11 +227,15 @@ Negative log likelihood loss for pytorch distributions.
 
 
 ### `chmp.torch_util.NormalModelConstantScale`
-`chmp.torch_util.NormalModelConstantScale(transform)`
+`chmp.torch_util.NormalModelConstantScale(transform=None, scale=1.0)`
 
 
 ### `chmp.torch_util.NormalModule`
 `chmp.torch_util.NormalModule(*args, **kwargs)`
+
+
+### `chmp.torch_util.SimpleBayesTorchModel`
+`chmp.torch_util.SimpleBayesTorchModel(module, n_observations, **kwargs)`
 
 
 ### `chmp.torch_util.WeightsHS`

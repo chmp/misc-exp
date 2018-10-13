@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from ._util import register_unknown_kl
+from ._model import TorchModel
 
 
 class fixed:
@@ -16,6 +17,21 @@ class optimized:
 
     def __init__(self, value):
         self.value = value
+
+
+def optional_parameter(arg):
+    if isinstance(arg, fixed):
+        return as_tensor(arg.value)
+
+    elif isinstance(arg, optimized):
+        return torch.nn.Parameter(as_tensor(arg.value))
+
+    else:
+        return torch.nn.Parameter(as_tensor(arg))
+
+
+def as_tensor(arg):
+    return torch.tensor(arg) if not torch.is_tensor(arg) else arg
 
 
 class TorchDistributionModule(torch.nn.Module):
@@ -33,14 +49,7 @@ class TorchDistributionModule(torch.nn.Module):
         kwargs.update(zip(self._distribution_parameters_, args))
 
         for k, v in kwargs.items():
-            if isinstance(v, fixed):
-                setattr(self, k, v.value)
-
-            elif isinstance(v, optimized):
-                setattr(self, k, torch.nn.Parameter(v.value))
-
-            else:
-                setattr(self, k, torch.nn.Parameter(v))
+            setattr(self, k, optional_parameter(v))
 
     def __call__(self):
         """Construct the distribution object"""
@@ -77,11 +86,22 @@ class ExponentialModule(TorchDistributionModule):
     _distribution_parameters_ = ("rate",)
 
 
+class SimpleBayesTorchModel(TorchModel):
+    def __init__(self, module, n_observations, **kwargs):
+        kwargs.setdefault("loss", NllLoss(module._distribution))
+        kwargs.setdefault("regularization", KLDivergence(n_observations=n_observations))
+        super().__init__(module=module, **kwargs)
+
+
 class NormalModelConstantScale(torch.nn.Module):
-    def __init__(self, transform):
+    _distribution = torch.distributions.Normal
+
+    def __init__(self, transform=None, scale=1.0):
         super().__init__()
-        self.transform = transform
-        self.scale = torch.nn.Parameter(torch.tensor(1.0))
+        if transform is not None:
+            self.transform = transform
+
+        self.scale = optional_parameter(scale)
 
     def forward(self, batch_x):
         loc = self.transform(batch_x)
@@ -168,18 +188,18 @@ class WeightsHS(torch.nn.Module):
 
     def kl_divergence(self):
         return sum(
-            torch.sum(torch.distributions.kl_divergence(p, q()))
-            for p, q in [
-                (self.p_inv_sb, self.q_inv_sb),
-                (self.p_sa, self.q_sa),
-                (self.p_inv_beta, self.q_inv_beta),
-                (self.p_alpha, self.q_alpha),
-                (self.p_w, self.q_w),
+            torch.sum(torch.distributions.kl_divergence(q(), p))
+            for q, p in [
+                (self.q_inv_sb, self.p_inv_sb),
+                (self.q_sa, self.p_sa),
+                (self.q_inv_beta, self.p_inv_beta),
+                (self.q_alpha, self.p_alpha),
+                (self.q_w, self.p_w),
             ]
         )
 
 
-@register_unknown_kl(torch.distributions.Gamma, torch.distributions.LogNormal)
+@register_unknown_kl(torch.distributions.LogNormal, torch.distributions.Gamma)
 def kl_divergence__gamma__log_normal(p, q):
     """Compute the kl divergence with a Gamma prior and LogNormal approximation.
 
@@ -187,9 +207,9 @@ def kl_divergence__gamma__log_normal(p, q):
     https://arxiv.org/abs/1705.08665
     """
     return (
-        p.concentration * torch.log(p.rate)
-        + torch.lgamma(p.concentration)
-        - p.concentration * q.loc
-        + torch.exp(q.loc + 0.5 * q.scale ** 2) / p.rate
-        - 0.5 * (torch.log(q.scale ** 2.0) + 1 + np.log(2 * np.pi))
+        q.concentration * torch.log(q.rate)
+        + torch.lgamma(q.concentration)
+        - q.concentration * p.loc
+        + torch.exp(p.loc + 0.5 * p.scale ** 2) / q.rate
+        - 0.5 * (torch.log(p.scale ** 2.0) + 1 + np.log(2 * np.pi))
     )

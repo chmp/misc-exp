@@ -1,7 +1,14 @@
 """Helper to construct models with pytorch."""
 from ._attention import Transformer
 from ._functional import factorized_quadratic, identity, linear, masked_softmax
-from ._model import TorchModel, iter_batch_indices, iter_batched
+from ._model import (
+    LearningRateScheduler,
+    LossHistory,
+    TerminateOnNaN,
+    TorchModel,
+    iter_batch_indices,
+    iter_batched,
+)
 from ._pipeline import Add, DiagonalScaleShift, Flatten, Lambda, find_module
 from ._probabilistic import (
     ExponentialModule,
@@ -11,6 +18,7 @@ from ._probabilistic import (
     NllLoss,
     NormalModelConstantScale,
     NormalModule,
+    SimpleBayesTorchModel,
     WeightsHS,
     fixed,
 )
@@ -22,6 +30,9 @@ __all__ = [
     "identity",
     "linear",
     "masked_softmax",
+    "LearningRateScheduler",
+    "LossHistory",
+    "TerminateOnNaN",
     "TorchModel",
     "iter_batch_indices",
     "iter_batched",
@@ -37,6 +48,7 @@ __all__ = [
     "NllLoss",
     "NormalModelConstantScale",
     "NormalModule",
+    "SimpleBayesTorchModel",
     "WeightsHS",
     "fixed",
 ]
