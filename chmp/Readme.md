@@ -15,6 +15,5 @@ distribution. For example to use the parser combinators just copy the
 ## Installation
 
 ```bash
-# use quotation marks prevent bash from interpreting # / &
-pip install -e 'git+https://https://github.com/chmp/misc-exp/#egg=chmp&subdirectory=chmp'
+pip install chmp
 ```
