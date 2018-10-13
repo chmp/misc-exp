@@ -4,7 +4,7 @@ Helper to construct models with pytorch.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x120b499d8>, flatten=False)`
+`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x1115829d8>, flatten=False)`
 
 A attention / transformer model.
 
@@ -152,6 +152,14 @@ A regularizer using the KL divergence of the model.
 
 Negative log likelihood loss for pytorch distributions.
 
+Usage:
+
+```
+loss = NllLoss(torch.distribtuions.Normal)
+loc, scale = parameter_module(x)
+loss((loc, scale), y)
+```
+
 
 ### `chmp.torch_util.NormalModelConstantScale`
 `chmp.torch_util.NormalModelConstantScale(transform=None, scale=1.0)`
@@ -166,9 +174,46 @@ Negative log likelihood loss for pytorch distributions.
 
 
 ### `chmp.torch_util.WeightsHS`
-`chmp.torch_util.WeightsHS(shape, tau_0)`
+`chmp.torch_util.WeightsHS(shape, tau_0, regularization=None)`
 
 A module that generates weights with a Horeshoe Prior.
+
+#### Parameters
+
+* **shape** (*any*):
+  the shape of sample to generate
+* **tau_0** (*any*):
+  the scale of the the global scale prior. Per default, this parameter
+  is not optimized. Pass as `optimized(inital_tau_0)` to fit the
+  parameter with maximum likelihood.
+* **regularization** (*any*):
+  if given, the regularization strength.
+
+To implement a linear regression model with Horseshoe prior, use:
+
+```
+class LinearHS(NormalModelConstantScale):
+    def __init__(self, in_features, out_features, tau_0, bias=True):
+        super().__init__()
+
+        self.weights = WeightsHS((in_features, out_features), tau_0=tau_0)
+        self.bias = torch.nn.Parameter(torch.zeros(1)) if bias else 0
+
+    def transform(self, x):
+        return self.bias + linear(x, self.weights())
+
+    def kl_divergence(self):
+        return self.weights.kl_divergence()
+```
+
+Sources:
+
+- * **The basic implementation (incl. the posterior approximation) is taken**:
+  from C. Louizos, K. Ullrich, and M. Welling " Bayesian Compression for
+  Deep Learning" (2017).
+- * **The regularization concept is taken from J. Piironen and A. Vehtari**:
+  "Sparsity information and regularization in the horseshoe and other
+  shrinkage priors" (2107).
 
 
 ### `chmp.torch_util.fixed`

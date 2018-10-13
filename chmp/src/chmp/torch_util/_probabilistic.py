@@ -19,15 +19,21 @@ class optimized:
         self.value = value
 
 
-def optional_parameter(arg):
+def optional_parameter(arg, default=optimized):
     if isinstance(arg, fixed):
         return as_tensor(arg.value)
 
     elif isinstance(arg, optimized):
         return torch.nn.Parameter(as_tensor(arg.value))
 
-    else:
+    elif default is optimized:
         return torch.nn.Parameter(as_tensor(arg))
+
+    elif default is fixed:
+        return as_tensor(arg)
+
+    else:
+        raise RuntimeError()
 
 
 def as_tensor(arg):
@@ -118,7 +124,15 @@ class NormalModelConstantScale(torch.nn.Module):
 
 
 class NllLoss:
-    """Negative log likelihood loss for pytorch distributions."""
+    """Negative log likelihood loss for pytorch distributions.
+
+    Usage::
+
+        loss = NllLoss(torch.distribtuions.Normal)
+        loc, scale = parameter_module(x)
+        loss((loc, scale), y)
+
+    """
 
     def __init__(self, distribution):
         self.distribution = distribution
@@ -148,23 +162,18 @@ class KLDivergence:
         return model.kl_divergence() / self.n_observations
 
 
-class WeightsHS(torch.nn.Module):
-    """A module that generates weights with a Horeshoe Prior."""
+class VariationalHalfCauchy(torch.nn.Module):
+    """Variational approximation to Half-Cauchy distributed sample."""
 
-    def __init__(self, shape, tau_0):
+    def __init__(self, shape, tau):
         super().__init__()
 
         self.shape = shape
 
         # See Bayesian Compression for Deep Learning for variable meaning
-        self.p_inv_sb = torch.distributions.Gamma(0.5, 1.0)
-        self.p_sa = torch.distributions.Gamma(0.5, float(tau_0) ** 2.0)
         self.p_inv_beta = torch.distributions.Gamma(0.5, 1.0)
-        self.p_alpha = torch.distributions.Gamma(0.5, 1.0)
-        self.p_w = torch.distributions.Normal(0.0, 1.0)
+        self.p_alpha = torch.distributions.Gamma(0.5, float(tau) ** 2.0)
 
-        self.q_inv_sb = LogNormalModule(torch.tensor(0.5), torch.tensor(1.0))
-        self.q_sa = LogNormalModule(torch.tensor(0.5), torch.tensor(1.0))
         self.q_inv_beta = LogNormalModule(
             0.5 * torch.ones(*shape), 1.0 * torch.ones(*shape)
         )
@@ -172,30 +181,107 @@ class WeightsHS(torch.nn.Module):
             0.5 * torch.ones(*shape), 1.0 * torch.ones(*shape)
         )
 
-        # USE a modified Glorot initialization
-        stddev = np.sqrt(1.0 / np.mean(shape))
-        self.q_w = NormalModule(
-            torch.normal(torch.zeros(*shape), stddev * torch.ones(*shape)),
-            stddev * torch.ones(*shape),
-        )
-
     def forward(self):
-        scale = torch.sqrt(
-            (self.q_sa.rsample() / self.q_inv_sb.rsample())
-            * (self.q_alpha.rsample() / self.q_inv_beta.rsample())
-        )
-        return self.q_w.rsample() * scale
+        return torch.sqrt(self.q_alpha.rsample() / self.q_inv_beta.rsample())
 
     def kl_divergence(self):
         return sum(
             torch.sum(torch.distributions.kl_divergence(q(), p))
             for q, p in [
-                (self.q_inv_sb, self.p_inv_sb),
-                (self.q_sa, self.p_sa),
                 (self.q_inv_beta, self.p_inv_beta),
                 (self.q_alpha, self.p_alpha),
-                (self.q_w, self.p_w),
             ]
+        )
+
+
+class VariationalNormal(torch.nn.Module):
+    """Variational approximation to a Normal distributed sample."""
+
+    def __init__(self, shape, loc, scale):
+        super().__init__()
+
+        self.p = torch.distributions.Normal(loc, scale)
+
+        # USE a modified Glorot initialization
+        stddev = np.sqrt(1.0 / np.mean(shape))
+        self.q = NormalModule(
+            torch.normal(torch.zeros(*shape), stddev * torch.ones(*shape)),
+            stddev * torch.ones(*shape),
+        )
+
+    def forward(self):
+        return self.q.rsample()
+
+    def kl_divergence(self):
+        return torch.sum(torch.distributions.kl_divergence(self.q(), self.p))
+
+
+class WeightsHS(torch.nn.Module):
+    """A module that generates weights with a Horeshoe Prior.
+
+    :param shape:
+        the shape of sample to generate
+    :param tau_0:
+        the scale of the the global scale prior. Per default, this parameter
+        is not optimized. Pass as ``optimized(inital_tau_0)`` to fit the
+        parameter with maximum likelihood.
+    :param regularization:
+        if given, the regularization strength.
+
+    To implement a linear regression model with Horseshoe prior, use::
+
+        class LinearHS(NormalModelConstantScale):
+            def __init__(self, in_features, out_features, tau_0, bias=True):
+                super().__init__()
+
+                self.weights = WeightsHS((in_features, out_features), tau_0=tau_0)
+                self.bias = torch.nn.Parameter(torch.zeros(1)) if bias else 0
+
+            def transform(self, x):
+                return self.bias + linear(x, self.weights())
+
+            def kl_divergence(self):
+                return self.weights.kl_divergence()
+
+    Sources:
+
+    * The basic implementation (incl. the posterior approximation) is taken
+        from C. Louizos, K. Ullrich, and M. Welling " Bayesian Compression for
+        Deep Learning" (2017).
+    * The regularization concept is taken from J. Piironen and A. Vehtari
+        "Sparsity information and regularization in the horseshoe and other
+        shrinkage priors" (2107).
+
+    """
+
+    def __init__(self, shape, tau_0, regularization=None):
+        super().__init__()
+
+        self.shape = shape
+        self.regularization = regularization
+        self.tau_0 = optional_parameter(tau_0, default=fixed)
+
+        # See Bayesian Compression for Deep Learning for variable meaning
+        self.global_scale = VariationalHalfCauchy([1], tau_0)
+        self.local_scale = VariationalHalfCauchy(shape, 1.0)
+        self.unit_weights = VariationalNormal(shape, 0.0, 1.0)
+
+    def forward(self):
+        scale = self.global_scale() * self.local_scale()
+
+        if self.regularization is not None:
+            scale = torch.sqrt(
+                (self.regularization ** 2.0 * scale ** 2.0)
+                / (self.regularization ** 2.0 + scale * 2.0)
+            )
+
+        return scale * self.unit_weights()
+
+    def kl_divergence(self):
+        return (
+            self.global_scale.kl_divergence()
+            + self.local_scale.kl_divergence()
+            + self.unit_weights.kl_divergence()
         )
 
 
