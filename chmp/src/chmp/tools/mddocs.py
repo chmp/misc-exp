@@ -470,7 +470,7 @@ class MarkdownWriter(Writer):
                     type = "any"
 
                 else:
-                    raise RuntimeError()
+                    raise RuntimeError(f"did not understand {section} {parts}")
 
                 value = f"* **{name}** (*{type}*):\n{body}\n"
 
