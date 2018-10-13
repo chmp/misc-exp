@@ -4,7 +4,7 @@ Helper to construct models with pytorch.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x11d6389d8>, flatten=False)`
+`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x120b499d8>, flatten=False)`
 
 A attention / transformer model.
 
@@ -18,6 +18,35 @@ Masks be two-dimensional and compatible with `n_query, n_search`.
 `chmp.torch_util.Transformer.compute_weights(search_x, query_x, mask, soft_mask=None)`
 
 Compute weights with shape `(batch_size, n_samples, n_keys)`.
+
+
+### `chmp.torch_util.Callback`
+`chmp.torch_util.Callback()`
+
+
+### `chmp.torch_util.LossHistory`
+`chmp.torch_util.LossHistory()`
+
+
+### `chmp.torch_util.TerminateOnNaN`
+`chmp.torch_util.TerminateOnNaN()`
+
+
+### `chmp.torch_util.iter_batch_indices`
+`chmp.torch_util.iter_batch_indices(n_samples)`
+
+
+### `chmp.torch_util.iter_batched`
+`chmp.torch_util.iter_batched(data)`
+
+Iterate over data in batches.
+
+#### Parameters
+
+* **data** (*any*):
+  the data to iterate over has to be a dicitonary
+* **only_complete** (*any*):
+  if True yield only batches that have exactly `batch_size` items
 
 
 ### `chmp.torch_util.factorized_quadratic`
@@ -60,110 +89,8 @@ Compute a softmax with certain elements masked out.
 `chmp.torch_util.LearningRateScheduler(cls, **kwargs)`
 
 
-### `chmp.torch_util.LossHistory`
-`chmp.torch_util.LossHistory()`
-
-
-### `chmp.torch_util.TerminateOnNaN`
-`chmp.torch_util.TerminateOnNaN()`
-
-
 ### `chmp.torch_util.TorchModel`
 `chmp.torch_util.TorchModel(module, optimizer='Adam', loss=None, regularization=None, optimizer_kwargs=None)`
-
-Helper to add simple numpy integration to torch model.
-
-#### Parameters
-
-* **module** (*any*):
-  the module that defines the model prediction
-* **optimizer** (*any*):
-  a factory for the optimizer to use
-* **loss** (*any*):
-  the `loss` function to use, with signature
-  `(pred, target) -> loss`. If `None`, the module is assumed to
-  return the loss itself.
-* **regularization** (*any*):
-  if given a callable, with signature `(module) -> loss`, that should
-  return a regularization loss
-
-For all functions `x` and `y` can not only be `numpy` arrays, but
-also structured data, such as dicts or lists / tuples. The former are
-passed to the module as keyword arguments, the latter as varargs.
-
-For example:
-
-```
-# NOTE: this module does not define parameters
-class Model(torch.nn.Module):
-    def forward(self, a, b):
-        return a + b
-
-
-model = TorchModel(module=Model, loss=MSELoss())
-model.fit(x={"a": [...], "b": [...]}, y=[...])
-```
-
-
-#### `chmp.torch_util.TorchModel.fit_generator`
-`chmp.torch_util.TorchModel.fit_generator(generator)`
-
-Fit the model on a dynamically generated dataset.
-
-#### Parameters
-
-* **generator** (*any*):
-  A generator yielding `batch_x, batch_y` pairs.
-* **steps_per_epoch** (*any*):
-  The number batches that make up an epoch.
-* **epochs** (*any*):
-  The number of epochs to evaluate. If `None`, the generator must be
-  finite.
-* **verbose** (*any*):
-
-
-#### Returns
-
-itself.
-
-
-#### `chmp.torch_util.TorchModel.predict_generator`
-`chmp.torch_util.TorchModel.predict_generator(generator)`
-
-Predict on a generator.
-
-#### Parameters
-
-* **generator** (*any*):
-  an iterable, that will be used to get batches for prediction.
-* **steps** (*any*):
-  the number of times the generator should be called. if `steps` is
-  `None`, the generator all items of the generator will be
-  processed. Therefore, the generator should only yield a finite
-  number of items in this case.
-* **verbose** (*any*):
-
-
-#### Returns
-
-the predictions as a numpy array.
-
-
-### `chmp.torch_util.iter_batch_indices`
-`chmp.torch_util.iter_batch_indices(n_samples)`
-
-
-### `chmp.torch_util.iter_batched`
-`chmp.torch_util.iter_batched(data)`
-
-Iterate over data in batches.
-
-#### Parameters
-
-* **data** (*any*):
-  the data to iterate over has to be a dicitonary
-* **only_complete** (*any*):
-  if True yield only batches that have exactly `batch_size` items
 
 
 ### `chmp.torch_util.Add`
