@@ -4,14 +4,13 @@ Helper to construct models with pytorch.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module=None, query_module=None, value_module=<function noop_value_module at 0x1115829d8>, flatten=False)`
+`chmp.torch_util.Transformer(key_module, query_module=None, value_module=<function noop_value_module at 0x120023620>, flatten=False)`
 
 A attention / transformer model.
 
-Note: this model also supports soft-masks. They must never be `0`. The
-hard masks must be binary `{0, 1}`.
-
-Masks be two-dimensional and compatible with `n_query, n_search`.
+Masks be two-dimensional and compatible with `n_query, n_search`. This
+model also supports soft-masks. They must never be `0`. The hard masks
+must be binary `{0, 1}`.
 
 
 #### `chmp.torch_util.Transformer.compute_weights`
@@ -216,8 +215,38 @@ Sources:
   shrinkage priors" (2107).
 
 
+### `chmp.torch_util.optional_parameter`
+`chmp.torch_util.optional_parameter(arg)`
+
+Make sure arg is a tensor and optionally a parameter.
+
+Values wrapped with `fixed` are returned as a tensor, `values` wrapped
+with `optimized``are returned as parameters. When arg is not one of
+``fixed` or `optimized` it is wrapped with `default`.
+
+Usage:
+
+```
+class MyModule(torch.nn.Module):
+    def __init__(self, a, b):
+        super().__init__()
+
+        # per default a will be optimized during training
+        self.a = optional_parameter(a, default=optimized)
+
+        # per default B will not be optimized during training
+        self.b = optional_parameter(b, default=fixed)
+```
+
+
 ### `chmp.torch_util.fixed`
 `chmp.torch_util.fixed(value)`
 
-decorator to mark a parameter as not-optimized
+decorator to mark a parameter as not-optimized.
+
+
+### `chmp.torch_util.optimized`
+`chmp.torch_util.optimized(value)`
+
+Decorator to mark a parameter as optimized.
 

@@ -6,20 +6,39 @@ from ._model import TorchModel
 
 
 class fixed:
-    """decorator to mark a parameter as not-optimized"""
+    """decorator to mark a parameter as not-optimized."""
 
     def __init__(self, value):
         self.value = value
 
 
 class optimized:
-    """decorator to mark a parameter as optimized"""
+    """Decorator to mark a parameter as optimized."""
 
     def __init__(self, value):
         self.value = value
 
 
-def optional_parameter(arg, default=optimized):
+def optional_parameter(arg, *, default=optimized):
+    """Make sure arg is a tensor and optionally a parameter.
+
+    Values wrapped with ``fixed`` are returned as a tensor, ``values`` wrapped
+    with ``optimized``are returned as parameters. When arg is not one of
+    ``fixed`` or ``optimized`` it is wrapped with ``default``.
+
+    Usage::
+
+        class MyModule(torch.nn.Module):
+            def __init__(self, a, b):
+                super().__init__()
+
+                # per default a will be optimized during training
+                self.a = optional_parameter(a, default=optimized)
+
+                # per default B will not be optimized during training
+                self.b = optional_parameter(b, default=fixed)
+
+    """
     if isinstance(arg, fixed):
         return as_tensor(arg.value)
 
@@ -37,10 +56,13 @@ def optional_parameter(arg, default=optimized):
 
 
 def as_tensor(arg):
+    """Turn ``arg`` into tensor if it is not already."""
     return torch.tensor(arg) if not torch.is_tensor(arg) else arg
 
 
 class TorchDistributionModule(torch.nn.Module):
+    """Base class to turn a torch distribution into an optimizable module."""
+
     _forward_attributes_ = {"rsample", "sample", "sample_n", "log_prob", "cdf", "icdf"}
 
     def __init__(self, *args, **kwargs):
@@ -57,7 +79,7 @@ class TorchDistributionModule(torch.nn.Module):
         for k, v in kwargs.items():
             setattr(self, k, optional_parameter(v))
 
-    def __call__(self):
+    def forward(self):
         """Construct the distribution object"""
         # NOTE: add a zero to ensure the type(p) == 'Tensor' working around a bug in
         #       torch.distributions. With torch==1.0 this bug is fixed.

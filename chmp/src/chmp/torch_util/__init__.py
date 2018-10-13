@@ -21,6 +21,8 @@ from ._probabilistic import (
     SimpleBayesTorchModel,
     WeightsHS,
     fixed,
+    optimized,
+    optional_parameter,
 )
 
 
@@ -51,5 +53,7 @@ __all__ = [
     "NormalModule",
     "SimpleBayesTorchModel",
     "WeightsHS",
+    "optional_parameter",
     "fixed",
+    "optimized",
 ]

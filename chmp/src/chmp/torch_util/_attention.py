@@ -10,15 +10,14 @@ def noop_value_module(_, y):
 class Transformer(torch.nn.Module):
     """A attention / transformer model.
 
-    Note: this model also supports soft-masks. They must never be ``0``. The
-    hard masks must be binary ``{0, 1}``.
-
-    Masks be two-dimensional and compatible with ``n_query, n_search``.
+    Masks be two-dimensional and compatible with ``n_query, n_search``. This
+    model also supports soft-masks. They must never be ``0``. The hard masks
+    must be binary ``{0, 1}``.
     """
 
     def __init__(
         self,
-        key_module=None,
+        key_module,
         query_module=None,
         value_module=noop_value_module,
         flatten=False,
