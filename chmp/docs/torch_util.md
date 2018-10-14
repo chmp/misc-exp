@@ -3,8 +3,81 @@
 Helper to construct models with pytorch.
 
 
+### `chmp.torch_util.TorchModel`
+`chmp.torch_util.TorchModel(module, optimizer='Adam', loss=None, regularization=None, optimizer_kwargs=None)`
+
+Keras-like API around a torch models.
+
+#### Parameters
+
+* **module** (*any*):
+  the module that defines the model prediction
+* **optimizer** (*any*):
+  the optimizer to use. Either a callable or string specifying an
+  optimizer in torch.optim.
+* **optimizer_kwargs** (*any*):
+  keyword arguments passed to the optimizer before building it.
+* **loss** (*any*):
+  the `loss` function to use, with signature
+  `(pred, target) -> loss`. If `None`, the module is assumed to
+  return the loss itself.
+* **regularization** (*any*):
+  if given a callable, with signature `(module) -> loss`, that should
+  return a regularization loss
+
+For all functions `x` and `y` can not only be `numpy` arrays, but
+also structured data, such as dicts or lists / tuples. The former are
+passed to the module as keyword arguments, the latter as varargs.
+
+For example:
+
+```
+# NOTE: this module does not define parameters
+class Model(torch.nn.Module):
+    def forward(self, a, b):
+        return a + b
+
+
+model = TorchModel(module=Model, loss=MSELoss())
+model.fit(x={"a": [...], "b": [...]}, y=[...])
+```
+
+
+### `chmp.torch_util.Callback`
+`chmp.torch_util.Callback()`
+
+Event handler to monitor / modify training runs.
+
+Most event handlers have a `begin_*`, `end_*` structure, with a
+`logs` argument. For each `end_*` call, the same dictionary as for the
+`begin_*` call is passed. This mechanism allows to modify the object to
+collect statistics.
+
+
+### `chmp.torch_util.LearningRateScheduler`
+`chmp.torch_util.LearningRateScheduler(cls, **kwargs)`
+
+
+### `chmp.torch_util.History`
+`chmp.torch_util.History()`
+
+Record any epoch statistics generated during training.
+
+
+### `chmp.torch_util.LossHistory`
+`chmp.torch_util.LossHistory()`
+
+Record the loss history per batch.
+
+
+### `chmp.torch_util.TerminateOnNaN`
+`chmp.torch_util.TerminateOnNaN()`
+
+Raise an exception when the loss becomes nan.
+
+
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module, query_module=None, value_module=<function noop_value_module at 0x120023620>, flatten=False)`
+`chmp.torch_util.Transformer(key_module, query_module=None, value_module=<function noop_value_module at 0x100bf2488>, flatten=False)`
 
 A attention / transformer model.
 
@@ -17,18 +90,6 @@ must be binary `{0, 1}`.
 `chmp.torch_util.Transformer.compute_weights(search_x, query_x, mask, soft_mask=None)`
 
 Compute weights with shape `(batch_size, n_samples, n_keys)`.
-
-
-### `chmp.torch_util.Callback`
-`chmp.torch_util.Callback()`
-
-
-### `chmp.torch_util.LossHistory`
-`chmp.torch_util.LossHistory()`
-
-
-### `chmp.torch_util.TerminateOnNaN`
-`chmp.torch_util.TerminateOnNaN()`
 
 
 ### `chmp.torch_util.iter_batch_indices`
@@ -82,14 +143,6 @@ A linear interaction.
 `chmp.torch_util.masked_softmax(logits, mask, eps=1e-06, dim=-1)`
 
 Compute a softmax with certain elements masked out.
-
-
-### `chmp.torch_util.LearningRateScheduler`
-`chmp.torch_util.LearningRateScheduler(cls, **kwargs)`
-
-
-### `chmp.torch_util.TorchModel`
-`chmp.torch_util.TorchModel(module, optimizer='Adam', loss=None, regularization=None, optimizer_kwargs=None)`
 
 
 ### `chmp.torch_util.Add`

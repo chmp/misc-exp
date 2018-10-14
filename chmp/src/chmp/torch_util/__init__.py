@@ -2,6 +2,7 @@
 from ._attention import Transformer
 from ._batched import (
     Callback,
+    History,
     LossHistory,
     TerminateOnNaN,
     iter_batch_indices,
@@ -27,18 +28,19 @@ from ._probabilistic import (
 
 
 __all__ = [
-    "Transformer",
+    "TorchModel",
     "Callback",
+    "LearningRateScheduler",
+    "History",
     "LossHistory",
     "TerminateOnNaN",
+    "Transformer",
     "iter_batch_indices",
     "iter_batched",
     "factorized_quadratic",
     "identity",
     "linear",
     "masked_softmax",
-    "LearningRateScheduler",
-    "TorchModel",
     "Add",
     "DiagonalScaleShift",
     "Flatten",

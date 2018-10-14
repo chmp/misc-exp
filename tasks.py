@@ -24,7 +24,7 @@ def precommit(c):
 
 @task
 def test(c):
-    run(c, "py.test", *directories_to_test)
+    run(c, "pytest", *directories_to_test)
 
 
 @task

@@ -178,13 +178,13 @@ def test_apply_dtype__pandas_series():
 def test_apply_dtype__noop():
     x = apply_dtype(None, [[1, 2], [3, 4], [5, 6]])
 
-    assert type(x) is list
+    assert isinstance(x, list)
 
 
 def test_apply_dtype__dict():
     x = apply_dtype("float32", {"a": [1, 2, 3], "b": [4, 5, 6]})
 
-    assert type(x) is dict
+    assert isinstance(x, dict)
     assert x["a"].dtype == np.float32
     assert x["b"].dtype == np.float32
 
@@ -193,7 +193,7 @@ def test_apply_dtype__pandas_dict():
     x = pd.DataFrame().assign(a=[1, 2, 3], b=[1, 2, 3])
     x = apply_dtype({"a": "float16", "b": "float32"}, x)
 
-    assert type(x) is dict
+    assert isinstance(x, dict)
     assert x["a"].dtype == np.float16
     assert x["b"].dtype == np.float32
 
@@ -201,7 +201,7 @@ def test_apply_dtype__pandas_dict():
 def test_apply_dtype__tuple_arg():
     x = apply_dtype("float32", ([1, 2, 3], [4, 5, 6]))
 
-    assert type(x) is tuple
+    assert isinstance(x, tuple)
     assert x[0].dtype == np.float32
     assert x[1].dtype == np.float32
 
@@ -209,6 +209,6 @@ def test_apply_dtype__tuple_arg():
 def test_apply_dtype__tuple():
     x = apply_dtype(("float16", "float32"), ([1, 2, 3], [4, 5, 6]))
 
-    assert type(x) is tuple
+    assert isinstance(x, tuple)
     assert x[0].dtype == np.float16
     assert x[1].dtype == np.float32

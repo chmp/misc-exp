@@ -69,6 +69,40 @@ class TorchPredictor(BasePredictor):
 
 
 class TorchModel(BatchedModel):
+    """Keras-like API around a torch models.
+
+    :param module:
+        the module that defines the model prediction
+    :param optimizer:
+        the optimizer to use. Either a callable or string specifying an
+        optimizer in `torch.optim`.
+    :param optimizer_kwargs:
+        keyword arguments passed to the optimizer before building it.
+    :param loss:
+        the ``loss`` function to use, with signature
+        ``(pred, target) -> loss``. If ``None``, the module is assumed to
+        return the loss itself.
+    :param regularization:
+        if given a callable, with signature ``(module) -> loss``, that should
+        return a regularization loss
+
+    For all functions ``x`` and ``y`` can not only be ``numpy`` arrays, but
+    also structured data, such as dicts or lists / tuples. The former are
+    passed to the module as keyword arguments, the latter as varargs.
+
+    For example::
+
+        # NOTE: this module does not define parameters
+        class Model(torch.nn.Module):
+            def forward(self, a, b):
+                return a + b
+
+
+        model = TorchModel(module=Model, loss=MSELoss())
+        model.fit(x={"a": [...], "b": [...]}, y=[...])
+
+    """
+
     trainer = TorchTrainer
     predictor = TorchPredictor
 
@@ -118,7 +152,7 @@ class LearningRateScheduler(Callback):
 
 
 def list_as_tensor(values):
-    return [torch.tensor(val) if val is not None else None for val in values]
+    return [torch.as_tensor(val) if val is not None else None for val in values]
 
 
 def list_torch_to_numpy(values):

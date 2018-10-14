@@ -1,6 +1,7 @@
 """Helpers to handle batched models.
 """
 
+import collections
 import itertools as it
 import numpy as np
 
@@ -229,36 +230,7 @@ class BasePredictor:
 
 
 class BatchedModel:
-    """Helper to add simple numpy integration to torch model.
-
-    :param module:
-        the module that defines the model prediction
-    :param optimizer:
-        a factory for the optimizer to use
-    :param loss:
-        the ``loss`` function to use, with signature
-        ``(pred, target) -> loss``. If ``None``, the module is assumed to
-        return the loss itself.
-    :param regularization:
-        if given a callable, with signature ``(module) -> loss``, that should
-        return a regularization loss
-
-    For all functions ``x`` and ``y`` can not only be ``numpy`` arrays, but
-    also structured data, such as dicts or lists / tuples. The former are
-    passed to the module as keyword arguments, the latter as varargs.
-
-    For example::
-
-        # NOTE: this module does not define parameters
-        class Model(torch.nn.Module):
-            def forward(self, a, b):
-                return a + b
-
-
-        model = TorchModel(module=Model, loss=MSELoss())
-        model.fit(x={"a": [...], "b": [...]}, y=[...])
-
-    """
+    """Helper to add simple batched training for numpy based data."""
 
     trainer = BaseTrainer
     predictor = BasePredictor
@@ -495,7 +467,9 @@ def apply_dtype(dtype, arg):
     # NOTE: always use the dtype as the reference, to allow passing
     # non-exact type matches, i.e., pandas.DataFrames for dict.
     if isinstance(dtype, dict):
-        return {k: np.asarray(arg[k], dtype=dtype[k]) for k in dtype}
+        return collections.OrderedDict(
+            (k, np.asarray(arg[k], dtype=dtype[k])) for k in dtype
+        )
 
     elif isinstance(dtype, tuple):
         return tuple(np.asarray(arg[i], dtype=dtype[i]) for i in range(len(dtype)))
@@ -578,6 +552,14 @@ class sized_generator:
 
 
 class Callback:
+    """Event handler to monitor / modify training runs.
+
+    Most event handlers have a ``begin_*``, ``end_*`` structure, with a
+    ``logs`` argument. For each ``end_*`` call, the same dictionary as for the
+    ``begin_*`` call is passed. This mechanism allows to modify the object to
+    collect statistics.
+    """
+
     def __init__(self):
         self.model = None
 
@@ -607,6 +589,8 @@ class Callback:
 
 
 class CallbackList(Callback):
+    """Wrapper around a list of callbacks, that are called in turn for events."""
+
     @classmethod
     def make(cls, obj):
         if isinstance(obj, cls):
@@ -658,6 +642,8 @@ class CallbackList(Callback):
 
 
 class History(Callback):
+    """Record any epoch statistics generated during training."""
+
     def __init__(self):
         super().__init__()
 
@@ -671,6 +657,8 @@ class History(Callback):
 
 
 class LossHistory(Callback):
+    """Record the loss history per batch."""
+
     def __init__(self):
         super().__init__()
         self.current_epoch = 0
@@ -695,6 +683,8 @@ class LossHistory(Callback):
 
 
 class TerminateOnNaN(Callback):
+    """Raise an exception when the loss becomes nan."""
+
     def __init__(self):
         super().__init__()
         self.current_epoch = 0
