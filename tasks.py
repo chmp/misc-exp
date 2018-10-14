@@ -1,4 +1,5 @@
 import shlex
+import os
 
 from invoke import task
 
@@ -40,6 +41,32 @@ def docs(c):
 @task
 def format(c):
     run(c, "black", *files_to_format)
+
+
+@task
+def release(c, yes=False):
+    import packaging.version
+
+    with c.cd("chmp"):
+        run(c, "python", "setup.py", "bdist_wheel")
+
+    latest_package = max(
+        (
+            package
+            for package in os.listdir("chmp/dist")
+            if not package.startswith(".") and package.endswith(".whl")
+        ),
+        key=packaging.version.parse,
+    )
+
+    if not yes:
+        answer = input(f"upload {latest_package} [yN] ")
+        if answer != "y":
+            print("stop")
+            return
+
+    with c.cd("chmp/dist"):
+        run(c, "twine", "upload", latest_package)
 
 
 def run(c, *args, **kwargs):

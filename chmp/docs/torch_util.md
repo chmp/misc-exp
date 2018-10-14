@@ -77,7 +77,7 @@ Raise an exception when the loss becomes nan.
 
 
 ### `chmp.torch_util.Transformer`
-`chmp.torch_util.Transformer(key_module, query_module=None, value_module=<function noop_value_module at 0x100bf2488>, flatten=False)`
+`chmp.torch_util.Transformer(key_module, query_module=None, value_module=None, flatten=False)`
 
 A attention / transformer model.
 

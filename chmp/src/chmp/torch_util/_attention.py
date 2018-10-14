@@ -3,10 +3,6 @@ import torch
 from ._functional import masked_softmax
 
 
-def noop_value_module(_, y):
-    return y
-
-
 class Transformer(torch.nn.Module):
     """A attention / transformer model.
 
@@ -15,17 +11,14 @@ class Transformer(torch.nn.Module):
     must be binary ``{0, 1}``.
     """
 
-    def __init__(
-        self,
-        key_module,
-        query_module=None,
-        value_module=noop_value_module,
-        flatten=False,
-    ):
+    def __init__(self, key_module, query_module=None, value_module=None, flatten=False):
         super().__init__()
 
         if query_module is None:
             query_module = key_module
+
+        if value_module is None:
+            value_module = noop_value_module
 
         self.flatten = flatten
         self.key_module = key_module
@@ -101,3 +94,7 @@ class Transformer(torch.nn.Module):
 
         else:
             return values
+
+
+def noop_value_module(_, y):
+    return y
