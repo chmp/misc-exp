@@ -307,26 +307,43 @@ def document_object(
 
 def format_signature(label, func, skip=0):
     args = inspect.getfullargspec(func)
-    args, varargs, keywords, defaults = args[:4]
+    args, varargs, keywords, defaults, kwonlyargs, kwonlydefaults = args[:6]
 
     args = args[skip:]
     if not defaults:
         defaults = []
 
-    varargs = [] if varargs is None else [varargs]
-    keywords = [] if keywords is None else [keywords]
+    if not kwonlydefaults:
+        kwonlydefaults = {}
 
-    args = (
-        ["{}".format(arg) for arg in args[: len(args) - len(defaults)]]
-        + [
-            "{}={!r}".format(arg, default)
-            for arg, default in zip(args[len(args) - len(defaults) :], defaults)
-        ]
-        + ["*{}".format(arg) for arg in varargs]
-        + ["**{}".format(arg) for arg in keywords]
+    fragments = []
+
+    fragments.extend("{}".format(arg) for arg in args[: len(args) - len(defaults)])
+    fragments.extend(
+        "{}={!r}".format(arg, default)
+        for arg, default in zip(args[len(args) - len(defaults) :], defaults)
     )
 
-    return "{}({})".format(label.strip(), ", ".join(args))
+    if varargs is not None:
+        fragments.append("*{}".format(varargs))
+
+    elif kwonlyargs:
+        fragments.append("*")
+
+    fragments.extend(
+        "{}".format(arg) for arg in kwonlyargs if not arg in kwonlydefaults
+    )
+
+    fragments.extend(
+        "{}={!r}".format(arg, kwonlydefaults[arg])
+        for arg in kwonlyargs
+        if arg in kwonlydefaults
+    )
+
+    if keywords is not None:
+        fragments.append("**{}".format(keywords))
+
+    return "{}({})".format(label.strip(), ", ".join(fragments))
 
 
 def literalinclude(part, source, reference_resolver=None):
@@ -631,6 +648,9 @@ def get_member_names(obj):
         ]
 
     elif inspect.isclass(obj):
+        if hasattr(obj, "__members__"):
+            return obj.__members__
+
         return [
             k
             for k, v in vars(obj).items()

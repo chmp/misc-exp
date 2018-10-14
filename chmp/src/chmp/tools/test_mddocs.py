@@ -1,4 +1,6 @@
-from chmp.tools.mddocs import transform, transform_file
+import pytest
+
+from chmp.tools.mddocs import transform, transform_file, format_signature
 
 doc = """# Example module
 
@@ -8,6 +10,53 @@ doc = """# Example module
 
 example_example_example
 """
+
+
+class C:
+    def positional_only(self, a, b, c):
+        pass
+
+    def varargs_only(*args):
+        pass
+
+    def varargs(self, a, b, *c):
+        pass
+
+    def defaults(self, a, b=2, c=3):
+        pass
+
+    def kwargs(self, a, **b):
+        pass
+
+    def pure_kwonly(self, a, *, b, c):
+        pass
+
+    def vargs_kwonly(self, a, *b, c):
+        pass
+
+    def kwonly_defaults(self, a, *, b, c=1):
+        pass
+
+    def kwonly_kwargs(self, a, *, b, c=1, **d):
+        pass
+
+
+@pytest.mark.parametrize(
+    "func, expected",
+    [
+        (C.positional_only, "foo(self, a, b, c)"),
+        (C.varargs_only, "foo(*args)"),
+        (C.varargs, "foo(self, a, b, *c)"),
+        (C.defaults, "foo(self, a, b=2, c=3)"),
+        (C.pure_kwonly, "foo(self, a, *, b, c)"),
+        (C.vargs_kwonly, "foo(self, a, *b, c)"),
+        (C.kwonly_defaults, "foo(self, a, *, b, c=1)"),
+        (C.kwargs, "foo(self, a, **b)"),
+        (C.kwonly_kwargs, "foo(self, a, *, b, c=1, **d)"),
+    ],
+)
+def test_format_signature(func, expected):
+    assert format_signature("foo", func) == expected
 
 
 def test_examples():
