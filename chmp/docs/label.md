@@ -16,7 +16,7 @@ license, (c) 2017 Christopher Prohm.
 
 
 ### `chmp.label.annotate`
-`chmp.label.annotate(items)`
+`chmp.label.annotate(items, *, classes, history_length=5, display_value=None, cls=None, kwargs=None)`
 
 Annotate data inside the ipython notebook.
 

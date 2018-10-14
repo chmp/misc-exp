@@ -106,13 +106,13 @@ Set various style related options of MPL.
 
 
 ### `chmp.ds.qlineplot`
-`chmp.ds.qlineplot()`
+`chmp.ds.qlineplot(*, x, y, hue, data, ci=0.95)`
 
 Plot  median as line, quantiles as shading.
 
 
 ### `chmp.ds.pgm`
-`chmp.ds.pgm(**kwargs)`
+`chmp.ds.pgm(*, ax=None, nodes=(), edges=(), annotations=(), **kwargs)`
 
 Wrapper around [daft.PGM](http://daft-pgm.org/api/#daft.PGM) to allow fluid call chains.
 
@@ -173,13 +173,13 @@ Add captions to matplotlib graphs.
 
 
 ### `chmp.ds.change_vspan`
-`chmp.ds.change_vspan(x, y, **kwargs)`
+`chmp.ds.change_vspan(x, y, *, data=None, color=('w', '0.90'), transform_x=None, transform_y=None, skip_nan=True, **kwargs)`
 
 Plot changes in a quantity with vspans.
 
 
 ### `chmp.ds.change_plot`
-`chmp.ds.change_plot(x, y, **kwargs)`
+`chmp.ds.change_plot(x, y, *, data=None, transform_x=None, transform_y=None, skip_nan=True, **kwargs)`
 
 Plot changes in a quantity with pyplot's standard plot function.
 
@@ -209,7 +209,7 @@ axtext(0, 0, 'text')
 
 
 ### `chmp.ds.plot_gaussian_contour`
-`chmp.ds.plot_gaussian_contour(df, x, y, **kwargs)`
+`chmp.ds.plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs)`
 
 Plot isocontours of the maximum likelihood Gaussian for `x, y`.
 
@@ -408,7 +408,7 @@ series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
 
 
 ### `chmp.ds.dashcb`
-`chmp.ds.dashcb(app, output, *inputs)`
+`chmp.ds.dashcb(app, output, *inputs, figure=False)`
 
 Construct a dash callback using function annotations.
 
@@ -476,6 +476,26 @@ Simplified interface to Loop.over.
 An enumeration.
 
 Initialize self.  See help(type(self)) for accurate signature.
+
+
+#### `chmp.ds.LoopState.pending`
+
+An enumeration.
+
+
+#### `chmp.ds.LoopState.running`
+
+An enumeration.
+
+
+#### `chmp.ds.LoopState.done`
+
+An enumeration.
+
+
+#### `chmp.ds.LoopState.aborted`
+
+An enumeration.
 
 
 ### `chmp.ds.Loop`

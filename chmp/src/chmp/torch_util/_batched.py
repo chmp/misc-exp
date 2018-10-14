@@ -195,15 +195,28 @@ class BasePredictor:
         return result
 
     def predict_generator(
-        self, generator, *, steps=None, verbose=True, dtype="float32"
+        self,
+        generator,
+        *,
+        steps=None,
+        verbose=True,
+        dtype="float32",
+        strip_target=False,
     ):
         generator = iter(generator)
         batch_keys_values_pairs = []
         step_sequence = it.count() if steps is None else range(steps)
 
+        if strip_target:
+            dtype, _ = ensure_tuple(dtype, 2)
+
         for _ in optional_loop(step_sequence, verbose=verbose, label="predict"):
             try:
-                batch_x = next(generator)
+                if not strip_target:
+                    batch_x = next(generator)
+
+                else:
+                    batch_x, _ = next(generator)
 
             except StopIteration:
                 if steps is None:
@@ -261,7 +274,7 @@ class BatchedModel:
 
     def fit_generator(
         self,
-        generator,
+        generator=None,
         *,
         steps_per_epoch=1,
         epochs=None,
@@ -282,15 +295,23 @@ class BatchedModel:
         :returns:
             itself.
         """
-        trainer = self.trainer(model=self, callbacks=callbacks)
-        trainer.fit_generator(
-            generator,
-            steps_per_epoch=steps_per_epoch,
-            epochs=epochs,
-            verbose=verbose,
-            dtype=dtype,
-        )
-        return trainer.history
+
+        def do_fit(generator):
+            trainer = self.trainer(model=self, callbacks=callbacks)
+            trainer.fit_generator(
+                generator,
+                steps_per_epoch=steps_per_epoch,
+                epochs=epochs,
+                verbose=verbose,
+                dtype=dtype,
+            )
+            return trainer.history
+
+        def decorator(generator):
+            do_fit(generator())
+            return generator
+
+        return do_fit(generator) if generator is not None else decorator
 
     def predict(self, x=None, *, batch_size=None, verbose=False, dtype="float32"):
         return self.predictor(model=self).predict(
@@ -298,7 +319,13 @@ class BatchedModel:
         )
 
     def predict_generator(
-        self, generator, *, steps=None, verbose=True, dtype="float32"
+        self,
+        generator,
+        *,
+        steps=None,
+        verbose=True,
+        dtype="float32",
+        strip_target=False,
     ):
         """Predict on a generator.
 
@@ -310,11 +337,20 @@ class BatchedModel:
             processed. Therefore, the generator should only yield a finite
             number of items in this case.
         :param verbose:
+            if ``True`` print progress during prediction.
+        :param strip_target:
+            if ``True``, the generator is assumed to also yield targets, that
+            should be ignored. Note: in this case also the dtype is assumed to
+            include target information.
         :returns:
             the predictions as a numpy array.
         """
         return self.predictor(model=self).predict_generator(
-            generator, steps=steps, verbose=verbose, dtype=dtype
+            generator,
+            steps=steps,
+            verbose=verbose,
+            dtype=dtype,
+            strip_target=strip_target,
         )
 
 

@@ -103,6 +103,8 @@ class TorchModel(BatchedModel):
 
     """
 
+    __members__ = ["fit", "fit_generator", "predict", "predict_generator"]
+
     trainer = TorchTrainer
     predictor = TorchPredictor
 

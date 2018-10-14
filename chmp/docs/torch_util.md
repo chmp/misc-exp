@@ -43,6 +43,62 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 ```
 
 
+#### `chmp.torch_util.TorchModel.fit`
+`chmp.torch_util.TorchModel.fit(x=None, y=None, *, batch_size=None, epochs=1, shuffle=True, verbose=False, callbacks=None, dtype='float32')`
+
+
+#### `chmp.torch_util.TorchModel.fit_generator`
+`chmp.torch_util.TorchModel.fit_generator(generator=None, *, steps_per_epoch=1, epochs=None, verbose=True, callbacks=None, dtype='float32')`
+
+Fit the model on a dynamically generated dataset.
+
+#### Parameters
+
+* **generator** (*any*):
+  A generator yielding `batch_x, batch_y` pairs.
+* **steps_per_epoch** (*any*):
+  The number batches that make up an epoch.
+* **epochs** (*any*):
+  The number of epochs to evaluate. If `None`, the generator must be
+  finite.
+* **verbose** (*any*):
+
+
+#### Returns
+
+itself.
+
+
+#### `chmp.torch_util.TorchModel.predict`
+`chmp.torch_util.TorchModel.predict(x=None, *, batch_size=None, verbose=False, dtype='float32')`
+
+
+#### `chmp.torch_util.TorchModel.predict_generator`
+`chmp.torch_util.TorchModel.predict_generator(generator, *, steps=None, verbose=True, dtype='float32', strip_target=False)`
+
+Predict on a generator.
+
+#### Parameters
+
+* **generator** (*any*):
+  an iterable, that will be used to get batches for prediction.
+* **steps** (*any*):
+  the number of times the generator should be called. if `steps` is
+  `None`, the generator all items of the generator will be
+  processed. Therefore, the generator should only yield a finite
+  number of items in this case.
+* **verbose** (*any*):
+  if `True` print progress during prediction.
+* **strip_target** (*any*):
+  if `True`, the generator is assumed to also yield targets, that
+  should be ignored. Note: in this case also the dtype is assumed to
+  include target information.
+
+#### Returns
+
+the predictions as a numpy array.
+
+
 ### `chmp.torch_util.Callback`
 `chmp.torch_util.Callback()`
 
@@ -93,11 +149,11 @@ Compute weights with shape `(batch_size, n_samples, n_keys)`.
 
 
 ### `chmp.torch_util.iter_batch_indices`
-`chmp.torch_util.iter_batch_indices(n_samples)`
+`chmp.torch_util.iter_batch_indices(n_samples, *, batch_size=None, indices=None, shuffle=False, only_complete=True)`
 
 
 ### `chmp.torch_util.iter_batched`
-`chmp.torch_util.iter_batched(data)`
+`chmp.torch_util.iter_batched(data, *, batch_size=None, indices=None, only_complete=True, shuffle=False)`
 
 Iterate over data in batches.
 
@@ -225,6 +281,62 @@ loss((loc, scale), y)
 `chmp.torch_util.SimpleBayesTorchModel(module, n_observations, **kwargs)`
 
 
+#### `chmp.torch_util.SimpleBayesTorchModel.fit`
+`chmp.torch_util.SimpleBayesTorchModel.fit(x=None, y=None, *, batch_size=None, epochs=1, shuffle=True, verbose=False, callbacks=None, dtype='float32')`
+
+
+#### `chmp.torch_util.SimpleBayesTorchModel.fit_generator`
+`chmp.torch_util.SimpleBayesTorchModel.fit_generator(generator=None, *, steps_per_epoch=1, epochs=None, verbose=True, callbacks=None, dtype='float32')`
+
+Fit the model on a dynamically generated dataset.
+
+#### Parameters
+
+* **generator** (*any*):
+  A generator yielding `batch_x, batch_y` pairs.
+* **steps_per_epoch** (*any*):
+  The number batches that make up an epoch.
+* **epochs** (*any*):
+  The number of epochs to evaluate. If `None`, the generator must be
+  finite.
+* **verbose** (*any*):
+
+
+#### Returns
+
+itself.
+
+
+#### `chmp.torch_util.SimpleBayesTorchModel.predict`
+`chmp.torch_util.SimpleBayesTorchModel.predict(x=None, *, batch_size=None, verbose=False, dtype='float32')`
+
+
+#### `chmp.torch_util.SimpleBayesTorchModel.predict_generator`
+`chmp.torch_util.SimpleBayesTorchModel.predict_generator(generator, *, steps=None, verbose=True, dtype='float32', strip_target=False)`
+
+Predict on a generator.
+
+#### Parameters
+
+* **generator** (*any*):
+  an iterable, that will be used to get batches for prediction.
+* **steps** (*any*):
+  the number of times the generator should be called. if `steps` is
+  `None`, the generator all items of the generator will be
+  processed. Therefore, the generator should only yield a finite
+  number of items in this case.
+* **verbose** (*any*):
+  if `True` print progress during prediction.
+* **strip_target** (*any*):
+  if `True`, the generator is assumed to also yield targets, that
+  should be ignored. Note: in this case also the dtype is assumed to
+  include target information.
+
+#### Returns
+
+the predictions as a numpy array.
+
+
 ### `chmp.torch_util.WeightsHS`
 `chmp.torch_util.WeightsHS(shape, tau_0, regularization=None)`
 
@@ -269,7 +381,7 @@ Sources:
 
 
 ### `chmp.torch_util.optional_parameter`
-`chmp.torch_util.optional_parameter(arg)`
+`chmp.torch_util.optional_parameter(arg, *, default=<class 'chmp.torch_util._probabilistic.optimized'>)`
 
 Make sure arg is a tensor and optionally a parameter.
 
