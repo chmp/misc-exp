@@ -2,7 +2,6 @@
 """
 
 import collections
-import itertools as it
 import numpy as np
 
 from chmp.ds import loop_over, loop_nest
@@ -42,118 +41,24 @@ class BaseTrainer:
     def batch_step(self, batch_x, batch_y, logs):
         raise NotImplementedError("Overwrite batch_step in derived class.")
 
-    def unpack_batch(self, keys, values):
-        return unpack(keys, values)
-
-    def fit(
-        self,
-        x=None,
-        y=None,
-        *,
-        batch_size=None,
-        epochs=1,
-        shuffle=True,
-        verbose=False,
-        dtype="float32",
-    ):
-        dtype_x, dtype_y = ensure_tuple(dtype, 2)
-        x = apply_dtype(dtype_x, x)
-        y = apply_dtype(dtype_y, y)
-        keys, values = pack(x, y)
-        n_samples = get_number_of_samples(*values)
-
+    def fit_data(self, data: "sized_generator", *, epochs=1, verbose=True):
         train_logs = {}
-
-        self.callbacks.set_parameters(
-            {"epochs": epochs, "shuffle": shuffle, "batch_size": batch_size}
-        )
+        self.callbacks.set_parameters({"epochs": epochs})
         self.on_train_begin(train_logs)
 
         for epoch in optional_loop(range(epochs), verbose=verbose):
             epoch_logs = {}
             self.on_epoch_begin(epoch, epoch_logs)
 
-            indices = None if not shuffle else shuffled_indices(n_samples)
-
-            for batch, batch_values in enumerate(
-                optional_loop_nest(
-                    iter_batched(values, batch_size=batch_size, indices=indices),
-                    verbose=verbose,
-                    label=self.message.get,
-                )
+            for batch, (batch_x, batch_y) in enumerate(
+                optional_loop_nest(data, verbose=verbose, label=self.message.get)
             ):
                 batch_logs = {}
-
                 self.on_batch_begin(batch, batch_logs)
-
-                batch_x, batch_y = self.unpack_batch(keys, batch_values)
                 self.batch_step(batch_x, batch_y, batch_logs)
-
                 self.on_batch_end(batch, batch_logs)
 
             self.on_epoch_end(epoch, epoch_logs)
-
-        self.on_train_end(train_logs)
-
-        if verbose:
-            print("\n")
-
-    def fit_generator(
-        self,
-        generator,
-        *,
-        steps_per_epoch=1,
-        epochs=None,
-        verbose=True,
-        dtype="float32",
-    ):
-        dtype_x, dtype_y = ensure_tuple(dtype, 2)
-        generator = iter(generator)
-        epoch_sequence = it.count() if epochs is None else range(epochs)
-
-        train_logs = {}
-
-        self.callbacks.set_parameters({"epochs": epochs})
-        self.on_train_begin(train_logs)
-
-        for epoch in optional_loop(epoch_sequence, verbose=verbose):
-            epoch_logs = {}
-            self.on_epoch_begin(epoch, epoch_logs)
-
-            for batch in optional_loop_nest(
-                range(steps_per_epoch), verbose=verbose, label=self.message.get
-            ):
-                try:
-                    batch_x, batch_y = next(generator)
-
-                except StopIteration:
-                    if epochs is None:
-                        break
-
-                    else:
-                        raise RuntimeError(
-                            "Generator did not yield enough batches for fit."
-                        )
-
-                batch_logs = {}
-                self.on_batch_begin(batch, batch_logs)
-
-                batch_keys, batch_values = pack(
-                    apply_dtype(dtype_x, batch_x), apply_dtype(dtype_y, batch_y)
-                )
-                batch_x, batch_y = self.unpack_batch(batch_keys, batch_values)
-                self.batch_step(batch_x, batch_y, batch_logs)
-
-                self.on_batch_end(batch, batch_logs)
-
-            # if the epoch was not aborted
-            else:
-                self.on_epoch_end(epoch, epoch_logs)
-                continue
-
-            # else break
-            self.on_epoch_end(epoch, epoch_logs)
-            break
 
         self.on_train_end(train_logs)
 
@@ -174,65 +79,10 @@ class BasePredictor:
     def predict_batch(self, x):
         raise NotImplementedError("Overwrite predict_batch in derived class")
 
-    def predict(self, x=None, batch_size=None, verbose=False, dtype="float32"):
-        x = apply_dtype(dtype, x)
-        keys, values = pack(x)
+    def predict_data(self, data, *, verbose=False):
         batch_keys_values_pairs = []
-
-        for batch_values in optional_loop(
-            iter_batched(values, batch_size=batch_size, only_complete=False),
-            verbose=verbose,
-            label="predict",
-        ):
-            batch_x, = self.unpack_batch(keys, batch_values)
+        for batch_x in optional_loop(data, verbose=verbose, label="predict"):
             pred = self.predict_batch(batch_x)
-            batch_keys_values_pairs.append(self.pack_prediction(pred))
-
-        if verbose:
-            print("\n")
-
-        result, = unpack_batches(batch_keys_values_pairs)
-        return result
-
-    def predict_generator(
-        self,
-        generator,
-        *,
-        steps=None,
-        verbose=True,
-        dtype="float32",
-        strip_target=False,
-    ):
-        generator = iter(generator)
-        batch_keys_values_pairs = []
-        step_sequence = it.count() if steps is None else range(steps)
-
-        if strip_target:
-            dtype, _ = ensure_tuple(dtype, 2)
-
-        for _ in optional_loop(step_sequence, verbose=verbose, label="predict"):
-            try:
-                if not strip_target:
-                    batch_x = next(generator)
-
-                else:
-                    batch_x, _ = next(generator)
-
-            except StopIteration:
-                if steps is None:
-                    break
-
-                else:
-                    raise RuntimeError(
-                        "Generator did not yield enough batches for predict"
-                    )
-
-            batch_x = apply_dtype(dtype, batch_x)
-            batch_keys, batch_values = pack(batch_x)
-            batch_x, = self.unpack_batch(batch_keys, batch_values)
-
-            pred = self.predict_batch(batch_x)
-
             batch_keys_values_pairs.append(self.pack_prediction(pred))
 
         if verbose:
@@ -248,110 +98,15 @@ class BatchedModel:
     trainer = BaseTrainer
     predictor = BasePredictor
 
-    def fit(
-        self,
-        x=None,
-        y=None,
-        *,
-        batch_size=None,
-        epochs=1,
-        shuffle=True,
-        verbose=False,
-        callbacks=None,
-        dtype="float32",
+    def fit_data(
+        self, data: "sized_generator", *, epochs=1, callbacks=None, verbose=True
     ):
         trainer = self.trainer(model=self, callbacks=callbacks)
-        trainer.fit(
-            x,
-            y,
-            batch_size=batch_size,
-            epochs=epochs,
-            shuffle=shuffle,
-            verbose=verbose,
-            dtype=dtype,
-        )
+        trainer.fit_data(data, epochs=epochs, verbose=verbose)
         return trainer.history
 
-    def fit_generator(
-        self,
-        generator=None,
-        *,
-        steps_per_epoch=1,
-        epochs=None,
-        verbose=True,
-        callbacks=None,
-        dtype="float32",
-    ):
-        """Fit the model on a dynamically generated dataset.
-
-        :param generator:
-            A generator yielding ``batch_x, batch_y`` pairs.
-        :param steps_per_epoch:
-            The number batches that make up an epoch.
-        :param epochs:
-            The number of epochs to evaluate. If ``None``, the generator must be
-            finite.
-        :param verbose:
-        :returns:
-            itself.
-        """
-
-        def do_fit(generator):
-            trainer = self.trainer(model=self, callbacks=callbacks)
-            trainer.fit_generator(
-                generator,
-                steps_per_epoch=steps_per_epoch,
-                epochs=epochs,
-                verbose=verbose,
-                dtype=dtype,
-            )
-            return trainer.history
-
-        def decorator(generator):
-            do_fit(generator())
-            return generator
-
-        return do_fit(generator) if generator is not None else decorator
-
-    def predict(self, x=None, *, batch_size=None, verbose=False, dtype="float32"):
-        return self.predictor(model=self).predict(
-            x, batch_size=batch_size, verbose=verbose, dtype=dtype
-        )
-
-    def predict_generator(
-        self,
-        generator,
-        *,
-        steps=None,
-        verbose=True,
-        dtype="float32",
-        strip_target=False,
-    ):
-        """Predict on a generator.
-
-        :param generator:
-            an iterable, that will be used to get batches for prediction.
-        :param steps:
-            the number of times the generator should be called. if ``steps`` is
-            ``None``, the generator all items of the generator will be
-            processed. Therefore, the generator should only yield a finite
-            number of items in this case.
-        :param verbose:
-            if ``True`` print progress during prediction.
-        :param strip_target:
-            if ``True``, the generator is assumed to also yield targets, that
-            should be ignored. Note: in this case also the dtype is assumed to
-            include target information.
-        :returns:
-            the predictions as a numpy array.
-        """
-        return self.predictor(model=self).predict_generator(
-            generator,
-            steps=steps,
-            verbose=verbose,
-            dtype=dtype,
-            strip_target=strip_target,
-        )
+    def predict_data(self, data: "sized_generator", *, verbose=False):
+        return self.predictor(model=self).predict_data(data, verbose=verbose)
 
 
 def optional_loop(iterable, verbose=False, label=None):
@@ -360,6 +115,98 @@ def optional_loop(iterable, verbose=False, label=None):
 
 def optional_loop_nest(iterable, verbose=False, label=None):
     return iterable if not verbose else loop_nest(iterable, label=label)
+
+
+def batched_numpy(
+    *objs, batch_size=1, shuffle=True, dtype="float32", drop_last=False, prepack=None
+):
+    """Construct a data-loader like for numpy arrays."""
+    if prepack is None:
+        prepack = identity
+
+    dtypes = ensure_tuple(dtype, len(objs))
+    objs = tuple(apply_dtype(d, o) for d, o in zip(dtypes, objs))
+    keys, values = pack(*objs)
+
+    n_samples = get_number_of_samples(*values)
+    n_batches = get_number_of_batches(
+        n_samples, batch_size=batch_size, only_complete=drop_last
+    )
+
+    def generator():
+        indices = None if not shuffle else shuffled_indices(n_samples)
+
+        for batch_values in iter_batched(
+            values,
+            batch_size=batch_size,
+            indices=indices,
+            shuffle=shuffle,
+            only_complete=drop_last,
+        ):
+            batch_values = tuple(prepack(val) for val in batch_values)
+            batch_objs = unpack(keys, batch_values)
+            yield batch_objs
+
+    return sized_generator(generator, length=n_batches)
+
+
+def batched_transformed(
+    base,
+    transform=None,
+    *,
+    batch_size=1,
+    shuffle=True,
+    dtype="float32",
+    drop_last=False,
+    prepack=None,
+):
+    """Construct a data-loader like for transformed data."""
+    if prepack is None:
+        prepack = identity
+
+    if isinstance(base, range):
+        base = np.arange(base.start, base.stop, base.step)
+
+    keys, values = pack(base)
+    n_samples = get_number_of_samples(*values)
+    n_batches = get_number_of_batches(
+        n_samples, batch_size=batch_size, only_complete=drop_last
+    )
+
+    def decorator(transform):
+        def generator():
+            indices = None if not shuffle else shuffled_indices(n_samples)
+
+            for batch_values in iter_batched(
+                values,
+                batch_size=batch_size,
+                indices=indices,
+                shuffle=shuffle,
+                only_complete=drop_last,
+            ):
+                batch_obj, = unpack(keys, batch_values)
+                batch_obj = transform(batch_obj)
+                batch_obj = apply_dtype(dtype, batch_obj)
+
+                if isinstance(batch_obj, tuple):
+                    k, v = pack(*batch_obj)
+                    v = tuple(prepack(i) for i in v)
+                    batch_obj = unpack(k, v)
+
+                else:
+                    k, v = pack(batch_obj)
+                    v = tuple(prepack(i) for i in v)
+                    batch_obj, = unpack(k, v)
+
+                yield batch_obj
+
+        return sized_generator(generator, n_batches)
+
+    return decorator if transform is None else decorator(transform)
+
+
+def identity(x):
+    return x
 
 
 def unpack_batches(batch_keys_values_pairs):
@@ -412,7 +259,7 @@ def iter_batched(
     """Iterate over data in batches.
 
     :param data:
-        the data to iterate over has to be a dicitonary
+        the data to iterate over
     :param only_complete:
         if True yield only batches that have exactly ``batch_size`` items
     """
@@ -445,10 +292,9 @@ def iter_batch_indices(
     if batch_size is None:
         batch_size = default_batch_size
 
-    n_batches = n_samples // batch_size
-
-    if not only_complete and n_samples % batch_size != 0:
-        n_batches += 1
+    n_batches = get_number_of_batches(
+        n_samples, batch_size=batch_size, only_complete=only_complete
+    )
 
     if n_batches == 0:
         raise ValueError("Not enought items")
@@ -465,6 +311,15 @@ def iter_batch_indices(
             yield batch_indices
 
     return sized_generator(generator, length=n_batches)
+
+
+def get_number_of_batches(n_samples, batch_size, only_complete=True):
+    n_batches = n_samples // batch_size
+
+    if not only_complete and n_samples % batch_size != 0:
+        n_batches += 1
+
+    return n_batches
 
 
 def get_number_of_samples(*values):
@@ -504,11 +359,11 @@ def apply_dtype(dtype, arg):
     # non-exact type matches, i.e., pandas.DataFrames for dict.
     if isinstance(dtype, dict):
         return collections.OrderedDict(
-            (k, np.asarray(arg[k], dtype=dtype[k])) for k in dtype
+            (k, apply_dtype(dtype[k], arg[k])) for k in dtype
         )
 
     elif isinstance(dtype, tuple):
-        return tuple(np.asarray(arg[i], dtype=dtype[i]) for i in range(len(dtype)))
+        return tuple(apply_dtype(dtype[i], arg[i]) for i in range(len(dtype)))
 
     else:
         return np.asarray(arg, dtype=dtype)
