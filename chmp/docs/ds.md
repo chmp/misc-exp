@@ -283,6 +283,25 @@ Find categories with high frequency.
   columns.
 
 
+### `chmp.ds.timed`
+`chmp.ds.timed(tag=None, level=20)`
+
+Time a codeblock and log the result.
+
+Usage:
+
+```
+with timed():
+    long_running_operation()
+```
+
+#### Parameters
+
+* **tag** (*any*):
+  an object used to identify the timed code block. It is printed with
+  the time taken.
+
+
 ### `chmp.ds.cast_types`
 `chmp.ds.cast_types(numeric=None, categorical=None)`
 

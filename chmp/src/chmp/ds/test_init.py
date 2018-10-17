@@ -1,4 +1,4 @@
-from chmp.ds import Object, compute_moi, orient
+from chmp.ds import Object, compute_moi, orient, timed
 
 import numpy as np
 
@@ -43,3 +43,11 @@ def test_orient_straight_line():
 
     np.testing.assert_almost_equal(opos[:, 0], u)
     np.testing.assert_almost_equal(opos[:, 1], 0)
+
+
+def test_timed():
+    with timed():
+        assert True is True
+
+    with timed("label"):
+        assert True is True

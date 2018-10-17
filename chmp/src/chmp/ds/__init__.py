@@ -10,9 +10,11 @@ import enum
 import functools as ft
 import hashlib
 import importlib
+import inspect
 import io
 import itertools as it
 import json
+import logging
 import math
 import os.path
 import pickle
@@ -982,6 +984,52 @@ def pd_has_ordered_assign():
     pd_minor = int(pd_minor)
 
     return (py_major, py_minor) >= (3, 6) and (pd_major, pd_minor) >= (0, 23)
+
+
+def timed(tag=None, level=logging.INFO):
+    """Time a codeblock and log the result.
+
+    Usage::
+
+        with timed():
+            long_running_operation()
+
+    :param any tag:
+        an object used to identify the timed code block. It is printed with
+        the time taken.
+    """
+    return _TimedContext(
+        message=("[TIMING] %s s" if tag is None else "[TIMING] {} %s s".format(tag)),
+        logger=_get_caller_logger(),
+        level=level,
+    )
+
+
+# use a custom contextmanager to control stack level for _get_caller_logger
+class _TimedContext(object):
+    def __init__(self, logger, message, level):
+        self.logger = logger
+        self.message = message
+        self.level = level
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        end = time.time()
+        self.logger.log(self.level, self.message, end - self.start)
+
+
+def _get_caller_logger(depth=2):
+    stack = inspect.stack()
+
+    if depth >= len(stack):  # pragma: no cover
+        return logging.getLogger(__name__)
+
+    # NOTE: python2 returns raw tuples, index 0 is the frame
+    frame = stack[depth][0]
+    name = frame.f_globals.get("__name__")
+    return logging.getLogger(name)
 
 
 def cast_types(numeric=None, categorical=None):
