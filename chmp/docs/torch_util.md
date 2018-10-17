@@ -44,7 +44,7 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 
 
 #### `chmp.torch_util.TorchModel.fit`
-`chmp.torch_util.TorchModel.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None)`
+`chmp.torch_util.TorchModel.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.TorchModel.predict`
@@ -52,7 +52,7 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 
 
 #### `chmp.torch_util.TorchModel.fit_transformed`
-`chmp.torch_util.TorchModel.fit_transformed(base, transform, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None)`
+`chmp.torch_util.TorchModel.fit_transformed(base, transform, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.TorchModel.predict_transformed`
@@ -60,7 +60,7 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 
 
 #### `chmp.torch_util.TorchModel.fit_data`
-`chmp.torch_util.TorchModel.fit_data(data, *, epochs=1, callbacks=None, verbose=True)`
+`chmp.torch_util.TorchModel.fit_data(data, *, epochs=1, callbacks=None, verbose=True, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.TorchModel.predict_data`
@@ -250,7 +250,7 @@ loss((loc, scale), y)
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.fit`
-`chmp.torch_util.SimpleBayesTorchModel.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None)`
+`chmp.torch_util.SimpleBayesTorchModel.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.predict`
@@ -258,7 +258,7 @@ loss((loc, scale), y)
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.fit_transformed`
-`chmp.torch_util.SimpleBayesTorchModel.fit_transformed(base, transform, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None)`
+`chmp.torch_util.SimpleBayesTorchModel.fit_transformed(base, transform, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.predict_transformed`
@@ -266,7 +266,7 @@ loss((loc, scale), y)
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.fit_data`
-`chmp.torch_util.SimpleBayesTorchModel.fit_data(data, *, epochs=1, callbacks=None, verbose=True)`
+`chmp.torch_util.SimpleBayesTorchModel.fit_data(data, *, epochs=1, callbacks=None, verbose=True, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_util.SimpleBayesTorchModel.predict_data`

@@ -2,17 +2,27 @@
 """
 
 import collections
+import enum
 import numpy as np
 
 from chmp.ds import loop_over, loop_nest
+
+from ._metrics import ensure_metric
 
 default_batch_size = 32
 
 
 class BaseTrainer:
-    def __init__(self, model, callbacks):
+    def __init__(self, model, callbacks, metrics):
+        if metrics is None:
+            metrics = []
+
+        elif not isinstance(metrics, (list, tuple)):
+            metrics = [metrics]
+
         self.model = model
         self.callbacks = CallbackList.make(callbacks)
+        self.metrics = [ensure_metric(metric) for metric in metrics]
         self.history = History()
         self.message = FitMessage()
 
@@ -38,10 +48,26 @@ class BaseTrainer:
     def on_batch_end(self, batch, logs):
         self.callbacks.on_batch_end(batch, logs)
 
+    def on_validation_begin(self, logs):
+        self.callbacks.on_validation_begin(logs)
+
+    def on_validation_end(self, logs):
+        self.callbacks.on_validation_end(logs)
+
     def batch_step(self, batch_x, batch_y, logs):
         raise NotImplementedError("Overwrite batch_step in derived class.")
 
-    def fit_data(self, data: "sized_generator", *, epochs=1, verbose=True):
+    def batch_validate(self, batch_x, batch_y):
+        raise NotImplementedError("Overwrite batch_validate in derived class.")
+
+    def fit_data(
+        self,
+        data: "sized_generator",
+        *,
+        validation_data: "sized_generator" = None,
+        epochs=1,
+        verbose=True,
+    ):
         train_logs = {}
         self.callbacks.set_parameters({"epochs": epochs})
         self.on_train_begin(train_logs)
@@ -58,12 +84,30 @@ class BaseTrainer:
                 self.batch_step(batch_x, batch_y, batch_logs)
                 self.on_batch_end(batch, batch_logs)
 
+            if validation_data is not None:
+                self.validate(validation_data)
+
             self.on_epoch_end(epoch, epoch_logs)
 
         self.on_train_end(train_logs)
 
         if verbose:
             print("\n")
+
+    def validate(self, validation_data):
+        validation_logs = {}
+        self.on_validation_begin(validation_logs)
+
+        current = [metric.zero() for metric in self.metrics]
+
+        for batch_x, batch_y in validation_data:
+            updates = self.batch_validate(batch_x, batch_y)
+            current = [c + u for (c, u) in zip(current, updates)]
+
+        validation_logs["metrics"] = [
+            (m.name(), c.get()) for m, c in zip(self.metrics, current)
+        ]
+        self.on_validation_end(validation_logs)
 
 
 class BasePredictor:
@@ -88,7 +132,7 @@ class BasePredictor:
         if verbose:
             print("\n")
 
-        result, = unpack_batches(batch_keys_values_pairs)
+        result = unpack_batches(batch_keys_values_pairs)
         return result
 
 
@@ -99,10 +143,19 @@ class BatchedModel:
     predictor = BasePredictor
 
     def fit_data(
-        self, data: "sized_generator", *, epochs=1, callbacks=None, verbose=True
+        self,
+        data: "sized_generator",
+        *,
+        epochs=1,
+        callbacks=None,
+        verbose=True,
+        metrics=None,
+        validation_data: "sized_generator" = None,
     ):
-        trainer = self.trainer(model=self, callbacks=callbacks)
-        trainer.fit_data(data, epochs=epochs, verbose=verbose)
+        trainer = self.trainer(model=self, callbacks=callbacks, metrics=metrics)
+        trainer.fit_data(
+            data, epochs=epochs, verbose=verbose, validation_data=validation_data
+        )
         return trainer.history
 
     def predict_data(self, data: "sized_generator", *, verbose=False):
@@ -118,15 +171,14 @@ def optional_loop_nest(iterable, verbose=False, label=None):
 
 
 def batched_numpy(
-    *objs, batch_size=1, shuffle=True, dtype="float32", drop_last=False, prepack=None
+    obj, batch_size=1, shuffle=True, dtype="float32", drop_last=False, prepack=None
 ):
     """Construct a data-loader like for numpy arrays."""
     if prepack is None:
         prepack = identity
 
-    dtypes = ensure_tuple(dtype, len(objs))
-    objs = tuple(apply_dtype(d, o) for d, o in zip(dtypes, objs))
-    keys, values = pack(*objs)
+    obj = apply_dtype(dtype, obj)
+    keys, values = pack(obj)
 
     n_samples = get_number_of_samples(*values)
     n_batches = get_number_of_batches(
@@ -144,8 +196,8 @@ def batched_numpy(
             only_complete=drop_last,
         ):
             batch_values = tuple(prepack(val) for val in batch_values)
-            batch_objs = unpack(keys, batch_values)
-            yield batch_objs
+            batch_obj = unpack(keys, batch_values)
+            yield batch_obj
 
     return sized_generator(generator, length=n_batches)
 
@@ -184,19 +236,13 @@ def batched_transformed(
                 shuffle=shuffle,
                 only_complete=drop_last,
             ):
-                batch_obj, = unpack(keys, batch_values)
+                batch_obj = unpack(keys, batch_values)
                 batch_obj = transform(batch_obj)
                 batch_obj = apply_dtype(dtype, batch_obj)
 
-                if isinstance(batch_obj, tuple):
-                    k, v = pack(*batch_obj)
-                    v = tuple(prepack(i) for i in v)
-                    batch_obj = unpack(k, v)
-
-                else:
-                    k, v = pack(batch_obj)
-                    v = tuple(prepack(i) for i in v)
-                    batch_obj, = unpack(k, v)
+                k, v = pack(batch_obj)
+                v = tuple(prepack(i) for i in v)
+                batch_obj = unpack(k, v)
 
                 yield batch_obj
 
@@ -274,9 +320,20 @@ def iter_batched(
 
     def generator():
         for batch_indices in index_generator:
-            yield tuple(array[batch_indices] for array in data)
+            yield tuple(multi_getitem(array, batch_indices) for array in data)
 
     return sized_generator(generator, length=len(index_generator))
+
+
+def multi_getitem(obj, indices):
+    """Get multiple items from one object with support for various types."""
+    if type(obj).__module__.startswith("numpy"):
+        return obj[indices]
+
+    if type(obj).__module__.startswith("pandas"):
+        return obj.iloc[indices]
+
+    return type(obj)([obj[idx] for idx in indices])
 
 
 def iter_batch_indices(
@@ -323,7 +380,7 @@ def get_number_of_batches(n_samples, batch_size, only_complete=True):
 
 
 def get_number_of_samples(*values):
-    sample_counts = {item.shape[0] for item in values if item is not None}
+    sample_counts = {len(item) for item in values if item is not None}
     if len(sample_counts) != 1:
         raise ValueError("inconsistent batch sizes")
 
@@ -369,7 +426,13 @@ def apply_dtype(dtype, arg):
         return np.asarray(arg, dtype=dtype)
 
 
-def pack(*args):
+class Pack(enum.Enum):
+    object = 1
+    tuple = 2
+    dict = 3
+
+
+def pack(obj):
     """Pack arguments of different types into a list.
 
     The ``pack`` / ``unpack`` pair is used to ensure that even with mixed
@@ -380,27 +443,34 @@ def pack(*args):
         object that can be used to unpack the values. ``values`` will be
         a tuple of flattend arguments.
     """
-    keys = []
-    values = []
+    if isinstance(obj, tuple):
+        keys = []
+        values = []
 
-    for arg in args:
-        if isinstance(arg, tuple):
-            keys.append(len(arg))
-            values.extend(arg)
+        for item in obj:
+            item_key, item_values = pack(item)
+            keys.append(item_key)
+            values.extend(item_values)
 
-        elif isinstance(arg, dict):
-            k, v = zip(*arg.items())
-            keys.append(tuple(k))
-            values.extend(v)
+        return (Pack.tuple, *keys), tuple(values)
 
-        else:
-            keys.append(None)
-            values.append(arg)
+    elif isinstance(obj, dict):
+        keys = []
+        values = []
 
-    return tuple(keys), tuple(values)
+        for k, item in obj.items():
+            item_key, item_values = pack(item)
+
+            keys.append((k, item_key))
+            values.extend(item_values)
+
+        return (Pack.dict, *keys), tuple(values)
+
+    else:
+        return (Pack.object,), (obj,)
 
 
-def unpack(keys, values):
+def unpack(key, values):
     """Unpack previously packed parameters.
 
     Given ``keys`` and ``values`` as returned by ``pack`` reconstruct
@@ -409,25 +479,37 @@ def unpack(keys, values):
     :returns:
         a tuple of the same structure as the arguments to ``pack``.
     """
-    offset = 0
-    result = []
+    obj, rest = _unpack(key, values)
+    assert not rest
+    return obj
 
-    for key in keys:
-        if key is None:
-            result.append(values[offset])
-            offset += 1
 
-        elif isinstance(key, tuple):
-            result.append(
-                {k: v for k, v in zip(key, values[offset : offset + len(key)])}
-            )
-            offset += len(key)
+def _unpack(key, values):
+    if key[0] == Pack.object:
+        return values[0], values[1:]
 
-        else:
-            result.append(tuple(v for v in values[offset : offset + key]))
-            offset += key
+    elif key[0] == Pack.tuple:
+        _, *item_keys = key
 
-    return tuple(result)
+        items = []
+        for item_key in item_keys:
+            item, values = _unpack(item_key, values)
+            items.append(item)
+
+        return tuple(items), values
+
+    elif key[0] == Pack.dict:
+        _, *item_keys = key
+
+        items = {}
+        for (k, item_key) in item_keys:
+            item, values = _unpack(item_key, values)
+            items[k] = item
+
+        return items, values
+
+    else:
+        raise NotImplementedError()
 
 
 class sized_generator:
@@ -476,6 +558,12 @@ class Callback:
         pass
 
     def on_train_end(self, logs=None):
+        pass
+
+    def on_validation_begin(self, logs=None):
+        pass
+
+    def on_validation_end(self, logs=None):
         pass
 
 
@@ -530,6 +618,14 @@ class CallbackList(Callback):
     def on_train_end(self, logs=None):
         for callback in self.callbacks:
             callback.on_train_end(logs)
+
+    def on_validation_begin(self, logs=None):
+        for callback in self.callbacks:
+            callback.on_validation_begin(logs)
+
+    def on_validation_end(self, logs=None):
+        for callback in self.callbacks:
+            callback.on_validation_end(logs)
 
 
 class History(Callback):
@@ -597,6 +693,7 @@ class FitMessage(Callback):
         self.current_loss = None
         self.current_epoch = None
         self.epochs = None
+        self.current_metrics = None
 
     def get(self):
         def loss_fragments():
@@ -606,11 +703,20 @@ class FitMessage(Callback):
             yield "{:.3g}".format(self.current_loss)
             yield " "
 
+        def metric_fragments():
+            if self.current_metrics is None:
+                return
+
+            for label, value in self.current_metrics:
+                yield "{}: {:.3g}".format(label, value)
+                yield " "
+
         def format_epoch_number(epoch):
             return "{:,d}".format(epoch) if epoch is not None else "?"
 
         fragments = [
             *loss_fragments(),
+            *metric_fragments(),
             "(",
             format_epoch_number(self.current_epoch),
             " / ",
@@ -627,6 +733,9 @@ class FitMessage(Callback):
 
     def on_batch_end(self, batch, logs=None):
         self.current_loss = optional_dict(logs).get("loss")
+
+    def on_validation_end(self, logs=None):
+        self.current_metrics = optional_dict(logs).get("metrics", None)
 
 
 def optional_dict(d=None):

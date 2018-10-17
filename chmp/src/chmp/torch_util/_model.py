@@ -39,6 +39,10 @@ class TorchTrainer(BaseTrainer):
         loss = self.optimizer.step(closure)
         logs["loss"] = float(loss)
 
+    def batch_validate(self, batch_x, batch_y):
+        pred = call_module(self.model.module, batch_x)
+        return [metric.compute(pred, batch_y) for metric in self.metrics]
+
     def _compute_loss(self, pred, y):
         if self.model.loss is not None:
             return self.model.loss(pred, y)
@@ -146,12 +150,22 @@ class TorchModel(BatchedModel):
         dtype="float32",
         verbose=True,
         callbacks=None,
+        metrics=None,
+        validation_data=None,
     ):
+
+        if validation_data is not None:
+            validation_data = numpy_predict(
+                validation_data, batch_size=batch_size, dtype=dtype
+            )
+
         self.fit_data(
-            numpy_fit(x, y, batch_size=batch_size, dtype=dtype),
+            numpy_fit((x, y), batch_size=batch_size, dtype=dtype),
             epochs=epochs,
             verbose=verbose,
             callbacks=callbacks,
+            metrics=metrics,
+            validation_data=validation_data,
         )
 
     def fit_transformed(
@@ -164,12 +178,21 @@ class TorchModel(BatchedModel):
         dtype="float32",
         verbose=True,
         callbacks=None,
+        metrics=None,
+        validation_data=None,
     ):
+        if validation_data is not None:
+            validation_data = numpy_predict(
+                validation_data, batch_size=batch_size, dtype=dtype
+            )
+
         return self.fit_data(
             transformed_fit(base, transform, batch_size=batch_size, dtype=dtype),
             epochs=epochs,
             verbose=verbose,
             callbacks=callbacks,
+            validation_data=validation_data,
+            metrics=metrics,
         )
 
     def predict(self, x, batch_size=default_batch_size, dtype="float32", verbose=False):
@@ -191,9 +214,9 @@ class TorchModel(BatchedModel):
         )
 
 
-def numpy_fit(*objs, batch_size=default_batch_size, dtype="float32"):
+def numpy_fit(obj, batch_size=default_batch_size, dtype="float32"):
     return batched_numpy(
-        *objs,
+        obj,
         batch_size=batch_size,
         dtype=dtype,
         shuffle=True,
@@ -202,9 +225,9 @@ def numpy_fit(*objs, batch_size=default_batch_size, dtype="float32"):
     )
 
 
-def numpy_predict(*objs, batch_size=default_batch_size, dtype="float32"):
+def numpy_predict(obj, batch_size=default_batch_size, dtype="float32"):
     return batched_numpy(
-        *objs,
+        obj,
         batch_size=batch_size,
         dtype=dtype,
         shuffle=False,

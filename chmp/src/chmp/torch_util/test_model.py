@@ -16,7 +16,12 @@ def build_example_model():
 
 def test_torch_model__example_linear_regression():
     model = build_example_model()
-    model.fit(np.random.normal(size=(100, 10)), np.random.normal(size=100))
+    model.fit(
+        np.random.normal(size=(100, 10)),
+        np.random.normal(size=100),
+        metrics=[torch.nn.MSELoss()],
+        validation_data=(np.random.normal(size=(5, 10)), np.random.normal(size=5)),
+    )
     y_pred = model.predict(np.random.normal(size=(100, 10)))
     assert len(y_pred) == 100
 

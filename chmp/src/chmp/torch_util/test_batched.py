@@ -100,7 +100,33 @@ def test_assert_consistent_shape():
     ],
 )
 def test_pack_unpack(input, expected):
-    assert unpack(*pack(*input)) == expected
+    assert unpack(*pack(input)) == expected
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        2,
+        (1, 2),
+        (1, (2, 3)),
+        (1, (2, (3, 4))),
+        (((1, 2), 3), 4),
+        (1, (2, 3), 4),
+        {},
+        {1: 2},
+        {1: (2, 3)},
+        {1: 2, 3: 4},
+        {1: (2, {3: 4})},
+    ],
+)
+def test_pack_unpack_roundtrip(obj):
+    key, values = pack(obj)
+    roundtripped = unpack(key, values)
+
+    assert roundtripped == obj
+
+    # key is hashable
+    hash(key)
 
 
 def test_sized_generator__sized_content():
