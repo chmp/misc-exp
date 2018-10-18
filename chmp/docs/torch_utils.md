@@ -1,3 +1,12 @@
+# `chmp.torch_utils`
+
+Components:
+
+- [`chmp.torch_utils.data`](#chmptorch_utilsdata)
+- [`chmp.torch_utils.model`](#chmptorch_utilsmodel)
+- [`chmp.torch_utils.attention`](#chmptorch_utilsattention)
+- [`chmp.torch_utils.bayes`](#chmptorch_utilsbayes)
+
 ## `chmp.torch_utils.data`
 
 
@@ -22,7 +31,7 @@ Helper to build data loaders for numpy / transform based datasets.
   order.
 
 All other arguments (if given) are passed to
-[torch.utils.data.DataLoader](https://pytorch.org/docs/stable//data.html#torch.utils.data.DataLoader).
+[torch.utils.data.DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader).
 
 
 ### `chmp.torch_utils.data.pad_sequences`
