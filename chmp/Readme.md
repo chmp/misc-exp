@@ -8,7 +8,7 @@
 - [`chmp.label`](docs/label.md): support for labeling in IPython notebooks
 - [`chmp.parser`](docs/parser.md): helpers to write parsers using functional
   composition
-- [`chmp.torch_util`](docs/torch_util.md): helpers to write pytorch models
+- [`chmp.torch_util`](docs/torch_utils.md): helpers to write pytorch models
 
 The individual modules are designed ot be easily copyable outside this
 distribution. For example to use the parser combinators just copy the

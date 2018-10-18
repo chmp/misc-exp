@@ -2,7 +2,23 @@ import numpy as np
 import torch
 
 from ._util import register_unknown_kl
-from ._model import TorchModel
+from .model import Model
+
+__all__ = [
+    "fixed",
+    "optimized",
+    "optional_parameter",
+    "KLDivergence",
+    "SimpleBayesModel",
+    "VariationalNormal",
+    "VariationalHalfCauchy",
+    "NormalModule",
+    "GammaModule",
+    "LogNormalModule",
+    "ExponentialModule",
+    "NormalModelConstantScale",
+    "WeightsHS",
+]
 
 
 class fixed:
@@ -114,7 +130,7 @@ class ExponentialModule(TorchDistributionModule):
     _distribution_parameters_ = ("rate",)
 
 
-class SimpleBayesTorchModel(TorchModel):
+class SimpleBayesModel(Model):
     def __init__(self, module, n_observations, **kwargs):
         kwargs.setdefault("loss", NllLoss(module._distribution))
         kwargs.setdefault("regularization", KLDivergence(n_observations=n_observations))

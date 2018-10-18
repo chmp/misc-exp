@@ -1,6 +1,9 @@
 import torch
+import torch.nn.functional as F
 
-from ._functional import masked_softmax
+from .nn import masked_softmax
+
+__all__ = ["Transformer"]
 
 
 class Transformer(torch.nn.Module):
@@ -11,7 +14,15 @@ class Transformer(torch.nn.Module):
     must be binary ``{0, 1}``.
     """
 
-    def __init__(self, key_module, query_module=None, value_module=None, flatten=False):
+    def __init__(
+        self,
+        key_module,
+        query_module=None,
+        value_module=None,
+        flatten=False,
+        search_x=None,
+        search_y=None,
+    ):
         super().__init__()
 
         if query_module is None:
@@ -20,12 +31,26 @@ class Transformer(torch.nn.Module):
         if value_module is None:
             value_module = noop_value_module
 
+        if search_x is not None:
+            search_x = torch.as_tensor(search_x)
+
+        if search_y is not None:
+            search_y = torch.as_tensor(search_y)
+
         self.flatten = flatten
         self.key_module = key_module
         self.query_module = query_module
         self.value_module = value_module
+        self.search_x = search_x
+        self.search_y = search_y
 
-    def forward(self, search_x, search_y, query_x, mask=None, soft_mask=None):
+    def forward(self, query_x, mask=None, soft_mask=None, search_x=None, search_y=None):
+        if search_x is None:
+            search_x = self.search_x
+
+        if search_y is None:
+            search_y = self.search_y
+
         # shape: batch_size, n_values
         values = self.value_module(search_x, search_y)
         value_ndim = values.ndimension()
@@ -75,7 +100,7 @@ class Transformer(torch.nn.Module):
             p = masked_softmax(logits, mask[:, :, None], dim=1)
 
         else:
-            p = torch.nn.functional.softmax(logits, dim=1)
+            p = F.softmax(logits, dim=1)
 
         return p
 

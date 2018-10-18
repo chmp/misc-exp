@@ -11,9 +11,10 @@ inventories = [
     "http://www.numpy.org",
     "https://pandas.pydata.org",
     "https://docs.python.org/3",
+    "https://pytorch.org/docs/stable",
 ]
 
-directories_to_test = ["chmp"]
+directories_to_test = ["chmp", "20170813-KeywordDetection/chmp-app-kwdetect"]
 
 
 @task
