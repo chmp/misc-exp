@@ -1,11 +1,21 @@
 # Various Experiments, possibly ML related
 
+## Prototyping to tested code
+
+[source](./20181026-TestingInJupyter)
+
+How can pytest be used in Jupyter notebooks? And why does it make sense? This
+talk discusses how Jupyter notebooks form an effective environment for
+prototyping and how code can be refactored code into modules. A particular
+emphasis is placed on testing and the use of
+[ipytest](https://github.com/chmp/ipytest).
+
 ## Causality and function approximations
 
 [blog post](https://cprohm.de/article/causality-and-function-approximations.html) |
 [source](./20180107-Causality)
 
-How do causal analysis and function approximations interact? This blog post 
+How do causal analysis and function approximations interact? This blog post
 demonstrates how results for tabular methods break down for models with finite
 capacity.
 
@@ -29,10 +39,10 @@ and common scripts. To setup a virtual environment with all requirements use:
     pipenv sync --dev
 
 After that the following tasks can be performed:
-    
+
     # run any pre-commit tasks (docs, formatting, tests)
     pipenv run precommit
-    
+
     # run tests
     pipenv run test
 

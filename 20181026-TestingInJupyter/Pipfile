@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[requires]
+python_version = "3.7"
+
+[packages]
+ipytest = "==0.4.0b1"
+notebook = "*"
+ipykernel = "*"
+pytest = "*"
+nbconvert = "*"
+ipytest-demo = {editable = true, path = "."}
+
+[scripts]
+test = "pytest tests"
+build = "jupyter nbconvert --to slides notebooks/IPyTestIntro.ipynb --output-dir resources"
