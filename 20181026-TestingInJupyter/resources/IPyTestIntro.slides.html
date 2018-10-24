@@ -13244,7 +13244,7 @@ a.anchor-link {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h1 id="Prototyping-to-tested-code">Prototyping to tested code<a class="anchor-link" href="#Prototyping-to-tested-code">&#182;</a></h1><h2 id="About-the-author">About the author<a class="anchor-link" href="#About-the-author">&#182;</a></h2><p>I am a physicist by training and am now working as a data scientist. In my work, I focus on building robust software and putting code in production. Python has been my tool of choice for about 8 years.</p>
-<h2 id="An-introduciton-to-ipytest">An introduciton to ipytest<a class="anchor-link" href="#An-introduciton-to-ipytest">&#182;</a></h2><p>Jupyter notebooks are a great environment to prototype solutions and explore their design. Turning these solutions into reusable components usually requires moving them out of the notebook environment into external python packages. Often, at this stage, the code is refactored and test are written.</p>
+<h2 id="An-introduction-to-ipytest">An introduction to ipytest<a class="anchor-link" href="#An-introduction-to-ipytest">&#182;</a></h2><p>Jupyter notebooks are a great environment to prototype solutions and explore their design. Turning these solutions into reusable components usually requires moving them out of the notebook environment into external python packages. Often, at this stage, the code is refactored and test are written.</p>
 <p>In this talk, I will demo ipytest, a small tool to run tests inside notebooks. It supports pytest as well as the standard unittest framework. It allows to start prototypes in a notebook and to develop the tests with the code in an highly interactive environment. As the code grows, it can be transparently moved outside notebooks and transformed into reusable components. By bringing support for tests to the notebook environment, ipytest bridges the artificial gap between notebooks and reusable components.</p>
 
 </div>
@@ -13255,12 +13255,11 @@ a.anchor-link {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h1 id="Prototyping-to-tested-code">Prototyping to tested code<a class="anchor-link" href="#Prototyping-to-tested-code">&#182;</a></h1><h2 id="An-introduction-to-ipytest">An introduction to <a href="https://github.com/chmp/ipytest/"><code>ipytest</code></a><a class="anchor-link" href="#An-introduction-to-ipytest">&#182;</a></h2><p>
-    <div>Christopher Prohm</div>
-    <div>@PyCon.DE 2018, Karlsruhe</div>
+    <div>Christopher Prohm (<a href="https://twitter.com/@c_prohm">@c_prohm</a>)</div>
+    <div>PyCon.DE 2018, Karlsruhe</div>
 </p><p><br/></p>
 <p>
     <div>Github: <a href="https://githb.com/chmp/ipytest">https://githb.com/chmp/ipytest</a></div>
-    <div>Twitter: <a href="https://twitter.com/@c_prohm">@c_prohm</a></div>
 </p>
 </div>
 </div>
@@ -13330,7 +13329,7 @@ a.anchor-link {
     </div>
 </p>
 <br/></p>
-<p><p class="fragment fade-in">Use same tooling inside notebooks outside notebooks. </p>
+<p><p class="fragment fade-in">Use same  libraries &amp; tooling inside and outside notebooks. </p>
 <br/></p>
 
 </div>
@@ -13859,7 +13858,11 @@ test = "pytest tests"
 setup(
     name=<span style="color: darkred">'ipytest-demo'</span>,
     version=<span style="color: darkred">'0.0.0'</span>,
-    packages=PEP420PackageFinder.find(<span style="color: darkred">'src'</span>),
+    py_modules=[<span style="color: darkred">"keep_odds"</span>],
+    <span style="color: darkgreen">&#35; ^^^ when using modules (credit: @tmuxbee)</span>
+    <span style="color: darkgreen">&#35;</span>
+    <span style="color: darkgreen">&#35; alternative for packages:</span>
+    <span style="color: darkgreen">&#35; packages=PEP420PackageFinder.find('src'),</span>
     package_dir={<span style="color: darkred">''</span>: <span style="color: darkred">'src'</span>},
 )
 </pre><p><br/></p>
@@ -13870,7 +13873,7 @@ setup(
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="From-noteboks-to-modules-(1/4)">From noteboks to modules (1/4)<a class="anchor-link" href="#From-noteboks-to-modules-(1/4)">&#182;</a></h1><p>Write the code and explore it inside notebooks</p>
+<h1 id="From-notebooks-to-modules-(1/4)">From notebooks to modules (1/4)<a class="anchor-link" href="#From-notebooks-to-modules-(1/4)">&#182;</a></h1><p>Write the code and explore it inside notebooks</p>
 
 </div>
 </div>
@@ -13927,7 +13930,7 @@ setup(
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="From-noteboks-to-modules-(2/4)">From noteboks to modules (2/4)<a class="anchor-link" href="#From-noteboks-to-modules-(2/4)">&#182;</a></h1><p>Write tests</p>
+<h1 id="From-notebooks-to-modules-(2/4)">From notebooks to modules (2/4)<a class="anchor-link" href="#From-notebooks-to-modules-(2/4)">&#182;</a></h1><p>Write tests</p>
 
 </div>
 </div>
@@ -14018,7 +14021,7 @@ def test_keep_odds():
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="From-noteboks-to-modules-(3/4)">From noteboks to modules (3/4)<a class="anchor-link" href="#From-noteboks-to-modules-(3/4)">&#182;</a></h1><p>Move the code to a module, continue experimenting with tests inside notebook</p>
+<h1 id="From-notebooks-to-modules-(3/4)">From notebooks to modules (3/4)<a class="anchor-link" href="#From-notebooks-to-modules-(3/4)">&#182;</a></h1><p>Move the code to a module, continue experimenting with tests inside notebook</p>
 
 </div>
 </div>
@@ -14219,7 +14222,7 @@ def test_keep_odds():
         <li>Better tooling (type checking, completion, refactoring, ...)</li>
     </ul>
 </div><div class="fragment fade-in">
-    <p><span style="color: red; font-weight: bold;">X</span> Kepping notebooks &amp; modules in sync</p>
+    <p><span style="color: red; font-weight: bold;">X</span> Keeping notebooks &amp; modules in sync</p>
     <ul>
         <li>Moving code into notebook</li>
         <li>Regression checking for notebooks (papermill?)</li>
@@ -14236,12 +14239,12 @@ def test_keep_odds():
 <h1 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&#182;</a></h1><p>
     <div>Notebooks offer a very effective environment for rapid iteration</div>
     <div class="fragment fade-in" style="padding-left:1em; padding-top: 1em;">Interactive tests of code allow to create test input/output pairs quickly</div>
-</p><p style="padding-top: 2em;">
-    <div class="fragment fade-in">Notebooks can become cumbersome for lage code bases</div>
+</p><p style="padding-top: 1em;">
+    <div class="fragment fade-in">Notebooks can become cumbersome for large code bases</div>
     <div class="fragment fade-in" style="padding-left:1em; padding-top: 1.0em;">&nbsp;&nbsp;Move code out of notebooks progressively</div>
-    <div class="fragment fade-in" style="padding-left:1em; padding-top: 0.5em;">&nbsp;&nbsp;Use same tooling. </div>
+    <div class="fragment fade-in" style="padding-left:1em; padding-top: 0.5em;">&nbsp;&nbsp;Use same libraries &amp; tooling. </div>
     <div class="fragment fade-in" style="padding-left:1em; padding-top: 0.5em;">&nbsp;&nbsp;For testing: <code>ipytest</code> &amp; <code>pytest</code></div>
-</p><p>
+</p><p style="padding-top: 1em;">
     <div class="fragment fade-in">Caveat: Hidden state requires some care (<code>%%run_pytest[clean]</code>, <code>reload</code>)</div>
 </p><p><br/></p>
 <div class="fragment fade-in">

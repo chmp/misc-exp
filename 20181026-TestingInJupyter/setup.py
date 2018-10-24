@@ -1,9 +1,9 @@
-from setuptools import setup, PEP420PackageFinder
+from setuptools import setup
 
 
 setup(
     name='ipytest-demo',
     version='0.0.0',
-    packages=PEP420PackageFinder.find("src"),
+    py_modules=["keep_odds"],
     package_dir={'': 'src'},
 )
