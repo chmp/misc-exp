@@ -7,7 +7,7 @@ name = "pypi"
 python_version = "3.7"
 
 [packages]
-ipytest = "==0.4.0b1"
+ipytest = "*"
 notebook = "*"
 ipykernel = "*"
 pytest = "*"

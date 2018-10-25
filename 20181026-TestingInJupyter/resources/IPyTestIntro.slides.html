@@ -13390,8 +13390,9 @@ a.anchor-link {
         <span class="fragment fade-in">...</span>
     </span>
 </div><p style="width: 100%; text-align: center;">
+    <div class="fragment fade-in">How does such a workflow look like in practice?</div>
     <div class="fragment fade-in">How does testing fit in this picture?</div>
-    <div class="fragment fade-in">How does ipytest support pytest inside notebooks?</div>
+    <div class="fragment fade-in">How does <code>ipytest</code> support <code>pytest</code> inside notebooks?</div>
 </p>
 </div>
 </div>
@@ -13453,7 +13454,7 @@ def test_example():
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>.                                                                               [100%]
+<pre>.                                                                [100%]
 </pre>
 </div>
 </div>
@@ -13465,7 +13466,7 @@ def test_example():
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="The-main-ipytest-API">The main ipytest API<a class="anchor-link" href="#The-main-ipytest-API">&#182;</a></h1><p><br/></p>
+<h1 id="The-main-ipytest-API">The main <code>ipytest</code> API<a class="anchor-link" href="#The-main-ipytest-API">&#182;</a></h1><p><br/></p>
 <pre>
 %%<span class="fragment highlight-current-red" data-fragment-index="1">run_pytest</span>[<span class="fragment highlight-current-red" data-fragment-index="2">clean</span>] <span class="fragment highlight-current-red" data-fragment-index="3">-qq</span>
      ^         ^     ^
@@ -13544,9 +13545,9 @@ def test_keep_odds():
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>F                                                                               [100%]
-====================================== FAILURES =======================================
-___________________________________ test_keep_odds ____________________________________
+<pre>F                                                                [100%]
+=============================== FAILURES ===============================
+____________________________ test_keep_odds ____________________________
 
     def test_keep_odds():
 &gt;       assert keep_odds([1, 2, 3, 4]) == [1, 3]
@@ -13557,144 +13558,6 @@ E         - [2, 4]
 E         + [1, 3]
 
 &lt;ipython-input-5-757929023375&gt;:3: AssertionError
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div></div></section><section>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Parametrize">Parametrize<a class="anchor-link" href="#Parametrize">&#182;</a></h1>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pytest</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">run_pytest</span>[clean] -qq
-
-@pytest.mark.parametrize(&#39;input, expected&#39;, [
-    ([0.5, 1, 1.5], 3), 
-    ([2, 2.5], 4.5),
-])
-def test_sum(input, expected):
-    actual = sum(input)
-    assert actual == pytest.approx(expected)
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>..                                                                              [100%]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div></section><section>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Fixtures">Fixtures<a class="anchor-link" href="#Fixtures">&#182;</a></h1>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">run_pytest</span>[clean] -qq
-
-@pytest.fixture
-def my_fixture():
-    return True
-    
-def test_my_fixture(my_fixture):
-    assert my_fixture is True
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>.                                                                               [100%]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div><div class="fragment">
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%</span><span class="k">run_pytest</span>[clean] -qq
-
-def test_with_tmpdir(tmpdir):
-    tmpdir.join(&quot;foo&quot;).write(&quot;bar&quot;)
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>.                                                                               [100%]
 </pre>
 </div>
 </div>
@@ -13737,7 +13600,7 @@ def test_pdb():
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>F
-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; traceback &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; traceback &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;
 
     def test_pdb():
         l = [1, 2, 3]
@@ -13749,7 +13612,7 @@ E         - [1, 2, 3]
 E         + []
 
 &lt;ipython-input-10-26043487c447&gt;:4: AssertionError
-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; entering PDB &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; entering PDB &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;
 &gt; &lt;ipython-input-10-26043487c447&gt;(4)test_pdb()
 -&gt; assert l == []
 (Pdb) q
@@ -13775,7 +13638,7 @@ E         + []
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>!!!!!!!!!!!!!!!!!!!!!! _pytest.outcomes.Exit: Quitting debugger !!!!!!!!!!!!!!!!!!!!!!!
+<pre>!!!!!!!!!!!!!!! _pytest.outcomes.Exit: Quitting debugger !!!!!!!!!!!!!!!
 </pre>
 </div>
 </div>
@@ -13783,6 +13646,33 @@ E         + []
 </div>
 </div>
 
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="How-does-ipytest-work?">How does <code>ipytest</code> work?<a class="anchor-link" href="#How-does-ipytest-work?">&#182;</a></h1><p>
+<div>Small package.</div>
+<div class="fragment fade-in">Creative use of extension APIs of pytest, jupyter.</div>
+</p><div class="fragment fade-in">
+<p>
+<pre>
+<span style="color:darkgreen;">&#35; pytest plugin to make notebooks look like modules</span>
+<span style="color:darkgreen;">class</span> <span style="color: darkblue;">ModuleCollectorPlugin</span>(object):
+    <span style="color:darkgreen;">def</span> <span style="color: darkblue;">pytest_collect_file</span>(self, parent, path):
+        ...
+</pre>
+</p>
+</div><div class="fragment fade-in">
+<p>
+<pre>
+<span style="color:darkgreen;">&#35; ipython plugin to rewrite asserts</span>
+shell = get_ipython()
+shell.ast_transformers.append(...)
+</pre>
+</p>
+</div>
+</div>
+</div>
 </div></section></section><section><section>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
@@ -13830,7 +13720,7 @@ tests/
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Pipfile"><code>Pipfile</code><a class="anchor-link" href="#Pipfile">&#182;</a></h1><p><br/></p>
+<h1 id="Pipfile-&amp;-pipenv"><code>Pipfile</code> &amp; <code>pipenv</code><a class="anchor-link" href="#Pipfile-&amp;-pipenv">&#182;</a></h1><p><br/></p>
 <p><pre>
 <span style="color: darkblue">[packages]</span>
 ipytest = "*"
@@ -14009,7 +13899,7 @@ def test_keep_odds():
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>.                                                                               [100%]
+<pre>.                                                                [100%]
 </pre>
 </div>
 </div>
@@ -14031,7 +13921,7 @@ def test_keep_odds():
 <div class="prompt input_prompt">In&nbsp;[16]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat src/keep_odds.py
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat ../src/keep_odds.py
 </pre></div>
 
     </div>
@@ -14089,7 +13979,7 @@ def test_keep_odds():
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>.                                                                               [100%]
+<pre>.                                                                [100%]
 </pre>
 </div>
 </div>
@@ -14111,7 +14001,7 @@ def test_keep_odds():
 <div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat src/keep_odds.py
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat ../src/keep_odds.py
 </pre></div>
 
     </div>
@@ -14144,7 +14034,7 @@ def keep_odds(iterable):
 <div class="prompt input_prompt">In&nbsp;[19]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat tests/test_keep_odds.py
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>cat ../tests/test_keep_odds.py
 </pre></div>
 
     </div>
@@ -14179,7 +14069,7 @@ def test_keep_odds():
 <div class="prompt input_prompt">In&nbsp;[20]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>pytest -qq tests
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>pytest -qq ../tests
 </pre></div>
 
     </div>
@@ -14196,7 +14086,7 @@ def test_keep_odds():
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>.<span class="ansi-cyan-fg">                                                                               [100%]</span>
+<pre>.<span class="ansi-cyan-fg">                                                                [100%]</span>
 </pre>
 </div>
 </div>
@@ -14208,7 +14098,7 @@ def test_keep_odds():
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Does-it-work?">Does it work?<a class="anchor-link" href="#Does-it-work?">&#182;</a></h1><div>
+<h1 id="How-well-does-it-work?">How well does it work?<a class="anchor-link" href="#How-well-does-it-work?">&#182;</a></h1><div>
     <p><span style="color: green; font-weight: bold;">&#10003;</span> Moving code out of notebooks</p>
     <ul>
         <li>Development packages &amp; reloading</li>
