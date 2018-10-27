@@ -1,5 +1,6 @@
-import shlex
 import os
+import pathlib
+import shlex
 
 from invoke import task
 
@@ -16,12 +17,28 @@ inventories = [
 
 directories_to_test = ["chmp", "20170813-KeywordDetection/chmp-app-kwdetect"]
 
+notebook_directories_to_test = [
+    "20181026-TestingInJupyter/notebooks",
+]
+
+notebooks_to_test = [
+    str(nb)
+    for p in notebook_directories_to_test
+    for nb in pathlib.Path(p).glob('*.ipynb')
+]
+
 
 @task
 def precommit(c):
     format(c)
     docs(c)
     test(c)
+
+
+@task
+def notebook_integration(c):
+    if notebooks_to_test:
+        run(c, "pytest", "--nbval-lax", *notebooks_to_test)
 
 
 @task
