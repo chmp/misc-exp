@@ -2,6 +2,7 @@
 
 ## Prototyping to tested code
 
+[slides](https://htmlpreview.github.io/?https://github.com/chmp/misc-exp/blob/master/20181026-TestingInJupyter/resources/IPyTestIntro.slides.html#/) |
 [source](./20181026-TestingInJupyter)
 
 How can pytest be used in Jupyter notebooks? And why does it make sense? This
@@ -42,6 +43,9 @@ After that the following tasks can be performed:
 
     # run any pre-commit tasks (docs, formatting, tests)
     pipenv run precommit
+
+    # run notebook integration tests
+    pipenv run notebook-integration
 
     # run tests
     pipenv run test
