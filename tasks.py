@@ -17,14 +17,27 @@ inventories = [
 
 directories_to_test = ["chmp", "20170813-KeywordDetection/chmp-app-kwdetect"]
 
-notebook_directories_to_test = [
-    "20181026-TestingInJupyter/notebooks",
-]
+notebook_directories_to_test = ["20181026-TestingInJupyter/notebooks"]
 
 notebooks_to_test = [
     str(nb)
     for p in notebook_directories_to_test
-    for nb in pathlib.Path(p).glob('*.ipynb')
+    for nb in pathlib.Path(p).glob("*.ipynb")
+]
+
+notebooks_to_test = notebooks_to_test + [
+    "BuildingBlocks/Bishop_Notes_01.ipynb",
+    "BuildingBlocks/Bishop_Notes_02.ipynb",
+    "BuildingBlocks/Bishop_Notes_03.ipynb",
+    "BuildingBlocks/Bishop_Notes_04.ipynb",
+    "BuildingBlocks/Bishop_Notes_05.ipynb",
+    "BuildingBlocks/Bishop_Notes_06.ipynb",
+    "BuildingBlocks/Bishop_Notes_13.ipynb",
+    "BuildingBlocks/tech_TorchModels.ipynb",
+    "20180107-Causality/BlogPost.ipynb",
+    # TODO: fix the notebook "20180107-Causality/Index.ipynb"
+    # "20180107-Causality/Index.ipynb",
+    "20180107-Causality/Notes.ipynb",
 ]
 
 
@@ -35,8 +48,15 @@ def precommit(c):
     test(c)
 
 
+@task()
+def precommit_full(c):
+    """Run all precommit tasks and integration tests"""
+    precommit(c)
+    integration(c)
+
+
 @task
-def notebook_integration(c):
+def integration(c):
     if notebooks_to_test:
         run(c, "pytest", "--nbval-lax", *notebooks_to_test)
 

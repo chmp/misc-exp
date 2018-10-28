@@ -10,8 +10,8 @@ from chmp.ds import (
     FuncTransformer,
     FilterLowFrequencyTransfomer,
     find_categorical_columns,
+    Loop,
 )
-from chmp.experiment import Loop
 from chmp.ml import PickableTFModel
 from chmp.ml.layers import factorized
 

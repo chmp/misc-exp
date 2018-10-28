@@ -137,11 +137,11 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 
 
 #### `chmp.torch_utils.model.Model.fit_transformed`
-`chmp.torch_utils.model.Model.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
+`chmp.torch_utils.model.Model.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None)`
 
 
 #### `chmp.torch_utils.model.Model.predict_transformed`
-`chmp.torch_utils.model.Model.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False)`
+`chmp.torch_utils.model.Model.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False, collate_fn=None)`
 
 
 #### `chmp.torch_utils.model.Model.fit_data`
@@ -258,11 +258,11 @@ A regularizer using the KL divergence of the model.
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed`
-`chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
+`chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed`
-`chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False)`
+`chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False, collate_fn=None)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.fit_data`

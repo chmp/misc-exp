@@ -288,15 +288,21 @@ class Model:
         verbose=True,
         callbacks=None,
         metrics=None,
+        collate_fn=None,
         validation_data=None,
     ):
         if validation_data is not None:
+            if not isinstance(validation_data, tuple):
+                validation_data = (validation_data,)
+
             validation_data = data_loader(
-                "numpy",
-                validation_data,
+                "transformed",
+                transform,
+                *validation_data,
                 batch_size=batch_size,
                 dtype=dtype,
                 mode="predict",
+                collate_fn=collate_fn,
             )
 
         return self.fit_data(
@@ -307,6 +313,7 @@ class Model:
                 batch_size=batch_size,
                 dtype=dtype,
                 mode="fit",
+                collate_fn=collate_fn,
             ),
             epochs=epochs,
             verbose=verbose,
@@ -322,6 +329,7 @@ class Model:
         batch_size=default_batch_size,
         dtype="float32",
         verbose=False,
+        collate_fn=None,
     ):
         return self.predict_data(
             data_loader(
@@ -331,6 +339,7 @@ class Model:
                 batch_size=batch_size,
                 dtype=dtype,
                 mode="predict",
+                collate_fn=collate_fn,
             ),
             verbose=verbose,
         )

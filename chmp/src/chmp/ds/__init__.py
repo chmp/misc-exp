@@ -21,7 +21,8 @@ import pickle
 import sys
 import time
 
-from typing import Callable, Union
+from types import ModuleType
+from typing import Callable, Union, Optional
 
 try:
     from sklearn.base import (
@@ -66,7 +67,7 @@ else:
     _HAS_DAFT = True
 
 
-def reload(*modules_or_module_names):
+def reload(*modules_or_module_names: str) -> Optional[ModuleType]:
     mod = None
     for module_or_module_name in modules_or_module_names:
         if isinstance(module_or_module_name, str):

@@ -41,11 +41,14 @@ and common scripts. To setup a virtual environment with all requirements use:
 
 After that the following tasks can be performed:
 
-    # run any pre-commit tasks (docs, formatting, tests)
+    # run all pre-commit tasks (docs, formatting, tests)
     pipenv run precommit
 
+    # run pre-commit tasks and integration tests
+    pipenv run precommit-full
+
     # run notebook integration tests
-    pipenv run notebook-integration
+    pipenv run integration
 
     # run tests
     pipenv run test

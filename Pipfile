@@ -36,7 +36,7 @@ ipytest-demo = {editable = true, path = "./20181026-TestingInJupyter"}
 
 [dev-packages]
 pytest = "*"
-ipytest = "*"
+ipytest = "==0.5.0b1"
 black = "==18.6b4"
 docutils = "*"
 twine = "*"
@@ -53,7 +53,8 @@ python_version = "3.6"
 
 [scripts]
 precommit = "invoke precommit"
+precommit-full = "invoke precommit-full"
 release = "invoke release"
 notebook = "jupyter notebook"
 test = "invoke test"
-"notebook-integration" = "invoke notebook-integration"
+"integration" = "invoke integration"
