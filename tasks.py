@@ -23,6 +23,7 @@ notebooks_to_test = [
     str(nb)
     for p in notebook_directories_to_test
     for nb in pathlib.Path(p).glob("*.ipynb")
+    if not nb.name.startswith("wip")
 ]
 
 notebooks_to_test = notebooks_to_test + [
