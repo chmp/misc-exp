@@ -1,9 +1,12 @@
+from typing import Optional
+
+
 def ensure_metric(obj):
     return obj if isinstance(obj, Metric) else AveragedMetric(obj)
 
 
 class Metric:
-    value_class = None
+    value_class: Optional[type] = None
 
     def zero(self):
         return self.value_class()

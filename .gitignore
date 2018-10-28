@@ -13,3 +13,4 @@ profile.dat
 .pytest_cache/
 /.inventory.json.bz2
 /.env
+.mypy_cache/

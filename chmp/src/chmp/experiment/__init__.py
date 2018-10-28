@@ -120,8 +120,6 @@ def has_active_run():
 
 @contextlib.contextmanager
 def open_artifact(run_uuid, artifact_path, mode="rt", *, open=open, store=None):
-    from mlflow.store.local_artifact_repo import LocalArtifactRepository
-
     artifact_repo = get_artifact_repository(run_uuid, store)
     assert is_local_artifact_respository(
         artifact_repo

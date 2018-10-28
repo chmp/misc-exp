@@ -46,6 +46,7 @@ notebooks_to_test = notebooks_to_test + [
 def precommit(c):
     format(c)
     docs(c)
+    static_checks(c)
     test(c)
 
 
@@ -65,6 +66,14 @@ def integration(c):
 @task
 def test(c):
     run(c, "pytest", *directories_to_test)
+
+
+@task()
+def static_checks(c):
+    print("run static checks")
+    c.run("mypy chmp/src/chmp/**/*.py --ignore-missing-imports")
+    c.run("pyflakes chmp/src/chmp/**/*.py")
+    print("done")
 
 
 @task

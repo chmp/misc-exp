@@ -47,6 +47,8 @@ nbconvert = "*"
 notebook = "*"
 ipykernel = "*"
 nbval = "*"
+pyflakes = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.6"
@@ -54,6 +56,7 @@ python_version = "3.6"
 [scripts]
 precommit = "invoke precommit"
 precommit-full = "invoke precommit-full"
+"static-checks" = "invoke static-checks"
 release = "invoke release"
 notebook = "jupyter notebook"
 test = "invoke test"

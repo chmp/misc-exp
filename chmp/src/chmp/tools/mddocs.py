@@ -15,6 +15,8 @@ import sys
 try:
     import docutils
 
+    assert docutils  # to silence pyflakes
+
 except ImportError:
     print("this script requires docutils to be installed", file=sys.stderr)
     raise SystemExit(1)
@@ -48,7 +50,7 @@ def transform_directories(src, dst, continue_on_error=False, inventory=None):
         try:
             transform_file(source, target, inventory=inventory)
 
-        except Exception as e:
+        except Exception:
             if continue_on_error:
                 _logger.error("could not transform %s", source, exc_info=True)
                 continue
@@ -103,7 +105,7 @@ def transform(content, source, inventory=None):
     if inventory is None:
         inventory = {}
 
-    reference_resolver = resolver = ChainResolver(
+    reference_resolver = ChainResolver(
         InventoryResolver(inventory=inventory), GithubLinkResolver()
     )
 
@@ -625,8 +627,8 @@ def import_object(what, depth=1):
 
     obj = importlib.import_module(mod)
 
-    for p in what:
-        obj = getattr(obj, p)
+    for part in what:
+        obj = getattr(obj, part)
 
     return obj
 

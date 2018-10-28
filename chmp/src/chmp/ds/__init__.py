@@ -33,19 +33,14 @@ try:
     )
 
 except ImportError:
+    from ._import_compat import (  # typing: ignore
+        BaseEstimator,
+        TransformerMixin,
+        ClassifierMixin,
+        RegressorMixin,
+    )
+
     _HAS_SK_LEARN = False
-
-    class BaseEstimator:
-        pass
-
-    class TransformerMixin:
-        pass
-
-    class RegressorMixin:
-        pass
-
-    class ClassifierMixin:
-        pass
 
 
 else:
@@ -56,10 +51,7 @@ try:
     from daft import PGM
 
 except ImportError:
-
-    class PGM:
-        def __init__(self, *args, **kwargs):
-            pass
+    from ._import_compat import PGM  # typing: ignore
 
     _HAS_DAFT = False
 
@@ -67,7 +59,7 @@ else:
     _HAS_DAFT = True
 
 
-def reload(*modules_or_module_names: str) -> Optional[ModuleType]:
+def reload(*modules_or_module_names: Union[str, ModuleType]) -> Optional[ModuleType]:
     mod = None
     for module_or_module_name in modules_or_module_names:
         if isinstance(module_or_module_name, str):
@@ -1116,7 +1108,7 @@ class FilterLowFrequencyTransfomer(BaseEstimator, TransformerMixin):
 
             except Exception as e:
                 raise RuntimeError(
-                    f"cannot determine high frequency categories for {col}"
+                    f"cannot determine high frequency categories for {col} due to {e}"
                 )
 
             self._to_keep[col] = to_keep
@@ -1693,13 +1685,13 @@ def expand(low, high, change=0.05):
 # ########################################################################## #
 
 
-status_characters = it.accumulate([64, 128, 4, 32, 2, 16, 1, 8])
-status_characters = [chr(ord("\u2800") + v) for v in status_characters]
-status_characters = ["\u25AB", " "] + status_characters
+status_characters = ["\u25AB", " "] + [
+    chr(ord("\u2800") + v) for v in it.accumulate([64, 128, 4, 32, 2, 16, 1, 8])
+]
 
 running_characters = ["-", "\\", "|", "/"]
 
-current_loop = None
+current_loop: Optional["Loop"] = None
 current_label = None
 
 
@@ -1715,17 +1707,24 @@ def loop_over(iterable, label: Union[str, Callable[[], str]] = None, keep=False)
 
     for current_loop, item in Loop.over(iterable):
         yield item
+
+        assert current_loop is not None
         current_loop.print(lambda: "{}{}".format(current_loop, get_current_label()))
 
+    assert current_loop is not None
     current_loop.print(
         "{}{}".format(current_loop, get_current_label()),
         force=True,
         end="\n" if keep else "\r",
     )
+    current_loop = None
 
 
 def loop_nest(iterable, label: Union[str, Callable[[], str]] = None):
     global current_loop, current_label
+    if current_loop is None:
+        raise RuntimeError("Can only nest within an existing loop")
+
     if label is not None:
         current_label = label
 
