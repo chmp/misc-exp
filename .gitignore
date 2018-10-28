@@ -14,3 +14,4 @@ profile.dat
 /.inventory.json.bz2
 /.env
 .mypy_cache/
+/tmp/

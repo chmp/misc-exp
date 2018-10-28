@@ -1,7 +1,10 @@
+import hashlib
+import json
 import os
 import pathlib
 import shlex
 
+import nbformat
 from invoke import task
 
 files_to_format = ["chmp/src", "tasks.py", "chmp/setup.py"]
@@ -41,6 +44,8 @@ notebooks_to_test = notebooks_to_test + [
     "20180107-Causality/Notes.ipynb",
 ]
 
+notebooks_no_static_check = {"20181026-TestingInJupyter/notebooks/IPyTestIntro.ipynb"}
+
 
 @task
 def precommit(c):
@@ -70,9 +75,31 @@ def test(c):
 
 @task()
 def static_checks(c):
+    # export all notebooks as scripts
+    pathlib.Path("tmp").mkdir(exist_ok=True)
+
+    export_paths = []
+    for nb in notebooks_to_test:
+        if nb in notebooks_no_static_check:
+            continue
+
+        mod_path = os.path.join(
+            "tmp",
+            (
+                str_sha1(os.path.dirname(nb))
+                + "-"
+                + (os.path.basename(nb).rstrip(".ipynb") + ".py")
+            ),
+        )
+        export_notebook_as_module(nb, mod_path)
+        export_paths.append(mod_path)
+
     print("run static checks")
-    c.run("mypy chmp/src/chmp/**/*.py --ignore-missing-imports")
-    c.run("pyflakes chmp/src/chmp/**/*.py")
+    c.run(
+        "mypy --ignore-missing-imports chmp/src/chmp/**/*.py " + " ".join(export_paths)
+    )
+    c.run("pyflakes chmp/src/chmp/**/*.py " + " ".join(export_paths))
+
     print("done")
 
 
@@ -121,3 +148,33 @@ def run(c, *args, **kwargs):
     args = [shlex.quote(arg) for arg in args]
     args = " ".join(args)
     return c.run(args, **kwargs)
+
+
+def export_notebook_as_module(notebook_path, module_path):
+    with open(notebook_path, "rt") as fobj:
+        nb = nbformat.read(fobj, as_version=4)
+
+    content = []
+
+    for cell in nb["cells"]:
+        if cell["cell_type"] != "code":
+            continue
+
+        for line in cell["source"].splitlines():
+            line = line.rstrip()
+            if line.startswith("%") or line.startswith("!"):
+                line = "# " + line
+
+            content += [line]
+
+        content += [""]
+
+    with open(module_path, "wt") as fobj:
+        for line in content:
+            fobj.write(line + "\n")
+
+
+def str_sha1(obj):
+    s = json.dumps(obj, indent=None, sort_keys=True, separators=(",", ":"))
+    s = s.encode("utf8")
+    return hashlib.sha1(s).hexdigest()
