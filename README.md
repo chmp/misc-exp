@@ -1,5 +1,12 @@
 # Various Experiments, possibly ML related
 
+[Prototyping to tested code](#prototyping-to-tested-code)
+| [Causality and function approximations](#causality-and-function-approximations)
+| [Keyword detection from scratch](#keyword-detection-from-scratch)
+
+[Support](#support)
+| [Getting started](#getting-started)
+
 ## Prototyping to tested code
 
 [slides](https://htmlpreview.github.io/?https://github.com/chmp/misc-exp/blob/master/20181026-TestingInJupyter/resources/IPyTestIntro.slides.html#/) |
