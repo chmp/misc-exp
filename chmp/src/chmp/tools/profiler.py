@@ -160,4 +160,4 @@ def str_sha1(obj):
 def random(obj):
     """Return a random float in the range [0, 1)"""
     maximum_15_digit_hex = float(0xFFF_FFFF_FFFF_FFFF)
-    return min(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
+    return min(sha1(obj) / maximum_15_digit_hex, 0.999_999_999_999_999_9)

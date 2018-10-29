@@ -23,24 +23,25 @@ def test_torch_model__example_linear_regression():
         np.random.normal(size=100),
         metrics=[torch.nn.MSELoss()],
         validation_data=(np.random.normal(size=(5, 10)), np.random.normal(size=5)),
+        dtype="float32",
     )
-    y_pred = model.predict(np.random.normal(size=(100, 10)))
+    y_pred = model.predict(np.random.normal(size=(100, 10)), dtype="float32")
     assert len(y_pred) == 100
 
 
 def test_torch_model__example_linear_regression__generators():
     model = build_example_model()
 
-    def fit_data(indices):
+    def fit_data(_):
         x = np.random.normal(size=10)
         y = np.random.normal()
         return x, y
 
-    def pred_data(indices):
+    def pred_data(_):
         return np.random.normal(size=10)
 
-    model.fit_transformed(fit_data, range(32), epochs=10)
-    y_pred = model.predict_transformed(pred_data, range(100))
+    model.fit_transformed(fit_data, range(32), epochs=10, dtype="float32")
+    y_pred = model.predict_transformed(pred_data, range(100), dtype="float32")
     assert len(y_pred) == 100
 
 

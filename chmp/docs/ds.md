@@ -98,11 +98,13 @@ Set various style related options of MPL.
 
 #### Parameters
 
-* **xformatter** (*Optional[callable]*):
+* **xformatter** (*any*):
   if given a formatter for the major x ticks. Should have the
   signature `(x_value, pos) -> label`.
-* **yformatter** (*Optional[callable]*):
+* **yformatter** (*any*):
   See `xformatter`.
+* **invert** (*any*):
+  if given invert the different axes. Can be x, y, or xy.
 
 
 ### `chmp.ds.qlineplot`

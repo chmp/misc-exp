@@ -29,7 +29,7 @@ def test_transformer_fit():
         optimizer=lambda parameters: torch.optim.Adam(parameters, lr=1e-2),
     )
 
-    model.fit_transformed(transform_xy, range(100), epochs=5)
-    pred = model.predict_transformed(transform_x, range(100))
+    model.fit_transformed(transform_xy, range(100), epochs=5, dtype="float32")
+    pred = model.predict_transformed(transform_x, range(100), dtype="float32")
 
     assert len(pred) == 100

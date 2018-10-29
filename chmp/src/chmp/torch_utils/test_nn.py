@@ -16,7 +16,7 @@ def test_factorized_quadratic_shape():
 
 def test_masked_softmax():
     actual = masked_softmax(
-        torch.tensor([1., 2., 3.]), torch.tensor([1, 1, 0], dtype=torch.uint8)
+        torch.tensor([1.0, 2.0, 3.0]), torch.tensor([1, 1, 0], dtype=torch.uint8)
     )
     actual = np.asarray(actual)
 
@@ -27,5 +27,5 @@ def test_masked_softmax():
 
 
 def test_diagonal_scale_shift():
-    m = DiagonalScaleShift(shift=torch.ones(10), scale=2. * torch.ones(10))
+    m = DiagonalScaleShift(shift=torch.ones(10), scale=2.0 * torch.ones(10))
     assert m(torch.zeros(20, 10)).shape == (20, 10)

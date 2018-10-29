@@ -17,7 +17,7 @@ def test_object():
 
 
 def test_orient_random():
-    np.random.seed(42_42_42)
+    np.random.seed(424_242)
     pos = np.random.uniform(-1, +1, size=(100, 3))
     pos = np.transpose(
         np.stack(

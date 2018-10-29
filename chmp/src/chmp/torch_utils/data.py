@@ -30,7 +30,9 @@ def data_loader(
     :param cls:
         either a a dataset class or one of ``'numpy'`` (for
         :class:`NumpyDataset`) or ``'transformed'`` (for
-        :class:`TransformedDataset`).
+        :class:`TransformedDataset`). `batch-transformed` is also valid value,
+        in which case the data the transform receives a full batch and should
+        also perform collation.
     :param args:
         varargs passed to `cls` to build the dataset
     :param kwargs:
@@ -53,8 +55,22 @@ def data_loader(
         elif cls == "transformed":
             cls = TransformedDataset
 
+        elif cls == "batch-transformed":
+            transform, arg = args
+            return data_loader(
+                "transformed",
+                lambda x: x,
+                arg,
+                collate_fn=transform,
+                batch_size=batch_size,
+                mode=mode,
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                dtype=None,
+            )
+
         else:
-            raise NotImplementedError()
+            raise ValueError("Unknown transform mode {}".format(cls))
 
     data_loader_kwargs = dict(batch_size=batch_size)
 

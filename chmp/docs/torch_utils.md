@@ -20,7 +20,9 @@ Helper to build data loaders for numpy / transform based datasets.
 * **cls** (*any*):
   either a a dataset class or one of `'numpy'` (for
   [NumpyDataset](#numpydataset)) or `'transformed'` (for
-  [TransformedDataset](#transformeddataset)).
+  [TransformedDataset](#transformeddataset)). batch-transformed is also valid value,
+  in which case the data the transform receives a full batch and should
+  also perform collation.
 * **args** (*any*):
   varargs passed to cls to build the dataset
 * **kwargs** (*any*):
@@ -129,19 +131,19 @@ model.fit(x={"a": [...], "b": [...]}, y=[...])
 
 
 #### `chmp.torch_utils.model.Model.fit`
-`chmp.torch_utils.model.Model.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
+`chmp.torch_utils.model.Model.fit(x, y, *, epochs=1, batch_size=32, dtype=None, verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_utils.model.Model.predict`
-`chmp.torch_utils.model.Model.predict(x, batch_size=32, dtype='float32', verbose=False)`
+`chmp.torch_utils.model.Model.predict(x, batch_size=32, dtype=None, verbose=False)`
 
 
 #### `chmp.torch_utils.model.Model.fit_transformed`
-`chmp.torch_utils.model.Model.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None)`
+`chmp.torch_utils.model.Model.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype=None, verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None, batch_transform=False)`
 
 
 #### `chmp.torch_utils.model.Model.predict_transformed`
-`chmp.torch_utils.model.Model.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False, collate_fn=None)`
+`chmp.torch_utils.model.Model.predict_transformed(transform, *bases, batch_size=32, dtype=None, verbose=False, collate_fn=None, batch_transform=False)`
 
 
 #### `chmp.torch_utils.model.Model.fit_data`
@@ -250,19 +252,19 @@ A regularizer using the KL divergence of the model.
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.fit`
-`chmp.torch_utils.bayes.SimpleBayesModel.fit(x, y, *, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, validation_data=None)`
+`chmp.torch_utils.bayes.SimpleBayesModel.fit(x, y, *, epochs=1, batch_size=32, dtype=None, verbose=True, callbacks=None, metrics=None, validation_data=None)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.predict`
-`chmp.torch_utils.bayes.SimpleBayesModel.predict(x, batch_size=32, dtype='float32', verbose=False)`
+`chmp.torch_utils.bayes.SimpleBayesModel.predict(x, batch_size=32, dtype=None, verbose=False)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed`
-`chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype='float32', verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None)`
+`chmp.torch_utils.bayes.SimpleBayesModel.fit_transformed(transform, *bases, epochs=1, batch_size=32, dtype=None, verbose=True, callbacks=None, metrics=None, collate_fn=None, validation_data=None, batch_transform=False)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed`
-`chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed(transform, *bases, batch_size=32, dtype='float32', verbose=False, collate_fn=None)`
+`chmp.torch_utils.bayes.SimpleBayesModel.predict_transformed(transform, *bases, batch_size=32, dtype=None, verbose=False, collate_fn=None, batch_transform=False)`
 
 
 #### `chmp.torch_utils.bayes.SimpleBayesModel.fit_data`

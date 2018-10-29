@@ -269,7 +269,7 @@ def relax_bernoulli(p, temperature=1.0):
     import tensorflow as tf
 
     u = tf.random_uniform(tf.shape(p.probs))
-    z = tf.log(p.probs / (1.0 - p.probs)) + tf.log(u / (1. - u))
+    z = tf.log(p.probs / (1.0 - p.probs)) + tf.log(u / (1.0 - u))
     b = tf.cast(z > 0, dtype=z.dtype)
     b = tf.stop_gradient(b)
 
@@ -277,7 +277,7 @@ def relax_bernoulli(p, temperature=1.0):
 
     nu = tf.random_uniform(tf.shape(b))
     nu_cond = (nu * (1 - p.probs)) * (1 - b) + (1 - p.probs * nu) * b
-    z_cond = tf.log(p.probs / (1.0 - p.probs)) + tf.log(nu_cond / (1. - nu_cond))
+    z_cond = tf.log(p.probs / (1.0 - p.probs)) + tf.log(nu_cond / (1.0 - nu_cond))
 
     b_cond_relaxed = tf.sigmoid(z_cond / temperature)
 

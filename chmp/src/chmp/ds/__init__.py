@@ -241,8 +241,8 @@ def mpl_set(
     ylim=None,
     xticks=None,
     yticks=None,
-    xformatter=None,
-    yformatter=None,
+    xformatter: Optional[Callable[[float, float], str]] = None,
+    yformatter: Optional[Callable[[float, float], str]] = None,
     left=None,
     top=None,
     bottom=None,
@@ -252,19 +252,22 @@ def mpl_set(
     subplot=None,
     legend=None,
     colorbar=None,
-    invert=None,
+    invert: Optional[str] = None,
     ax=None,
     grid=None,
     axis=None,
 ):
     """Set various style related options of MPL.
 
-    :param Optional[callable] xformatter:
+    :param xformatter:
         if given a formatter for the major x ticks. Should have the
         signature ``(x_value, pos) -> label``.
 
-    :param Optional[callable] yformatter:
+    :param yformatter:
         See ``xformatter``.
+
+    :param invert:
+        if given invert the different axes. Can be `x`, `y`, or `xy`.
     """
     import matplotlib.pyplot as plt
 
@@ -2077,7 +2080,7 @@ def str_sha1(obj):
 
 def random(obj):
     """Return a random float in the range [0, 1)"""
-    return min(sha1(obj) / maximum_15_digit_hex, 0.9999999999999999)
+    return min(sha1(obj) / maximum_15_digit_hex, 0.999_999_999_999_999_9)
 
 
 def uniform(obj, a, b):

@@ -246,7 +246,7 @@ class Model:
         *,
         epochs=1,
         batch_size=default_batch_size,
-        dtype="float32",
+        dtype=None,
         verbose=True,
         callbacks=None,
         metrics=None,
@@ -272,7 +272,7 @@ class Model:
             callbacks=callbacks,
         )
 
-    def predict(self, x, batch_size=default_batch_size, dtype="float32", verbose=False):
+    def predict(self, x, batch_size=default_batch_size, dtype=None, verbose=False):
         return self.predict_data(
             data_loader("numpy", x, batch_size=batch_size, dtype=dtype, mode="predict"),
             verbose=verbose,
@@ -284,19 +284,20 @@ class Model:
         *bases,
         epochs=1,
         batch_size=default_batch_size,
-        dtype="float32",
+        dtype=None,
         verbose=True,
         callbacks=None,
         metrics=None,
         collate_fn=None,
         validation_data=None,
+        batch_transform=False,
     ):
         if validation_data is not None:
             if not isinstance(validation_data, tuple):
                 validation_data = (validation_data,)
 
             validation_data = data_loader(
-                "transformed",
+                "transformed" if not batch_transform else "batch-transformed",
                 transform,
                 *validation_data,
                 batch_size=batch_size,
@@ -307,7 +308,7 @@ class Model:
 
         return self.fit_data(
             data_loader(
-                "transformed",
+                "transformed" if not batch_transform else "batch-transformed",
                 transform,
                 *bases,
                 batch_size=batch_size,
@@ -327,13 +328,14 @@ class Model:
         transform,
         *bases,
         batch_size=default_batch_size,
-        dtype="float32",
+        dtype=None,
         verbose=False,
         collate_fn=None,
+        batch_transform=False,
     ):
         return self.predict_data(
             data_loader(
-                "transformed",
+                "transformed" if not batch_transform else "batch-transformed",
                 transform,
                 *bases,
                 batch_size=batch_size,
