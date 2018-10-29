@@ -42,6 +42,7 @@ notebooks_to_test = notebooks_to_test + [
     # TODO: fix the notebook "20180107-Causality/Index.ipynb"
     # "20180107-Causality/Index.ipynb",
     "20180107-Causality/Notes.ipynb",
+    "20170813-KeywordDetection/kwdetect.ipynb",
 ]
 
 notebooks_no_static_check = {"20181026-TestingInJupyter/notebooks/IPyTestIntro.ipynb"}
@@ -95,9 +96,12 @@ def static_checks(c):
         export_paths.append(mod_path)
 
     print("run static checks")
-    c.run(
-        "mypy --ignore-missing-imports chmp/src/chmp/**/*.py " + " ".join(export_paths)
-    )
+    # print("mypy")
+    # c.run(
+    #     "mypy --ignore-missing-imports --namespace-packages chmp/src/chmp/**/*.py "
+    #     + " ".join(export_paths)
+    # )
+    print("pyflakes")
     c.run("pyflakes chmp/src/chmp/**/*.py " + " ".join(export_paths))
 
     print("done")

@@ -7,6 +7,7 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
+from .model import batch_transform_samples
 from .util import DEFAULT_SAMPLERATE, label_decoding as default_label_decoding, unique_filename
 from .segmentation import StreamProcessor
 
@@ -22,35 +23,30 @@ async def detect(
         samplerate=DEFAULT_SAMPLERATE,
         label_decoding=None,
         sample_target=None,
-        session=None,
         start_token=unset,
 ):
-    import tensorflow as tf
-
     if label_decoding is None:
         label_decoding = default_label_decoding
-
-    if session is None:
-        session = tf.get_default_session()
 
     async for sample in record(samplerate=samplerate, start_token=start_token):
         if sample is start_token:
             yield sample
 
         else:
-            label = predict_label(model, sample, session=session, label_decoding=label_decoding)
+            label = predict_label(model, sample, label_decoding=label_decoding)
             save_sample(sample_target, sample, samplerate=samplerate)
             yield label
 
 
-def predict_label(model, sample, *, session, label_decoding):
-    from .model import prepare_samples
-
+def predict_label(model, sample, *, label_decoding):
     if model is None:
         return '<no model>'
 
-    padded, lengths = prepare_samples([sample])
-    pred = model.predict({'inputs': padded, 'lengths': lengths}, session=session)
+    padded, lengths = batch_transform_samples([sample])
+
+    pred = model.predict((padded, lengths))
+    pred = np.argmax(pred, axis=1)
+
     return label_decoding[pred[0]]
 
 

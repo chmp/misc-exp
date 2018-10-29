@@ -18,6 +18,7 @@ setup(
         'python_speech_features',
         'scipy',
         'sounddevice',
+        'janus',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

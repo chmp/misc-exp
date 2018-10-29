@@ -36,8 +36,8 @@ ipytest-demo = {editable = true, path = "./20181026-TestingInJupyter"}
 
 [dev-packages]
 pytest = "*"
-ipytest = "==0.5.0b1"
-black = "==18.6b4"
+ipytest = "==0.5.0b2"
+black = "==18.9b0"
 docutils = "*"
 twine = "*"
 wheel = "*"

@@ -34,15 +34,12 @@ def detect(target, model):
 
 
 async def _detect(target, model):
-    import tensorflow as tf
+    _logger.info('load model')
+    model = load_optional_model(model)
 
-    with tf.Session().as_default() as sess:
-        _logger.info('load model')
-        model = load_optional_model(model, session=sess)
-
-        _logger.info('enter detection loop')
-        async for label in _async_detect(model, sample_target=target, session=sess):
-            print('detected: ', label)
+    _logger.info('enter detection loop')
+    async for label in _async_detect(model, sample_target=target):
+        print('detected: ', label)
 
 
 @main.command()
