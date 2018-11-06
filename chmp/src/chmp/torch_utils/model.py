@@ -525,7 +525,7 @@ class History(Callback):
         return iter(self.keys())
 
     def __repr__(self):
-        return 'History<{!r}>'.format(self._keys)
+        return "History<{!r}>".format(self._keys)
 
 
 def flatten_dict(d):

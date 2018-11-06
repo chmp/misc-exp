@@ -26,9 +26,40 @@ assert foo == 42
 
 
 ### `chmp.ds.cached`
-`chmp.ds.cached(path)`
+`chmp.ds.cached(path, validate=False)`
 
 Similar to `define`, but cache to a file.
+
+#### Parameters
+
+* **path** (*any*):
+  the path of the cache file to use
+* **validate** (*any*):
+  if True, always execute the function. The loaded result will be
+  passed to the function, when the cache exists. In that case the
+  function should return the value to use. If the returned value is
+  not identical to the loaded value, the cache is updated with the
+  new value.
+
+Usage:
+
+```
+@cached('./cache/result')
+def dataset():
+    ...
+    return result
+```
+
+or:
+
+```
+@cached('./cache/result', validate=True)
+def model(result=None):
+    if result is not None:
+        # running to validate ...
+
+    return result
+```
 
 
 ### `chmp.ds.Object`
