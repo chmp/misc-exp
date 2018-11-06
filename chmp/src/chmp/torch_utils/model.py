@@ -500,18 +500,32 @@ class History(Callback):
     def __init__(self):
         super().__init__()
         self.history = []
+        self._keys = set()
 
     def on_epoch_end(self, epoch, logs=None):
         logs = optional_dict(logs)
         logs = flatten_dict(logs)
 
+        self._keys.update(logs)
         self.history.append(logs)
 
     def get(self, key, default=None):
         return [item.get(key, default) for item in self.history]
 
+    def __getitem__(self, key):
+        if not key in self._keys:
+            raise KeyError(f"cannot find {key}")
+
+        return self.get(key)
+
+    def keys(self):
+        return frozenset(self._keys)
+
     def __iter__(self):
-        return iter(self.history)
+        return iter(self.keys())
+
+    def __repr__(self):
+        return 'History<{!r}>'.format(self._keys)
 
 
 def flatten_dict(d):
