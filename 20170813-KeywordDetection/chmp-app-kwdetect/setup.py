@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='chmp-app-kwdetect',
     version='0.4.0',
-    description='Simple keyword detection using tensorflow',
+    description='Simple keyword detection',
     author='Christopher Prohm',
     author_email='mail@cprohm.de',
     license='MIT',
@@ -19,6 +19,7 @@ setup(
         'scipy',
         'sounddevice',
         'janus',
+        'torch',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

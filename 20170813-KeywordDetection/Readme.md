@@ -1,4 +1,4 @@
-# kwdetect - simple keyword detection using tensorflow
+# kwdetect - simple keyword detection
 
 See [the notebook](kwdetect.ipynb) for an overview.
 
