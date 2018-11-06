@@ -88,24 +88,65 @@ def define(func):
     return func()
 
 
-def cached(path):
+def cached(path: str, validate: bool = False):
     """Similar to ``define``, but cache to a file.
+
+    :param path:
+        the path of the cache file to use
+    :param validate:
+        if `True`, always execute the function. The loaded result will be
+        passed to the function, when the cache exists. In that case the
+        function should return the value to use. If the returned value is
+        not identical to the loaded value, the cache is updated with the
+        new value.
+
+    Usage::
+
+        @cached('./cache/result')
+        def dataset():
+            ...
+            return result
+
+    or::
+
+        @cached('./cache/result', validate=True)
+        def model(result=None):
+            if result is not None:
+                # running to validate ...
+
+            return result
     """
+
+    def update_cache(result):
+        print("save cache", path)
+        with open(path, "wb") as fobj:
+            pickle.dump(result, fobj)
+
+    def load_cache():
+        print("load cache", path)
+        with open(path, "rb") as fobj:
+            return pickle.load(fobj)
 
     def decorator(func):
         if os.path.exists(path):
-            print("load cache", path)
-            with open(path, "rb") as fobj:
-                return pickle.load(fobj)
+            result = load_cache()
+
+            if not validate:
+                return result
+
+            else:
+                print("validate")
+                new_result = func(result)
+
+                if new_result is not result:
+                    update_cache(new_result)
+
+                return new_result
 
         else:
             print("compute")
             result = func()
-
-            print("save cache", path)
-            with open(path, "wb") as fobj:
-                pickle.dump(result, fobj)
-
+            update_cache(result)
             return result
 
     return decorator
