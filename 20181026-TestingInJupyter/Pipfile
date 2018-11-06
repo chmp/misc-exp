@@ -14,7 +14,13 @@ pytest = "*"
 nbconvert = "*"
 ipytest-demo = {editable = true, path = "."}
 wheel = "*"
+invoke = "*"
+nbval = "*"
+black = "==18.9b0"
 
 [scripts]
-test = "pytest tests"
 build = "jupyter nbconvert --to slides notebooks/IPyTestIntro.ipynb --output-dir resources"
+
+precommit = "invoke precommit"
+format = "invoke format"
+test = "invoke test"

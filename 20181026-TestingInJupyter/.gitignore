@@ -1,2 +1,10 @@
 /dist/
 /build/
+.ipynb_checkpoints/
+*.pyc
+__pycache__/
+.*.swp
+.cache/
+*.egg-info/
+.DS_Store
+.pytest_cache/
