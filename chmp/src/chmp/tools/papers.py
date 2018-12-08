@@ -18,7 +18,6 @@ def sort_arxiv_papers(source_path, target_path):
     target_path = pathlib.Path(target_path)
 
     arxiv_papers = [p for p in source_path.glob("*.pdf") if is_arxiv_paper(p)]
-    print(source_path)
     existing_arxiv_papers = []
 
     for idx, p in enumerate(arxiv_papers):
@@ -50,6 +49,32 @@ def sort_arxiv_papers(source_path, target_path):
             json.dump(meta, fobj, indent=2, sort_keys=True)
 
     return existing_arxiv_papers
+
+
+def sort_non_arxiv_papers(source_path, target_path):
+    source_path = pathlib.Path(source_path).resolve()
+    target_path = pathlib.Path(target_path).resolve()
+
+    print(source_path)
+    candidate_papers = list(source_path.glob('*.pdf'))
+
+    for p in candidate_papers:
+        s = shasum(p)
+
+        normalized_file_name = re.sub('[^\w -]', '', p.stem)
+        normalized_file_name = normalized_file_name.lower()
+        normalized_file_name = normalized_file_name.replace(' ', '_')
+        normalized_file_name = normalized_file_name.replace('-', '_')
+        normalized_file_name = f'{s[:9]}_{normalized_file_name}.pdf'
+
+        target_fname = target_path / normalized_file_name
+
+        if target_fname.exists():
+            print('skip', p, '->', target_fname)
+            continue
+
+        print(p, '->', target_fname)
+        shutil.move(p, target_fname)
 
 
 def shasum(p):
