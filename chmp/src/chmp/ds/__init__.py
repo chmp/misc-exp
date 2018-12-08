@@ -187,7 +187,10 @@ class Object:
 
 
 class daterange:
-    def __init__(self, start, end, step):
+    def __init__(self, start, end, step=None):
+        if step is None:
+            step = datetime.timedelta(days=1)
+
         self.start = start
         self.end = end
         self.step = step
@@ -487,6 +490,7 @@ class pgm:
         self._annotations = list(annotations)
 
     def update(self, nodes=None, edges=None, annotations=None):
+        """Replace a full set of features."""
         if nodes is None:
             nodes = self._nodes
 
@@ -549,6 +553,21 @@ class pgm:
         return self.update(annotations=self._annotations + [annotation])
 
     def render(self, ax=None, axis=False, xlim=None, ylim=None, **kwargs):
+        """Render the figure.
+
+        :param ax:
+            the axes to draw into. If not given, the axis specified in
+            `__init__` or the current axes is used.
+        :param xlim:
+            the xlim to use. If not given, it is determined from the data.
+        :param ylim:
+            the ylim to use. If not given, it is determined from the data.
+        :param kwargs:
+            keyword arguments forward to mpl set.
+
+        :returns:
+            the `pgm` object.
+        """
         import daft
         import matplotlib.pyplot as plt
 
