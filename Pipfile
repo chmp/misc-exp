@@ -35,6 +35,7 @@ mlflow = "*"
 ipytest-demo = {editable = true, path = "./20181026-TestingInJupyter"}
 pyarrow = "*"
 distributed = "*"
+lightgbm = "*"
 
 [dev-packages]
 pytest = "*"
@@ -53,7 +54,7 @@ pyflakes = "*"
 mypy = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
 
 [scripts]
 precommit = "invoke precommit"
