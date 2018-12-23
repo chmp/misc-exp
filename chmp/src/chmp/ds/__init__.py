@@ -22,7 +22,7 @@ import sys
 import time
 
 from types import ModuleType
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, Iterable
 
 try:
     from sklearn.base import (
@@ -187,7 +187,34 @@ class Object:
 
 
 class daterange:
-    def __init__(self, start, end, step=None):
+    """A range of dates."""
+    start: datetime.date
+    end: datetime.date
+    step: datetime.timedelta
+
+    @classmethod
+    def around(cls, dt, start, end, step=None):
+        if not isinstance(start, datetime.timedelta):
+            start = datetime.timedelta(days=start)
+
+        if not isinstance(end, datetime.timedelta):
+            end = datetime.timedelta(days=end)
+
+        if step is None:
+            step = datetime.timedelta(days=1)
+
+        elif not isinstance(step, datetime.timedelta):
+            step = datetime.timedelta(days=step)
+
+
+        return cls(dt + start, dt + end, step)
+
+    def __init__(
+        self,
+        start: datetime.date,
+        end: datetime.date,
+        step: Optional[datetime.timedelta] = None,
+    ):
         if step is None:
             step = datetime.timedelta(days=1)
 
@@ -195,14 +222,34 @@ class daterange:
         self.end = end
         self.step = step
 
-    def __len__(self):
-        return int((self.end - self.start) / self.step)
+    def __len__(self) -> int:
+        return len(self._offset_range)
 
-    def __iter__(self):
-        current = self.start
-        while current < self.end:
-            yield current
-            current += self.step
+    def __iter__(self) -> Iterable[datetime.date]:
+        for offset in self._offset_range:
+            yield self.start + datetime.timedelta(days=offset)
+
+    def __contains__(self, item: datetime.date) -> bool:
+        return self._offset(item) in self._offset_range
+
+    def __getitem__(self, index: int) -> datetime.date:
+        return self.start + datetime.timedelta(days=self._offset_range[index])
+
+    def count(self, item: datetime.date) -> int:
+        return 1 if (item in self) else 0
+
+    def index(self, item):
+        return self._offset_range.index(self._offset(item))
+
+    def _offset(self, item: datetime.date) -> int:
+        return (item - self.start).days
+
+    @property
+    def _offset_range(self) -> range:
+        return range(0, (self.end - self.start).days, self.step.days)
+
+    def __repr__(self):
+        return f'daterange({self.start}, {self.end}, {self.step})'
 
 
 def orient(pos):
