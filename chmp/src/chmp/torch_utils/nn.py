@@ -10,6 +10,7 @@ __all__ = [
     "Flatten",
     "Add",
     "Lambda",
+    "LookupFunction",
 ]
 
 
@@ -129,3 +130,60 @@ class Lambda(torch.nn.Module):
 
     def forward(self, *x, **kwargs):
         return self.func(*x, **kwargs)
+
+
+# TODO: figure out how to properly place the nodes
+class LookupFunction(torch.nn.Module):
+    """Helper to define a lookup function incl. its gradient.
+
+    Usage::
+
+        import scipy.special
+
+        x = np.linspace(0, 10, 100).astype('float32')
+        iv0 = scipy.special.iv(0, x).astype('float32')
+        iv1 = scipy.special.iv(1, x).astype('float32')
+
+        iv = LookupFunction(x.min(), x.max(), iv0, iv1)
+
+        a = torch.linspace(0, 20, 200, requires_grad=True)
+        g, = torch.autograd.grad(iv(a), a, torch.ones_like(a))
+
+    """
+    def __init__(self, input_min, input_max, forward_values, backward_values):
+        super().__init__()
+        self.input_min = torch.as_tensor(input_min)
+        self.input_max = torch.as_tensor(input_max)
+        self.forward_values = torch.as_tensor(forward_values)
+        self.backward_values = torch.as_tensor(backward_values)
+
+    def forward(self, x):
+        return _LookupFunction.apply(
+            x,
+            self.input_min,
+            self.input_max,
+            self.forward_values,
+            self.backward_values,
+        )
+
+
+class _LookupFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x, input_min, input_max, forward_values, backward_values):
+        idx_max = (len(forward_values) - 1)
+        idx_scale = idx_max / (input_max - input_min)
+        idx = (idx_scale * (x - input_min)).type(torch.long)
+        idx = torch.clamp(idx, 0, idx_max)
+
+        if backward_values is not None:
+            ctx.save_for_backward(backward_values[idx])
+
+        else:
+            ctx.save_for_backward(None)
+
+        return forward_values[idx]
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        backward_values, = ctx.saved_tensors
+        return grad_output * backward_values, None, None, None, None
