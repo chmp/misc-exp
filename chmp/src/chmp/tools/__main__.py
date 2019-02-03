@@ -60,28 +60,30 @@ def open_inventory(inventory, cache_file=".inventory.json.bz2"):
 
 
 @main.command()
-@click.argument('source-path', type=click.Path(exists=True))
-@click.argument('target-path', type=click.Path(exists=True))
-@click.option('-y', 'yes', is_flag=True, default=False)
+@click.argument("source-path", type=click.Path(exists=True))
+@click.argument("target-path", type=click.Path(exists=True))
+@click.option("-y", "yes", is_flag=True, default=False)
 def paper(source_path, target_path, yes=False):
+    """Sort papers into a common normalized directory structure."""
     from chmp.tools.papers import sort_arxiv_papers, sort_non_arxiv_papers
 
-    non_arxiv_source_path = pathlib.Path(source_path) / 'PapersToSort'
+    non_arxiv_source_path = pathlib.Path(source_path) / "PapersToSort"
 
-    print(f':: this script will perform the following actions:')
-    print(f':: - sort arxiv papers from {source_path!s} to {target_path!s}')
-    print(f':: - sort non arxiv papers from {non_arxiv_source_path!s} to {target_path!s}')
+    print(f":: this script will perform the following actions:")
+    print(f":: - sort arxiv papers from {source_path!s} to {target_path!s}")
+    print(
+        f":: - sort non arxiv papers from {non_arxiv_source_path!s} to {target_path!s}"
+    )
 
-    if not yes and input(':: continue? [yN] ') != 'y':
+    if not yes and input(":: continue? [yN] ") != "y":
         return
 
     print()
-    print(':: sort arxiv papers')
+    print(":: sort arxiv papers")
     sort_arxiv_papers(source_path, target_path)
 
-    print(':: sort non arxiv papers')
+    print(":: sort non arxiv papers")
     sort_non_arxiv_papers(non_arxiv_source_path, target_path)
-
 
 
 if __name__ == "__main__":

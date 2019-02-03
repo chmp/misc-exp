@@ -19,6 +19,7 @@ import math
 import os.path
 import pickle
 import sys
+import threading
 import time
 
 from types import ModuleType
@@ -188,6 +189,7 @@ class Object:
 
 class daterange:
     """A range of dates."""
+
     start: datetime.date
     end: datetime.date
     step: datetime.timedelta
@@ -205,7 +207,6 @@ class daterange:
 
         elif not isinstance(step, datetime.timedelta):
             step = datetime.timedelta(days=step)
-
 
         return cls(dt + start, dt + end, step)
 
@@ -249,46 +250,7 @@ class daterange:
         return range(0, (self.end - self.start).days, self.step.days)
 
     def __repr__(self):
-        return f'daterange({self.start}, {self.end}, {self.step})'
-
-
-def orient(pos):
-    """Given a set of points orient them such that the moment of inertia is diagonal.
-
-    :param pos:
-        an array-like of the shape ``(npoints, ndim)``.
-    :returns:
-        an array with the same shape as ``pos`` oriented.
-    """
-    import numpy as np
-
-    pos = np.asarray(pos)
-    delta = pos - np.mean(pos, axis=0, keepdims=True)
-    moi = compute_moi(delta)
-    eigvals, eigvects = np.linalg.eig(moi)
-    idx = np.argsort(eigvals)
-    rot = eigvects[:, idx]
-
-    return delta @ rot
-
-
-def compute_moi(pos):
-    """Compute the moment of inertia tensor of a point cloud.
-
-    :param pos:
-        an array-like of the shape ``(npoints, ndim)``.
-    :returns:
-        the moment of inertia tensor with shape ``(ndim, ndim)``.
-    """
-    import numpy as np
-
-    pos2 = np.sum(pos ** 2.0, axis=1)
-    ident = np.eye(pos.shape[1])
-    ident = ident[None, ...]
-
-    return np.sum(
-        pos2[:, None, None] * ident - pos[:, None, :] * pos[:, :, None], axis=0
-    )
+        return f"daterange({self.start}, {self.end}, {self.step})"
 
 
 def colorize(items):
@@ -314,7 +276,7 @@ def get_color_cycle(n=None):
     cycle = mpl.rcParams["axes.prop_cycle"].by_key()["color"]
 
     if n is None:
-        return cycle
+        return it.cycle(cycle)
 
     return list(it.islice(it.cycle(cycle), n))
 
@@ -1076,6 +1038,167 @@ def as_frame(**kwargs):
     import pandas as pd
 
     return pd.DataFrame().assign(**kwargs)
+
+
+def singledispatch_on(idx):
+    """Helper to dispatch on any argument, not only the first one."""
+
+    # It works by wrapping the function to include the relevant
+    # argument as first argument as well.
+    def decorator(func):
+        @ft.wraps(func)
+        def wrapper(*args, **kwargs):
+            dispatch_obj = args[idx]
+            return dispatcher(dispatch_obj, *args, **kwargs)
+
+        def make_call_impl(func):
+            @ft.wraps(func)
+            def impl(*args, **kwargs):
+                _, *args = args
+                return func(*args, **kwargs)
+
+            return impl
+
+        def register(type):
+            def decorator(func):
+                dispatcher.register(type)(make_call_impl(func))
+                return func
+
+            return decorator
+
+        wrapper.register = register
+        dispatcher = ft.singledispatch(make_call_impl(func))
+
+        return wrapper
+
+    return decorator
+
+
+def setdefaultattr(obj, name, value):
+    """``dict.setdefault`` for attributes"""
+    if not hasattr(obj, name):
+        setattr(obj, name, value)
+
+
+def sapply(*args, **kwargs):
+    func, obj, *args = args
+
+    if obj is None:
+        return None
+
+    elif isinstance(obj, (list, tuple)):
+        cls = type(obj)
+        return cls(sapply(func, item, *args, **kwargs) for item in obj)
+
+    elif isinstance(obj, dict):
+        cls = type(obj)
+        return cls((k, sapply(func, v, *args, **kwargs)) for k, v in obj.items())
+
+    else:
+        return func(obj, *args, **kwargs)
+
+
+bg_instances = {}
+
+
+def bgloop(tag, *iterables, runner=None):
+    """Run a loop in a background thread."""
+    if runner is None:
+        runner = run_thread
+
+    def decorator(func):
+        if tag in bg_instances and bg_instances[tag].running:
+            raise RuntimeError("Already running loop")
+
+        bg_instances[tag] = Object()
+        bg_instances[tag].running = True
+        bg_instances[tag].handle = runner(_run_loop, tag, func, iterables)
+
+        return func
+
+    def _run_loop(tag, func, iterables):
+        try:
+            bg_instances[tag].running = True
+            for loop, item in Loop.over(
+                fast_product(*iterables), length=product_len(*iterables)
+            ):
+                if not bg_instances[tag].running:
+                    break
+
+                func(loop, *item)
+
+        finally:
+            bg_instances[tag].running = False
+
+    return decorator
+
+
+def cancel(tag):
+    if tag in bg_instances:
+        bg_instances[tag].running = False
+
+
+def wait(tag):
+    if tag in bg_instances and bg_instances[tag].handle is not None:
+        bg_instances[tag].handle.join()
+
+
+def run_direct(*args, **kwargs):
+    func, *args = args
+    func(*args, **kwargs)
+
+
+def run_thread(*args, **kwargs):
+    func, *args = args
+    t = threading.Thread(target=func, args=args, kwargs=kwargs)
+    t.start()
+    return t
+
+
+def product_len(*iterables):
+    if not iterables:
+        return 1
+
+    head, *tail = iterables
+    return len(head) * product_len(*tail)
+
+
+def fast_product(*iterables):
+    if not iterables:
+        yield ()
+        return
+
+    head, *tail = iterables
+    for i in head:
+        for j in fast_product(*tail):
+            yield (i,) + j
+
+
+class Display:
+    """An interactive display for use in background tasks."""
+
+    def __init__(self, obj=None):
+        from IPython.core.display import display
+
+        self.handle = display(obj, display_id=True)
+
+    def update(self, obj):
+        self.handle.update(obj)
+
+    def print(self, *args, sep=" "):
+        from IPython.core.display import Pretty
+
+        self.handle.update(Pretty(sep.join(str(a) for a in args)))
+
+    def figure(self):
+        from IPython.core.display import Image
+        import matplotlib.pyplot as plt
+
+        with io.BytesIO() as fobj:
+            plt.savefig(fobj, format="png")
+            plt.close()
+
+            self.handle.update(Image(fobj.getvalue(), format="png"))
 
 
 def pd_has_ordered_assign():
@@ -1983,12 +2106,13 @@ class Loop:
             # NOTE: this is reached, when the generator is not fully consumed
             except GeneratorExit:
                 frame.abort()
+                self._stack = [s for s in self._stack if s is not frame]
                 raise
 
             frame.finish_item()
 
         frame.finish()
-        self._stack.pop()
+        self._stack = [s for s in self._stack if s is not frame]
 
     def get_info(self):
         now = self.now()

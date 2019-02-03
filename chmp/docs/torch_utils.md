@@ -205,42 +205,6 @@ Compute weights with shape `(batch_size, n_samples, n_keys)`.
 ## `chmp.torch_utils.bayes`
 
 
-### `chmp.torch_utils.bayes.fixed`
-`chmp.torch_utils.bayes.fixed(value)`
-
-decorator to mark a parameter as not-optimized.
-
-
-### `chmp.torch_utils.bayes.optimized`
-`chmp.torch_utils.bayes.optimized(value)`
-
-Decorator to mark a parameter as optimized.
-
-
-### `chmp.torch_utils.bayes.optional_parameter`
-`chmp.torch_utils.bayes.optional_parameter(arg, *, default=<class 'chmp.torch_utils.bayes.optimized'>)`
-
-Make sure arg is a tensor and optionally a parameter.
-
-Values wrapped with `fixed` are returned as a tensor, `values` wrapped
-with `optimized``are returned as parameters. When arg is not one of
-``fixed` or `optimized` it is wrapped with `default`.
-
-Usage:
-
-```
-class MyModule(torch.nn.Module):
-    def __init__(self, a, b):
-        super().__init__()
-
-        # per default a will be optimized during training
-        self.a = optional_parameter(a, default=optimized)
-
-        # per default B will not be optimized during training
-        self.b = optional_parameter(b, default=fixed)
-```
-
-
 ### `chmp.torch_utils.bayes.KLDivergence`
 `chmp.torch_utils.bayes.KLDivergence(n_observations)`
 
@@ -348,4 +312,40 @@ Sources:
 - * **The regularization concept is taken from J. Piironen and A. Vehtari**:
   "Sparsity information and regularization in the horseshoe and other
   shrinkage priors" (2107).
+
+
+### `chmp.torch_utils.bayes.optimized`
+`chmp.torch_utils.bayes.optimized(value)`
+
+Decorator to mark a parameter as optimized.
+
+
+### `chmp.torch_utils.bayes.fixed`
+`chmp.torch_utils.bayes.fixed(value)`
+
+decorator to mark a parameter as not-optimized.
+
+
+### `chmp.torch_utils.bayes.optional_parameter`
+`chmp.torch_utils.bayes.optional_parameter(arg, *, default=<class 'chmp.torch_utils._util.optimized'>)`
+
+Make sure arg is a tensor and optionally a parameter.
+
+Values wrapped with `fixed` are returned as a tensor, `values` wrapped
+with `optimized``are returned as parameters. When arg is not one of
+``fixed` or `optimized` it is wrapped with `default`.
+
+Usage:
+
+```
+class MyModule(torch.nn.Module):
+    def __init__(self, a, b):
+        super().__init__()
+
+        # per default a will be optimized during training
+        self.a = optional_parameter(a, default=optimized)
+
+        # per default B will not be optimized during training
+        self.b = optional_parameter(b, default=fixed)
+```
 

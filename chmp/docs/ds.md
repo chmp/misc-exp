@@ -68,34 +68,10 @@ def model(result=None):
 Dictionary-like namespace object.
 
 
-### `chmp.ds.orient`
-`chmp.ds.orient(pos)`
+### `chmp.ds.daterange`
+`chmp.ds.daterange(start, end, step=None)`
 
-Given a set of points orient them such that the moment of inertia is diagonal.
-
-#### Parameters
-
-* **pos** (*any*):
-  an array-like of the shape `(npoints, ndim)`.
-
-#### Returns
-
-an array with the same shape as `pos` oriented.
-
-
-### `chmp.ds.compute_moi`
-`chmp.ds.compute_moi(pos)`
-
-Compute the moment of inertia tensor of a point cloud.
-
-#### Parameters
-
-* **pos** (*any*):
-  an array-like of the shape `(npoints, ndim)`.
-
-#### Returns
-
-the moment of inertia tensor with shape `(ndim, ndim)`.
+A range of dates.
 
 
 ### `chmp.ds.colorize`
@@ -179,10 +155,38 @@ node("z", "label", 1, 1)
 ```
 
 
+#### `chmp.ds.pgm.update`
+`chmp.ds.pgm.update(nodes=None, edges=None, annotations=None)`
+
+Replace a full set of features.
+
+
 #### `chmp.ds.pgm.remove`
 `chmp.ds.pgm.remove(incoming=(), outgoing=())`
 
 Remove edges that point in or out of a the specified nodes.
+
+
+#### `chmp.ds.pgm.render`
+`chmp.ds.pgm.render(ax=None, axis=False, xlim=None, ylim=None, **kwargs)`
+
+Render the figure.
+
+#### Parameters
+
+* **ax** (*any*):
+  the axes to draw into. If not given, the axis specified in
+  __init__ or the current axes is used.
+* **xlim** (*any*):
+  the xlim to use. If not given, it is determined from the data.
+* **ylim** (*any*):
+  the ylim to use. If not given, it is determined from the data.
+* **kwargs** (*any*):
+  keyword arguments forward to mpl set.
+
+#### Returns
+
+the pgm object.
 
 
 ### `chmp.ds.edges`
@@ -314,6 +318,30 @@ Find categories with high frequency.
   if given keep at most `n_max` categories. If more are present after
   filtering for minimum frequency, keep the highest `n_max` frequency
   columns.
+
+
+### `chmp.ds.singledispatch_on`
+`chmp.ds.singledispatch_on(idx)`
+
+Helper to dispatch on any argument, not only the first one.
+
+
+### `chmp.ds.setdefaultattr`
+`chmp.ds.setdefaultattr(obj, name, value)`
+
+`dict.setdefault` for attributes
+
+
+### `chmp.ds.bgloop`
+`chmp.ds.bgloop(tag, *iterables, runner=None)`
+
+Run a loop in a background thread.
+
+
+### `chmp.ds.Display`
+`chmp.ds.Display(obj=None)`
+
+An interactive display for use in background tasks.
 
 
 ### `chmp.ds.timed`

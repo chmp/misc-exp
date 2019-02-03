@@ -36,6 +36,7 @@ ipytest-demo = {editable = true, path = "./20181026-TestingInJupyter"}
 pyarrow = "*"
 distributed = "*"
 lightgbm = "*"
+pytorch-ignite = "*"
 
 [dev-packages]
 pytest = "*"

@@ -1,4 +1,11 @@
+import operator as op
+
+import numpy as np
 import torch
+
+from chmp.ds import sapply
+
+from ._util import fixed, optimized, optional_parameter
 
 __all__ = [
     "identity",
@@ -11,7 +18,26 @@ __all__ = [
     "Add",
     "Lambda",
     "LookupFunction",
+    "fixed",
+    "optimized",
+    "optional_parameter",
+    "t2n",
+    "n2t",
 ]
+
+
+def t2n(obj, dtype=None):
+    """Torch to numpy."""
+    return sapply(
+        lambda obj, *args, **kwargs: np.asarray(obj.detach().cpu(), *args, **kwargs),
+        obj,
+        dtype=dtype,
+    )
+
+
+def n2t(obj, dtype=None, device=None):
+    """Numpy to torch."""
+    return sapply(torch.as_tensor, obj, dtype=dtype, device=device)
 
 
 def identity(x):
@@ -108,13 +134,33 @@ class DiagonalScaleShift(torch.nn.Module):
         return self.scale * (x - self.shift)
 
 
+class BinaryOperatorConstant(torch.nn.Module):
+    def __init__(self, op, value):
+        super().__init__()
+        self.op = op
+        self.value = optional_parameter(value)
+
+    def forward(self, x):
+        return self.op(x, self.value)
+
+
+class MultiplyConstant(BinaryOperatorConstant):
+    def __init__(self, value):
+        super().__init__(op=op.mul, value=value)
+
+
+class DivideConstant(BinaryOperatorConstant):
+    def __init__(self, value):
+        super().__init__(op=op.truediv, value=value)
+
+
 class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.reshape(-1)
 
 
 class Add(torch.nn.ModuleList):
-    """Appply all modules in parallel and add their outputs."""
+    """Apply all modules in parallel and add their outputs."""
 
     def __init__(self, *children):
         super().__init__(children)
@@ -124,12 +170,13 @@ class Add(torch.nn.ModuleList):
 
 
 class Lambda(torch.nn.Module):
-    def __init__(self, func):
+    def __init__(self, func, **kwargs):
         super().__init__()
         self.func = func
+        self.kwargs = kwargs
 
-    def forward(self, *x, **kwargs):
-        return self.func(*x, **kwargs)
+    def forward(self, *x):
+        return self.func(*x, **self.kwargs)
 
 
 # TODO: figure out how to properly place the nodes
@@ -150,6 +197,7 @@ class LookupFunction(torch.nn.Module):
         g, = torch.autograd.grad(iv(a), a, torch.ones_like(a))
 
     """
+
     def __init__(self, input_min, input_max, forward_values, backward_values):
         super().__init__()
         self.input_min = torch.as_tensor(input_min)
@@ -159,18 +207,14 @@ class LookupFunction(torch.nn.Module):
 
     def forward(self, x):
         return _LookupFunction.apply(
-            x,
-            self.input_min,
-            self.input_max,
-            self.forward_values,
-            self.backward_values,
+            x, self.input_min, self.input_max, self.forward_values, self.backward_values
         )
 
 
 class _LookupFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, input_min, input_max, forward_values, backward_values):
-        idx_max = (len(forward_values) - 1)
+        idx_max = len(forward_values) - 1
         idx_scale = idx_max / (input_max - input_min)
         idx = (idx_scale * (x - input_min)).type(torch.long)
         idx = torch.clamp(idx, 0, idx_max)

@@ -1,6 +1,4 @@
-from chmp.ds import Object, compute_moi, orient, timed
-
-import numpy as np
+from chmp.ds import Object, timed, singledispatch_on
 
 
 def test_object():
@@ -16,38 +14,24 @@ def test_object():
     assert vars(a) == dict(a=2, b=3)
 
 
-def test_orient_random():
-    np.random.seed(424_242)
-    pos = np.random.uniform(-1, +1, size=(100, 3))
-    pos = np.transpose(
-        np.stack(
-            [pos[:, 0] - pos[:, 1], pos[:, 0] * pos[:, 1] ** 2, pos[:, 1] * pos[:, 2]]
-        )
-    )
-
-    pos = orient(pos)
-    moi = compute_moi(pos)
-
-    # all non digaonal elements are zero
-    np.testing.assert_almost_equal(moi - np.diag(np.diag(moi)), 0)
-
-    # the diagonal is increasing
-    np.testing.assert_array_equal(np.diff(np.diag(moi)) > 0, True)
-
-
-def test_orient_straight_line():
-    u = np.linspace(-10, +10, 10)
-    pos = np.stack([0.5 ** 0.5 * u, 0.5 ** 0.5 * u]).T
-
-    opos = orient(pos)
-
-    np.testing.assert_almost_equal(opos[:, 0], u)
-    np.testing.assert_almost_equal(opos[:, 1], 0)
-
-
 def test_timed():
     with timed():
         assert True is True
 
     with timed("label"):
         assert True is True
+
+
+def test_singledispatch_on():
+    @singledispatch_on(1)
+    def foo(a, b):
+        return 1
+
+    @foo.register(int)
+    def bar(a, b):
+        return 2
+
+    assert foo(0, 2) == 2
+    assert foo(1, None) == 1
+    assert foo(None, 2) == 2
+    assert foo(None, None) == 1

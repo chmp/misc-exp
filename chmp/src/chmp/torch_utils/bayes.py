@@ -1,13 +1,10 @@
 import numpy as np
 import torch
 
-from ._util import register_unknown_kl
+from ._util import register_unknown_kl, fixed, optimized, optional_parameter
 from .model import Model
 
 __all__ = [
-    "fixed",
-    "optimized",
-    "optional_parameter",
     "KLDivergence",
     "SimpleBayesModel",
     "VariationalNormal",
@@ -18,62 +15,10 @@ __all__ = [
     "ExponentialModule",
     "NormalModelConstantScale",
     "WeightsHS",
+    "optimized",
+    "fixed",
+    "optional_parameter",
 ]
-
-
-class fixed:
-    """decorator to mark a parameter as not-optimized."""
-
-    def __init__(self, value):
-        self.value = value
-
-
-class optimized:
-    """Decorator to mark a parameter as optimized."""
-
-    def __init__(self, value):
-        self.value = value
-
-
-def optional_parameter(arg, *, default=optimized):
-    """Make sure arg is a tensor and optionally a parameter.
-
-    Values wrapped with ``fixed`` are returned as a tensor, ``values`` wrapped
-    with ``optimized``are returned as parameters. When arg is not one of
-    ``fixed`` or ``optimized`` it is wrapped with ``default``.
-
-    Usage::
-
-        class MyModule(torch.nn.Module):
-            def __init__(self, a, b):
-                super().__init__()
-
-                # per default a will be optimized during training
-                self.a = optional_parameter(a, default=optimized)
-
-                # per default B will not be optimized during training
-                self.b = optional_parameter(b, default=fixed)
-
-    """
-    if isinstance(arg, fixed):
-        return as_tensor(arg.value)
-
-    elif isinstance(arg, optimized):
-        return torch.nn.Parameter(as_tensor(arg.value))
-
-    elif default is optimized:
-        return torch.nn.Parameter(as_tensor(arg))
-
-    elif default is fixed:
-        return as_tensor(arg)
-
-    else:
-        raise RuntimeError()
-
-
-def as_tensor(arg):
-    """Turn ``arg`` into tensor if it is not already."""
-    return torch.tensor(arg) if not torch.is_tensor(arg) else arg
 
 
 class TorchDistributionModule(torch.nn.Module):
