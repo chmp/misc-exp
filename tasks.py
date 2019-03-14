@@ -52,7 +52,7 @@ notebooks_no_static_check = {"20181026-TestingInJupyter/notebooks/IPyTestIntro.i
 def precommit(c):
     format(c)
     docs(c)
-    static_checks(c)
+    # static_checks(c)
     test(c)
 
 

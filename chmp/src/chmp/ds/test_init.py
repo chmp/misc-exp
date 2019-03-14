@@ -1,4 +1,12 @@
-from chmp.ds import Object, timed, singledispatch_on
+import pytest
+
+from chmp.ds import (
+    Object,
+    timed,
+    singledispatch_on,
+    piecewise_linear,
+    piecewise_logarithmic,
+)
 
 
 def test_object():
@@ -35,3 +43,41 @@ def test_singledispatch_on():
     assert foo(1, None) == 1
     assert foo(None, 2) == 2
     assert foo(None, None) == 1
+
+
+def test_piecewise_linear():
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], -0.1) == pytest.approx(1.0)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +0.0) == pytest.approx(1.0)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +0.2) == pytest.approx(1.2)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +0.6) == pytest.approx(1.6)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +1.0) == pytest.approx(2.0)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +1.5) == pytest.approx(2.5)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +2.0) == pytest.approx(3.0)
+    assert piecewise_linear([0, 1, 2], [1, 2, 3], +2.2) == pytest.approx(3.0)
+
+
+def test_piecewise_logarithmic():
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], -0.1) == pytest.approx(
+        10 ** 1.0
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +0.0) == pytest.approx(
+        10 ** 1.0
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +0.2) == pytest.approx(
+        10 ** 1.2
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +0.6) == pytest.approx(
+        10 ** 1.6
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +1.0) == pytest.approx(
+        10 ** 2.0
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +1.5) == pytest.approx(
+        10 ** 2.5
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +2.0) == pytest.approx(
+        10 ** 3.0
+    )
+    assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +2.2) == pytest.approx(
+        10 ** 3.0
+    )

@@ -332,6 +332,22 @@ Helper to dispatch on any argument, not only the first one.
 `dict.setdefault` for attributes
 
 
+### `chmp.ds.szip`
+`chmp.ds.szip(iterable_of_objects, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
+
+Zip but for deeply nested objects.
+
+For a list of nested set of objects return a nested set of list.
+
+
+### `chmp.ds.smap`
+`chmp.ds.smap(func, arg, *args, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
+
+A structured version of map.
+
+The structure is taken from the first arguments.
+
+
 ### `chmp.ds.bgloop`
 `chmp.ds.bgloop(tag, *iterables, runner=None)`
 
@@ -484,6 +500,22 @@ Usage:
 
 ```
 series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
+```
+
+
+### `chmp.ds.render_poyo`
+`chmp.ds.render_poyo(obj, params)`
+
+Lighweight POYO templating.
+
+Any callable in the tree will be called with params. Example:
+
+```
+template = {
+    "key": lambda params: params['value'],
+}
+
+render_poyo(template, {'value': 20})
 ```
 
 

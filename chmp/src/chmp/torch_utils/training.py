@@ -129,41 +129,37 @@ class ProgressBar(SubclassHandler):
         self.formatter = formatter
         self.display = display
 
-        self.outer_looper = None
-        self.inner_looper = None
         self.loop = None
+        self.outer_frame = None
+        self.inner_frame = None
 
     def on_epoch_started(self, engine):
-        if self.outer_looper is None:
-            self.outer_looper = Loop.over(
-                range(engine.state.epoch - 1, engine.state.max_epochs)
+        if self.loop is None:
+            self.loop = Loop()
+            self.outer_frame = self.loop.push(
+                engine.state.max_epochs - engine.state.epoch + 1
             )
 
-        self.loop, _ = next(self.outer_looper)
-        self.inner_looper = self.loop.nest(range(len(engine.state.dataloader)))
+        if self.inner_frame is not None:
+            self.loop.pop(self.inner_frame)
 
-    def on_iteration_started(self, engine):
-        next(self.inner_looper)
+        self.inner_frame = self.loop.push(len(engine.state.dataloader))
 
     def on_iteration_completed(self, engine):
+        self.inner_frame.finish_item()
         self.print_status(engine)
 
     def on_epoch_completed(self, engine):
-        try:
-            next(self.inner_looper)
-        except StopIteration:
-            pass
+        self.loop.pop(self.inner_frame)
+        self.inner_frame = None
 
+        self.outer_frame.finish_item()
         self.print_status(engine)
 
     def on_completed(self, engine: Engine):
-        try:
-            next(self.outer_looper)
-        except StopIteration:
-            pass
-
-        self.outer_looper = None
-        self.inner_looper = None
+        self.loop.pop(self.outer_frame)
+        self.outer_frame = None
+        self.inner_frame = None
         self.loop = None
 
     def print_status(self, engine):
@@ -275,17 +271,15 @@ class Evaluator(SubclassHandler):
         for name, metric in metrics.items():
             metric.attach(self.evaluator, name)
 
-    def on_started(self, engine):
-        setdefaultattr(engine.state, "history_metrics", {})
-        setdefaultattr(engine.state, "history_metrics_epoch", [])
-
     def on_epoch_completed(self, engine):
         self.evaluator.run(self.valid_data)
 
-        for k, v in self.evaluator.state.metrics.items():
-            engine.state.history_metrics.setdefault(k, []).append(v)
-
-        engine.state.history_metrics_epoch.append(engine.state.epoch)
+        setdefaultattr(engine.state, "metrics_history", []).append(
+            dict(self.evaluator.state.metrics)
+        )
+        setdefaultattr(engine.state, "metrics_history_epoch", []).append(
+            engine.state.epoch
+        )
 
 
 class PersistentState(SubclassHandler):

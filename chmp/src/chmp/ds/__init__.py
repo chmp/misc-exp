@@ -4,10 +4,13 @@ Distributed as part of ``https://github.com/chmp/misc-exp`` under the MIT
 license, (c) 2017 Christopher Prohm.
 """
 import base64
+import bisect
+import bz2
 import collections
 import datetime
 import enum
 import functools as ft
+import gzip
 import hashlib
 import importlib
 import inspect
@@ -17,6 +20,7 @@ import json
 import logging
 import math
 import os.path
+import pathlib
 import pickle
 import sys
 import threading
@@ -69,6 +73,15 @@ def reload(*modules_or_module_names: Union[str, ModuleType]) -> Optional[ModuleT
         mod = importlib.reload(module_or_module_name)
 
     return mod
+
+
+def import_object(obj):
+    def _import_obj(obj):
+        module, _, name = obj.partition(":")
+        module = importlib.import_module(module)
+        return getattr(module, name)
+
+    return sapply(_import_obj, obj)
 
 
 def define(func):
@@ -392,6 +405,9 @@ def mpl_set(
     if legend is not None and legend is not False:
         if legend is True:
             plt.legend(loc="best")
+
+        elif isinstance(legend, str):
+            plt.legend(loc=legend)
 
         else:
             plt.legend(**legend)
@@ -1079,23 +1095,127 @@ def setdefaultattr(obj, name, value):
     if not hasattr(obj, name):
         setattr(obj, name, value)
 
+    return getattr(obj, name)
 
-def sapply(*args, **kwargs):
-    func, obj, *args = args
 
-    if obj is None:
+# keep for backwards compat
+def sapply(func, obj, sequences=(tuple,), mappings=(dict,)):
+    return smap(func, obj, sequences=sequences, mappings=mappings)
+
+
+def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,)):
+    """Zip but for deeply nested objects.
+
+    For a list of nested set of objects return a nested set of list.
+    """
+    iterable_of_objects = iter(iterable_of_objects)
+
+    try:
+        first = next(iterable_of_objects)
+
+    except StopIteration:
         return None
 
-    elif isinstance(obj, (list, tuple)):
-        cls = type(obj)
-        return cls(sapply(func, item, *args, **kwargs) for item in obj)
+    # build a scaffold into which the results are appended
+    # NOTE: the target lists must not be confused with the structure, use a
+    # schema object as an unambiguous marker.
+    target = smap(lambda _: [], first, sequences=sequences, mappings=mappings)
+    schema = smap(lambda _: None, first, sequences=sequences, mappings=mappings)
 
-    elif isinstance(obj, dict):
-        cls = type(obj)
-        return cls((k, sapply(func, v, *args, **kwargs)) for k, v in obj.items())
+    for obj in it.chain([first], iterable_of_objects):
+        smap(
+            lambda _, t, o: t.append(o),
+            schema,
+            target,
+            obj,
+            sequences=sequences,
+            mappings=mappings,
+        )
 
-    else:
-        return func(obj, *args, **kwargs)
+    return target
+
+
+def smap(func, arg, *args, sequences=(tuple,), mappings=(dict,)):
+    """A structured version of map.
+
+    The structure is taken from the first arguments.
+    """
+    _smap(func, arg, *args, path="$", sequences=sequences, mappings=mappings)
+
+
+def _smap(func, arg, *args, path, sequences=(tuple,), mappings=(dict,)):
+    try:
+        if isinstance(arg, sequences):
+            return type(arg)(
+                _smap(
+                    func,
+                    *co,
+                    path=f"{path}.{idx}",
+                    sequences=sequences,
+                    mappings=mappings,
+                )
+                for idx, *co in zip(it.count(), arg, *args)
+            )
+
+        elif isinstance(arg, mappings):
+            return type(arg)(
+                (
+                    k,
+                    _smap(
+                        func,
+                        arg[k],
+                        *(obj[k] for obj in args),
+                        path=f"{path}.k",
+                        sequences=sequences,
+                        mappings=mappings,
+                    ),
+                )
+                for k in arg
+            )
+
+        else:
+            return func(arg, *args)
+
+    # pass through any exceptions in smap without further annotations
+    except SApplyError:
+        raise
+
+    except Exception as e:
+        raise SApplyError(f"Error in sappend at {path}: {e}") from e
+
+
+class SApplyError(Exception):
+    pass
+
+
+def piecewise_linear(x, y, xi):
+    return _piecewise(_linear_interpolator, x, y, xi)
+
+
+def piecewise_logarithmic(x, y, xi=None):
+    return _piecewise(_logarithmic_interpolator, x, y, xi)
+
+
+def _linear_interpolator(u, y0, y1):
+    return y0 + u * (y1 - y0)
+
+
+def _logarithmic_interpolator(u, y0, y1):
+    return (y0 ** (1 - u)) * (y1 ** u)
+
+
+def _piecewise(interpolator, x, y, xi):
+    assert len(x) == len(y)
+    interval = bisect.bisect_right(x, xi)
+
+    if interval == 0:
+        return y[0]
+
+    if interval >= len(x):
+        return y[-1]
+
+    u = (xi - x[interval - 1]) / (x[interval] - x[interval - 1])
+    return interpolator(u, y[interval - 1], y[interval])
 
 
 bg_instances = {}
@@ -1826,6 +1946,21 @@ def qplot(
         plt.plot(x, y[n], alpha=alpha, color=color, **line_kwargs)
 
 
+def render_poyo(obj, params):
+    """Lighweight POYO templating.
+
+    Any callable in the tree will be called with params. Example::
+
+        template = {
+            "key": lambda params: params['value'],
+        }
+
+        render_poyo(template, {'value': 20})
+
+    """
+    return sapply(lambda o: o if not callable(o) else o(params), obj)
+
+
 def dashcb(app, output, *inputs, figure=False):
     """Construct a dash callback using function annotations.
 
@@ -1911,6 +2046,60 @@ def expand(low, high, change=0.05):
     center = 0.5 * (low + high)
     delta = 0.5 * (high - low)
     return (center - (1 + 0.5 * change) * delta, center + (1 + 0.5 * change) * delta)
+
+
+# ########################################################################## #
+#                             I/O Methods                                    #
+# ########################################################################## #
+
+
+def magic_open(p, mode, *, compression=None, atomic=False):
+    # return file-like objects unchanged
+    if not isinstance(p, (pathlib.Path, str)):
+        return p
+
+    assert atomic is False, "Atomic operations not yet supported"
+    opener = _get_opener(p, compression)
+    return opener(p, mode)
+
+
+def _get_opener(p, compression):
+    if compression is None:
+        sp = str(p)
+
+        if sp.endswith(".bz2"):
+            compression = "bz2"
+
+        elif sp.endswith(".gz"):
+            compression = "gz"
+
+        else:
+            compression = "none"
+
+    openers = {"bz2": bz2.open, "gz": gzip.open, "gzip": gzip.open, "none": open}
+    return openers[compression]
+
+
+def write_json(
+    obj, p, *, compression=None, atomic=False, lines=False, json=json, **kwargs
+):
+    with magic_open(p, "wt", compression=compression, atomic=atomic) as fobj:
+        if not lines:
+            json.dump(obj, fobj, **kwargs)
+
+        else:
+            for item in obj:
+                fobj.write(json.dumps(item))
+                fobj.write("\n")
+
+
+def read_json(p, *, lines=False, compression=None, json=json):
+    with magic_open(p, "rt", compression=compression) as fobj:
+        if not lines:
+            return json.load(fobj)
+
+        else:
+            return [json.loads(l) for l in fobj]
 
 
 # ########################################################################## #
@@ -2092,27 +2281,44 @@ class Loop:
     def __getitem__(self, idx):
         return Loop(time=self.now, stack=self._stack[idx:], root=self._stack[idx])
 
-    def nest(self, iterable, length=None):
-        frame = LoopFrame(self.now(), iterable, 0, length)
+    def push(self, length=None, idx=0):
+        frame = LoopFrame(start=self.now(), idx=idx, length=length)
 
         self._stack.append(frame)
         if self._root is None:
             self._root = frame
 
-        for item in frame.iterable:
+        return frame
+
+    def pop(self, frame):
+        if frame.state not in {LoopState.aborted, LoopState.done}:
+            frame.finish()
+
+        self._stack = [s for s in self._stack if s is not frame]
+
+    def nest(self, iterable, length=None):
+        if length is None:
+            try:
+                length = len(iterable)
+
+            except TypeError:
+                pass
+
+        frame = self.push(length=length)
+
+        for item in iterable:
             try:
                 yield item
 
             # NOTE: this is reached, when the generator is not fully consumed
             except GeneratorExit:
                 frame.abort()
-                self._stack = [s for s in self._stack if s is not frame]
+                self.pop(frame)
                 raise
 
             frame.finish_item()
 
-        frame.finish()
-        self._stack = [s for s in self._stack if s is not frame]
+        self.pop(frame)
 
     def get_info(self):
         now = self.now()
@@ -2193,30 +2399,18 @@ class Loop:
 
 
 class LoopFrame:
-    def __init__(self, start, iterable, idx=0, length=None, state=LoopState.running):
-        if length is None:
-            try:
-                length = len(iterable)
-
-            except TypeError:
-                length = None
-
-        else:
+    def __init__(self, start, idx=0, length=None, state=LoopState.running):
+        if length is not None:
             length = int(length)
 
         self.start = start
-        self.iterable = iterable
         self.idx = idx
         self.length = length
         self.state = state
 
     def copy(self):
         return LoopFrame(
-            start=self.start,
-            iterable=self.iterable,
-            idx=self.idx,
-            length=self.length,
-            state=self.state,
+            start=self.start, idx=self.idx, length=self.length, state=self.state
         )
 
     def finish_item(self):

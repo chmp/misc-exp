@@ -2,6 +2,7 @@ import operator as op
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from chmp.ds import sapply
 
@@ -28,16 +29,12 @@ __all__ = [
 
 def t2n(obj, dtype=None):
     """Torch to numpy."""
-    return sapply(
-        lambda obj, *args, **kwargs: np.asarray(obj.detach().cpu(), *args, **kwargs),
-        obj,
-        dtype=dtype,
-    )
+    return sapply(lambda obj: np.asarray(obj.detach().cpu(), dtype=dtype), obj)
 
 
 def n2t(obj, dtype=None, device=None):
     """Numpy to torch."""
-    return sapply(torch.as_tensor, obj, dtype=dtype, device=device)
+    return sapply(lambda obj: torch.as_tensor(obj, dtype=dtype, device=device), obj)
 
 
 def identity(x):
@@ -116,10 +113,10 @@ class DiagonalScaleShift(torch.nn.Module):
         assert (shift is not None) or (scale is not None)
 
         if shift is not None:
-            shift = torch.tensor(shift)
+            shift = torch.as_tensor(shift).clone()
 
         if scale is not None:
-            scale = torch.tensor(scale)
+            scale = torch.as_tensor(scale).clone()
 
         if shift is None:
             shift = torch.zeros_like(scale)
@@ -154,6 +151,11 @@ class DivideConstant(BinaryOperatorConstant):
         super().__init__(op=op.truediv, value=value)
 
 
+class Identity(torch.nn.Module):
+    def forward(self, x):
+        return x
+
+
 class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.reshape(-1)
@@ -169,17 +171,74 @@ class Add(torch.nn.ModuleList):
         return sum(child(x) for child in self)
 
 
-class Lambda(torch.nn.Module):
+def format_extra_repr(*kv_pairs):
+    return ", ".join("{}={}".format(k, v) for k, v in kv_pairs)
+
+
+class CallableWrapper(torch.nn.Module):
     def __init__(self, func, **kwargs):
         super().__init__()
         self.func = func
         self.kwargs = kwargs
 
-    def forward(self, *x):
-        return self.func(*x, **self.kwargs)
+    def extra_repr(self):
+        return format_extra_repr(("func", self.func), *self.kwargs.items())
+
+
+class Do(CallableWrapper):
+    """Call a function as a pure side-effect."""
+
+    def forward(self, x, **kwargs):
+        self.func(x, **kwargs, **self.kwargs)
+        return x
+
+
+class Lambda(CallableWrapper):
+    def forward(self, *x, **kwargs):
+        return self.func(*x, **kwargs, **self.kwargs)
+
+
+class CallModule(torch.nn.Module):
+    def __init__(self, module, caller):
+        super().__init__()
+        self.module = module
+        self.caller = caller
+
+    def forward(self, *args, **kwargs):
+        return self.caller(self.module, *args, **kwargs)
+
+    def extra_repr(self):
+        return f"caller={self.caller},"
+
+
+class LocationScale(torch.nn.Module):
+    def __init__(self, activation=None, eps=1e-6):
+        super().__init__()
+
+        if activation is None:
+            activation = Identity()
+
+        self.eps = eps
+        self.activation = activation
+
+    def forward(self, x):
+        *_, n = x.shape
+        assert (n % 2) == 0, "can only handle even number of features"
+
+        loc = x[..., : (n // 2)]
+        scale = x[..., (n // 2) :]
+
+        loc = self.activation(loc)
+        scale = self.eps + F.softplus(scale)
+
+        return loc, scale
+
+    def extra_repr(self):
+        return f"eps={self.eps},"
 
 
 # TODO: figure out how to properly place the nodes
+# TODO: use linear interpolation
 class LookupFunction(torch.nn.Module):
     """Helper to define a lookup function incl. its gradient.
 
@@ -231,3 +290,22 @@ class _LookupFunction(torch.autograd.Function):
     def backward(ctx, grad_output):
         backward_values, = ctx.saved_tensors
         return grad_output * backward_values, None, None, None, None
+
+
+def build_mlp(
+    in_features,
+    out_features,
+    *,
+    hidden=(),
+    hidden_activation=torch.nn.ReLU,
+    activation=Identity,
+    container=torch.nn.Sequential,
+):
+    features = [in_features, *hidden, out_features]
+    activations = len(hidden) * [hidden_activation] + [activation]
+
+    parts = []
+    for a, b, activation in zip(features[:-1], features[1:], activations):
+        parts += [torch.nn.Linear(a, b), activation()]
+
+    return container(parts)
