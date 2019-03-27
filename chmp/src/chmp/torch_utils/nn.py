@@ -1,10 +1,11 @@
+import itertools as it
 import operator as op
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from chmp.ds import sapply
+from chmp.ds import smap, szip, flatten_with_index, unflatten
 
 from ._util import fixed, optimized, optional_parameter
 
@@ -29,12 +30,42 @@ __all__ = [
 
 def t2n(obj, dtype=None):
     """Torch to numpy."""
-    return sapply(lambda obj: np.asarray(obj.detach().cpu(), dtype=dtype), obj)
+    return smap(lambda obj: np.asarray(obj.detach().cpu(), dtype=dtype), obj)
 
 
 def n2t(obj, dtype=None, device=None):
     """Numpy to torch."""
-    return sapply(lambda obj: torch.as_tensor(obj, dtype=dtype, device=device), obj)
+    return smap(lambda obj: torch.as_tensor(obj, dtype=dtype, device=device), obj)
+
+
+def call_torch(
+    func,
+    arg, *args,
+    dtype=None,
+    device=None,
+    batch_size=64,
+):
+    """Call a torch function with numpy arguments and numpy results."""
+    args = (arg, *args)
+    index, values = flatten_with_index(args)
+    result_batches = []
+
+    for start in it.count(0, batch_size):
+        end = start + batch_size
+
+        if start > len(values[0]):
+            break
+
+        batch = unflatten(index, (val[start:end] for val in values))
+        batch = n2t(batch, dtype=dtype, device=device)
+        result = func(*batch)
+        result = t2n(result)
+
+        result_batches.append(result)
+
+    result, schema = szip(result_batches, return_schema=True)
+    result = smap(lambda _, r: np.concatenate(r, axis=0), schema, result)
+    return result
 
 
 def identity(x):

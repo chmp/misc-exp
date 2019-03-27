@@ -6,6 +6,7 @@ from chmp.ds import (
     singledispatch_on,
     piecewise_linear,
     piecewise_logarithmic,
+    szip,
 )
 
 
@@ -81,3 +82,32 @@ def test_piecewise_logarithmic():
     assert piecewise_logarithmic([0, 1, 2], [10, 100, 1000], +2.2) == pytest.approx(
         10 ** 3.0
     )
+
+
+def test_szip():
+    actual = szip([
+        {"a": 1, "b": (2, 3)},
+        {"a": 4, "b": (5, 6)},
+    ])
+
+    assert actual == {
+        "a": [1, 4],
+        "b": ([2, 5], [3, 6])
+    }
+
+
+def test_szip_with_schema():
+    actual, schema = szip(
+        [
+            {"a": 1, "b": (2, 3)},
+            {"a": 4, "b": (5, 6)},
+        ],
+        return_schema=True,
+    )
+
+    assert actual == {
+        "a": [1, 4],
+        "b": ([2, 5], [3, 6])
+    }
+
+    assert schema == {"a": None, "b": (None, None)}

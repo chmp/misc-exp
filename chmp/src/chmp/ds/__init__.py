@@ -266,10 +266,20 @@ class daterange:
         return f"daterange({self.start}, {self.end}, {self.step})"
 
 
-def colorize(items):
-    """Given an iterable, yield ``(color, item)`` pairs."""
-    cycle = get_color_cycle()
-    return zip(it.cycle(cycle), items)
+def colorize(items, cmap=None):
+    """Given an iterable, yield ``(color, item)`` pairs.
+
+    :param cmap:
+        if None the color cycle is used, otherwise it is interpreted as a
+        colormap to color the individual items.
+    """
+    if cmap is None:
+        cycle = get_color_cycle()
+        return zip(it.cycle(cycle), items)
+
+    else:
+        items = list(items)
+        return zip(colormap(items, cmap=cmap), items)
 
 
 def get_color_cycle(n=None):
@@ -292,6 +302,33 @@ def get_color_cycle(n=None):
         return it.cycle(cycle)
 
     return list(it.islice(it.cycle(cycle), n))
+
+
+class mpl_axis:
+    def __init__(self, ax=None, **kwargs):
+        self.ax = ax
+        self._prev_ax = None
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        import matplotlib.pyplot as plt
+
+        if plt.get_fignums():
+            self._prev_ax = plt.gca()
+
+        if self.ax is None:
+            _, self.ax = plt.subplots()
+
+        plt.sca(self.ax)
+        return self.ax
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        import matplotlib.pyplot as plt
+
+        mpl_set(**self.kwargs)
+
+        if self._prev_ax is not None:
+            plt.sca(self._prev_ax)
 
 
 def mpl_set(
@@ -452,6 +489,19 @@ def mpl_set(
             axis = "off"
 
         plt.axis(axis)
+
+
+def diagonal(**kwargs):
+    """Draw a diagonal line in the current axis."""
+    import matplotlib.pyplot as plt
+
+    xmin, xmax = plt.xlim()
+    ymin, ymax = plt.ylim()
+
+    vmin = max(xmin, ymin)
+    vmax = min(xmax, ymax)
+
+    plt.plot([vmin, vmax], [vmin, vmax], **kwargs)
 
 
 def qlineplot(*, x, y, hue, data, ci=0.95):
@@ -863,7 +913,7 @@ def plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs):
     angle = math.atan2(dy, dx) / (2 * math.pi) * 360
 
     for _q in q:
-        s = (2 ** 0.5) * scipy.special.erfinv(q)
+        s = (2 ** 0.5) * scipy.special.erfinv(_q)
         artist = mpl.patches.Ellipse((mx, my), *(s * eigvals), angle, **kwargs)
         plt.gca().add_artist(artist)
 
@@ -1103,7 +1153,7 @@ def sapply(func, obj, sequences=(tuple,), mappings=(dict,)):
     return smap(func, obj, sequences=sequences, mappings=mappings)
 
 
-def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,)):
+def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,), return_schema=False):
     """Zip but for deeply nested objects.
 
     For a list of nested set of objects return a nested set of list.
@@ -1119,8 +1169,8 @@ def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,)):
     # build a scaffold into which the results are appended
     # NOTE: the target lists must not be confused with the structure, use a
     # schema object as an unambiguous marker.
-    target = smap(lambda _: [], first, sequences=sequences, mappings=mappings)
     schema = smap(lambda _: None, first, sequences=sequences, mappings=mappings)
+    target = smap(lambda _: [], schema, sequences=sequences, mappings=mappings)
 
     for obj in it.chain([first], iterable_of_objects):
         smap(
@@ -1132,7 +1182,24 @@ def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,)):
             mappings=mappings,
         )
 
-    return target
+    return target if return_schema is False else (target, schema)
+
+
+def flatten_with_index(obj, sequences=(tuple,), mappings=(dict,)):
+    counter = iter(it.count())
+    flat = []
+
+    def _build(item):
+        flat.append(item)
+        return next(counter)
+
+    index = smap(_build, obj, sequences=sequences, mappings=mappings)
+    return index, flat
+
+
+def unflatten(index, obj, sequences=(tuple,), mappings=(dict,)):
+    obj = list(obj)
+    return smap(lambda idx: obj[idx], index, sequences=sequences, mappings=mappings)
 
 
 def smap(func, arg, *args, sequences=(tuple,), mappings=(dict,)):
@@ -1140,7 +1207,7 @@ def smap(func, arg, *args, sequences=(tuple,), mappings=(dict,)):
 
     The structure is taken from the first arguments.
     """
-    _smap(func, arg, *args, path="$", sequences=sequences, mappings=mappings)
+    return _smap(func, arg, *args, path="$", sequences=sequences, mappings=mappings)
 
 
 def _smap(func, arg, *args, path, sequences=(tuple,), mappings=(dict,)):
