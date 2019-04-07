@@ -75,9 +75,15 @@ A range of dates.
 
 
 ### `chmp.ds.colorize`
-`chmp.ds.colorize(items)`
+`chmp.ds.colorize(items, cmap=None)`
 
 Given an iterable, yield `(color, item)` pairs.
+
+#### Parameters
+
+* **cmap** (*any*):
+  if None the color cycle is used, otherwise it is interpreted as a
+  colormap to color the individual items.
 
 
 ### `chmp.ds.get_color_cycle`
@@ -112,6 +118,12 @@ Set various style related options of MPL.
   See `xformatter`.
 * **invert** (*any*):
   if given invert the different axes. Can be x, y, or xy.
+
+
+### `chmp.ds.diagonal`
+`chmp.ds.diagonal(**kwargs)`
+
+Draw a diagonal line in the current axis.
 
 
 ### `chmp.ds.qlineplot`
@@ -203,6 +215,12 @@ pcolor(edges(x), edges(y), v)
 ```
 
 
+### `chmp.ds.center`
+`chmp.ds.center(u)`
+
+Compute the center between edges.
+
+
 ### `chmp.ds.caption`
 `chmp.ds.caption(s, size=13, strip=True)`
 
@@ -221,18 +239,6 @@ Plot changes in a quantity with vspans.
 Plot changes in a quantity with pyplot's standard plot function.
 
 
-### `chmp.ds.path`
-`chmp.ds.path(x, y, close=True, **kwargs)`
-
-Plot a path given as a list of vertices.
-
-Usage:
-
-```
-path([0, 1, 0], [0, 1, 1], facecolor='r')
-```
-
-
 ### `chmp.ds.axtext`
 `chmp.ds.axtext(*args, **kwargs)`
 
@@ -246,7 +252,7 @@ axtext(0, 0, 'text')
 
 
 ### `chmp.ds.plot_gaussian_contour`
-`chmp.ds.plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs)`
+`chmp.ds.plot_gaussian_contour(x, y, *, data=None, q=(0.99,), ax=None, **kwargs)`
 
 Plot isocontours of the maximum likelihood Gaussian for `x, y`.
 
@@ -333,7 +339,7 @@ Helper to dispatch on any argument, not only the first one.
 
 
 ### `chmp.ds.szip`
-`chmp.ds.szip(iterable_of_objects, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
+`chmp.ds.szip(iterable_of_objects, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,), return_schema=False)`
 
 Zip but for deeply nested objects.
 

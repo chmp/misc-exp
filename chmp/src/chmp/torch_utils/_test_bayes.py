@@ -2,7 +2,7 @@ import torch
 import pytest
 
 # NOTE: also registers the KL divergence
-from .bayes import NormalModule, WeightsHS, fixed
+from chmp.torch_utils import NormalModule, WeightsHS, fixed
 
 
 def test_kl_divergence__gamma__log_normal():

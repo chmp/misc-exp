@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os.path
 import random
@@ -8,10 +9,8 @@ import sounddevice as sd
 import soundfile as sf
 from chmp.label import write_label, find_unlabeled
 from chmp.app.kwdetect.aio import detect as _async_detect
-from chmp.app.kwdetect.util import label_decoding, load_optional_model
+from chmp.app.kwdetect.util import load_optional_model
 
-label_decoding = label_decoding.copy()
-label_decoding[-1] = '<repeat>'
 
 _logger = logging.getLogger(__name__)
 
@@ -44,8 +43,15 @@ async def _detect(target, model):
 
 @main.command()
 @click.argument('path')
-def label(path):
+@click.option('--labels')
+def label(path, labels):
     """Generate labels in an interactive fashion."""
+    with open(labels, 'rt') as fobj:
+        labels = json.load(fobj)
+
+    label_decoding = {int(key): label for label, key in labels.items()}
+    label_decoding[-1] = '<repeat>'
+
     unlabeled_files = find_unlabeled(os.path.join(path, '*.ogg'))
 
     if not unlabeled_files:
@@ -60,7 +66,7 @@ def label(path):
     while unlabeled_files:
         try:
             fname = unlabeled_files.pop()
-            _label_example(fname)
+            _label_example(fname, label_decoding)
 
         except KeyboardInterrupt:
             print('Stop labelling ...')
@@ -69,7 +75,7 @@ def label(path):
     print('No more files to label :)')
 
 
-def _label_example(fname):
+def _label_example(fname, label_decoding):
     print(f'Processing: {fname}')
 
     sample, _ = sf.read(fname)
@@ -77,7 +83,7 @@ def _label_example(fname):
     while True:
         sd.play(sample, blocking=True)
 
-        label = _get_label_from_user()
+        label = _get_label_from_user(label_decoding)
 
         if label == '<skip>':
             print('Skip sample')
@@ -91,8 +97,8 @@ def _label_example(fname):
             return
 
 
-def _get_label_from_user():
-    print('Chose label:', ' '.join(f'{code}: {label!r}' for code, label in label_decoding.items()))
+def _get_label_from_user(label_decoding):
+    print('Chose label:', ' '.join(f'{label!r} ({code})' for code, label in label_decoding.items()))
     while True:
         user_input = input('Label [empty to skip]: > ')
 

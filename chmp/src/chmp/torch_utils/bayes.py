@@ -2,7 +2,6 @@ import numpy as np
 import torch
 
 from ._util import register_unknown_kl, fixed, optimized, optional_parameter
-from .model import Model
 
 __all__ = [
     "KLDivergence",
@@ -73,13 +72,6 @@ class LogNormalModule(TorchDistributionModule):
 class ExponentialModule(TorchDistributionModule):
     _distribution_class_ = torch.distributions.Exponential
     _distribution_parameters_ = ("rate",)
-
-
-class SimpleBayesModel(Model):
-    def __init__(self, module, n_observations, **kwargs):
-        kwargs.setdefault("loss", NllLoss(module._distribution))
-        kwargs.setdefault("regularization", KLDivergence(n_observations=n_observations))
-        super().__init__(module=module, **kwargs)
 
 
 class NormalModelConstantScale(torch.nn.Module):
@@ -266,19 +258,3 @@ class WeightsHS(torch.nn.Module):
             + self.local_scale.kl_divergence()
             + self.unit_weights.kl_divergence()
         )
-
-
-@register_unknown_kl(torch.distributions.LogNormal, torch.distributions.Gamma)
-def kl_divergence__gamma__log_normal(p, q):
-    """Compute the kl divergence with a Gamma prior and LogNormal approximation.
-
-    Taken from C. Louizos, K. Ullrich, M. Welling "Bayesian Compression for Deep Learning"
-    https://arxiv.org/abs/1705.08665
-    """
-    return (
-        q.concentration * torch.log(q.rate)
-        + torch.lgamma(q.concentration)
-        - q.concentration * p.loc
-        + torch.exp(p.loc + 0.5 * p.scale ** 2) / q.rate
-        - 0.5 * (torch.log(p.scale ** 2.0) + 1 + np.log(2 * np.pi))
-    )

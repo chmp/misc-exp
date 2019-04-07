@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 
 from python_speech_features import mfcc
-from chmp.torch_utils.data import pad_sequences
 
 from .segmentation import compute_speechiness
 from .util import DEFAULT_SAMPLERATE, label_encoding, load_sample
@@ -159,3 +158,85 @@ def pack_conv_output(inputs, lengths, sorted=False):
     )
 
     return seq, unsort_indices
+
+
+def pad_sequences(
+    *sequence_batches, dtype="float32", length=None, length_dtype="int64", factory=None
+):
+    """Helper to build pad a batches of sequences."""
+    if length is None:
+        length = _pad_sequences_determine_max_lengths(sequence_batches)
+
+    if factory is None:
+        factory = np.zeros
+
+    length = ensure_tuple(length, len(sequence_batches))
+    dtype = ensure_tuple(dtype, len(sequence_batches))
+
+    tail_shapes = _pad_sequences_determine_tail_shapes(sequence_batches)
+    batch_size = _pad_sequences_determine_batch_size(sequence_batches)
+
+    result = []
+
+    for sequence_batch, l, dt, ts in zip(sequence_batches, length, dtype, tail_shapes):
+        sequence_padded = factory((batch_size, l, *ts), dtype=dt)
+        sequence_length = factory(batch_size, dtype=length_dtype)
+
+        for i, sequence in enumerate(sequence_batch):
+            sequence_padded[i, : len(sequence)] = sequence
+            sequence_length[i] = len(sequence)
+
+        result += [sequence_padded, sequence_length]
+
+    return tuple(result)
+
+
+def _pad_sequences_determine_max_lengths(sequence_batches):
+    return max(
+        sequence.shape[0]
+        for sequence_batch in sequence_batches
+        for sequence in sequence_batch
+    )
+
+
+def _pad_sequences_determine_tail_shapes(sequence_batches):
+    tail_shapes = [
+        {tuple(sequence.shape[1:]) for sequence in sequence_batch}
+        for sequence_batch in sequence_batches
+    ]
+
+    for idx, tail_shape in enumerate(tail_shapes):
+        if len(tail_shape) != 1:
+            raise RuntimeError(f"Inconsistent tail shapes in {idx}: {tail_shape}")
+
+    # unpack the tail shapes (note the ",")
+    tail_shapes = [tail_shape for tail_shape, in tail_shapes]
+
+    return tail_shapes
+
+
+def _pad_sequences_determine_batch_size(sequence_batches):
+    batch_size = {len(sequence_batch) for sequence_batch in sequence_batches}
+
+    if len(batch_size) != 1:
+        raise RuntimeError(f"Inconsistent batch sizes {batch_size}")
+
+    batch_size, = batch_size
+
+    return batch_size
+
+
+def ensure_tuple(obj, length):
+    if not isinstance(obj, tuple):
+        return tuple(obj for _ in range(length))
+
+    return obj
+
+
+def get_number_of_samples(values):
+    sample_counts = {len(item) for item in values if item is not None}
+    if len(sample_counts) != 1:
+        raise ValueError("inconsistent batch sizes")
+
+    n_samples, = sample_counts
+    return n_samples

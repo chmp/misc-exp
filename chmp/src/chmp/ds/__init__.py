@@ -760,6 +760,11 @@ def edges(x):
     )
 
 
+def center(u):
+    """Compute the center between edges."""
+    return 0.5 * (u[1:] + u[:-1])
+
+
 def caption(s, size=13, strip=True):
     """Add captions to matplotlib graphs."""
     import matplotlib.pyplot as plt
@@ -834,33 +839,6 @@ def change_plot(
     plt.plot(x, y, **kwargs)
 
 
-def path(x, y, close=True, **kwargs):
-    """Plot a path given as a list of vertices.
-
-    Usage::
-
-        path([0, 1, 0], [0, 1, 1], facecolor='r')
-
-    """
-    import numpy as np
-
-    from matplotlib import pyplot as plt
-    from matplotlib.path import Path
-    from matplotlib.patches import PathPatch
-
-    vertices = np.stack([np.asarray(x), np.asarray(y)], axis=1)
-
-    codes = [Path.MOVETO] + [Path.LINETO] * (len(vertices) - 1)
-    if close:
-        codes += [Path.CLOSEPOLY]
-        vertices = np.concatenate([vertices, [vertices[0]]])
-
-    p = Path(vertices, codes)
-    p = PathPatch(p, **kwargs)
-
-    plt.gca().add_patch(p)
-
-
 def axtext(*args, **kwargs):
     """Add a text in axes coordinates (similar ``figtext``).
 
@@ -875,7 +853,7 @@ def axtext(*args, **kwargs):
     plt.text(*args, **kwargs)
 
 
-def plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs):
+def plot_gaussian_contour(x, y, *, data=None, q=(0.99,), ax=None, **kwargs):
     """Plot isocontours of the maximum likelihood Gaussian for ``x, y``.
 
     :param q:
@@ -894,8 +872,9 @@ def plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs):
 
     q = np.atleast_1d(q)
 
-    x = np.asarray(df[x])
-    y = np.asarray(df[y])
+    if data is not None:
+        x = data[x]
+        y = data[y]
 
     x = np.asarray(x)
     y = np.asarray(y)
@@ -916,6 +895,8 @@ def plot_gaussian_contour(df, x, y, *, q=(0.99,), ax=None, **kwargs):
         s = (2 ** 0.5) * scipy.special.erfinv(_q)
         artist = mpl.patches.Ellipse((mx, my), *(s * eigvals), angle, **kwargs)
         plt.gca().add_artist(artist)
+
+    return artist
 
 
 def _prepare_xy(x, y, data=None, transform_x=None, transform_y=None, skip_nan=True):
@@ -1153,7 +1134,9 @@ def sapply(func, obj, sequences=(tuple,), mappings=(dict,)):
     return smap(func, obj, sequences=sequences, mappings=mappings)
 
 
-def szip(iterable_of_objects, sequences=(tuple,), mappings=(dict,), return_schema=False):
+def szip(
+    iterable_of_objects, sequences=(tuple,), mappings=(dict,), return_schema=False
+):
     """Zip but for deeply nested objects.
 
     For a list of nested set of objects return a nested set of list.
