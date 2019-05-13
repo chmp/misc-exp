@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"39bd382" = {path = "./chmp", editable = true}
-"7f29d02" = {path = "./SemiSupervisedImages/chmp-app-sem-sup-img", editable = true}
+39bd382 = {path = "./chmp",editable = true}
+7f29d02 = {path = "./SemiSupervisedImages/chmp-app-sem-sup-img",editable = true}
 scikit-learn = "*"
 scipy = "*"
 numpy = "*"
@@ -14,7 +14,6 @@ matplotlib = "*"
 patsy = "*"
 sympy = "*"
 ipywidgets = "*"
-"422b063" = {path = "./vegawidget"}
 sqlalchemy = "*"
 requests = "*"
 "beautifulsoup4" = "*"
@@ -22,20 +21,22 @@ torch = "*"
 dask = "*"
 cloudpickle = "*"
 partd = "*"
-vmprof = "*"
 bokeh = "*"
-chmp-app-causality = {editable = true, path = "./20180107-Causality/chmp-app-causality"}
-chmp-app-kwdetect = {editable = true, path = "./20170813-KeywordDetection/chmp-app-kwdetect"}
+chmp-app-causality = {editable = true,path = "./20180107-Causality/chmp-app-causality"}
+chmp-app-kwdetect = {editable = true,path = "./20170813-KeywordDetection/chmp-app-kwdetect"}
 daft = "*"
 sphinx = "*"
 seaborn = "*"
 xlrd = "*"
 mlflow = "*"
-ipytest-demo = {editable = true, path = "./20181026-TestingInJupyter"}
+ipytest-demo = {editable = true,path = "./20181026-TestingInJupyter"}
 pyarrow = "*"
 distributed = "*"
 lightgbm = "*"
 pytorch-ignite = "*"
+imageio = "*"
+vega = "*"
+jupytext = "*"
 
 [dev-packages]
 pytest = "*"

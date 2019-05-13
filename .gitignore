@@ -19,3 +19,4 @@ profile.dat
 cache/
 dask-worker-space/
 *.pth
+.vscode/
