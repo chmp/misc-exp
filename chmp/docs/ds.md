@@ -74,6 +74,46 @@ Dictionary-like namespace object.
 A range of dates.
 
 
+### `chmp.ds.undefined`
+`chmp.ds.undefined(*args, **kwargs)`
+
+Sentinel class
+
+Initialize self.  See help(type(self)) for accurate signature.
+
+
+### `chmp.ds.first`
+`chmp.ds.first(iterable, default=<undefined>)`
+
+Return the first item of an iterable
+
+
+### `chmp.ds.last`
+`chmp.ds.last(iterable, default=<undefined>)`
+
+Return the last item of an iterable
+
+
+### `chmp.ds.item`
+`chmp.ds.item(iterable, default=<undefined>)`
+
+Given a single item iterable return this item.
+
+
+### `chmp.ds.kvpair`
+`chmp.ds.kvpair(*args, **kwargs)`
+
+kvpair(key, value)
+
+Initialize self.  See help(type(self)) for accurate signature.
+
+
+### `chmp.ds.cell`
+`chmp.ds.cell(name=None)`
+
+No-op context manager to allow indentation of code
+
+
 ### `chmp.ds.colorize`
 `chmp.ds.colorize(items, cmap=None)`
 
@@ -84,6 +124,18 @@ Given an iterable, yield `(color, item)` pairs.
 * **cmap** (*any*):
   if None the color cycle is used, otherwise it is interpreted as a
   colormap to color the individual items.
+  
+  Note: `items` is fully instantiated during the iteration. For any
+  `list` or `tuple` item only its first element is used for
+  colomapping.
+  
+  This procedure allows for example to colormap a pandas Dataframe
+  grouped on a number column:
+  
+  ```
+  for c, (_, g) in colorize(df.groupby("g"), cmap="viridis"):
+      ...
+  ```
 
 
 ### `chmp.ds.get_color_cycle`

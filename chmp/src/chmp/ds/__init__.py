@@ -27,14 +27,7 @@ import threading
 import time
 
 from types import ModuleType
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    NamedTuple,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, Iterable, NamedTuple, Optional, Union
 
 try:
     from sklearn.base import (
@@ -275,11 +268,12 @@ class daterange:
 
 class undefined_meta(type):
     def __repr__(self):
-        return '<undefined>'
+        return "<undefined>"
 
 
 class undefined(metaclass=undefined_meta):
     """Sentinel class"""
+
     pass
 
 
@@ -334,6 +328,7 @@ class kvpair(NamedTuple):
 
 class cell:
     """No-op context manager to allow indentation of code"""
+
     def __init__(self, name=None):
         pass
 
@@ -375,10 +370,7 @@ def colorize(items, cmap=None):
         if not items:
             return iter(())
 
-        keys = [
-            item[0] if isinstance(item, (tuple, list)) else item
-            for item in items
-        ]
+        keys = [item[0] if isinstance(item, (tuple, list)) else item for item in items]
 
         return zip(colormap(keys, cmap=cmap), items)
 
@@ -603,10 +595,8 @@ def _():
     base_signature = inspect.signature(mpl_set)
 
     parameters = collections.OrderedDict()
-    parameters['ax'] =(
-        wrapper_signature
-        .parameters['ax']
-        .replace(kind=inspect.Parameter.POSITIONAL_ONLY)
+    parameters["ax"] = wrapper_signature.parameters["ax"].replace(
+        kind=inspect.Parameter.POSITIONAL_ONLY
     )
     parameters.update(base_signature.parameters)
 

@@ -60,10 +60,7 @@ python_version = "3.7"
 
 [scripts]
 precommit = "invoke precommit"
-precommit-full = "invoke precommit-full"
-"static-checks" = "invoke static-checks"
 release = "invoke release"
 notebook = "jupyter notebook"
 test = "invoke test"
-integration = "invoke integration"
 install-kernel = "python -m ipykernel install --user --name misc-exp"
