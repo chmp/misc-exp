@@ -27,7 +27,14 @@ import threading
 import time
 
 from types import ModuleType
-from typing import Callable, Union, Optional, Iterable
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    NamedTuple,
+    Optional,
+    Union,
+)
 
 try:
     from sklearn.base import (
@@ -266,12 +273,97 @@ class daterange:
         return f"daterange({self.start}, {self.end}, {self.step})"
 
 
+class undefined_meta(type):
+    def __repr__(self):
+        return '<undefined>'
+
+
+class undefined(metaclass=undefined_meta):
+    """Sentinel class"""
+    pass
+
+
+def first(iterable, default=undefined):
+    """Return the first item of an iterable"""
+    for item in iterable:
+        return item
+
+    return default
+
+
+def last(iterable, default=undefined):
+    """Return the last item of an iterable"""
+    item = default
+    for item in iterable:
+        pass
+
+    return item
+
+
+def item(iterable, default=undefined):
+    """Given a single item iterable return this item."""
+    found = undefined
+
+    for item in iterable:
+        if found is not undefined:
+            raise ValueError("More than one value to unpack")
+
+        found = item
+
+    if found is not undefined:
+        return found
+
+    if default is not undefined:
+        return default
+
+    raise ValueError("Need at least one item or a default")
+
+
+def collect(iterable):
+    result = {}
+    for k, v in iterable:
+        result.setdefault(k, []).append(v)
+
+    return result
+
+
+class kvpair(NamedTuple):
+    key: Any
+    value: Any
+
+
+class cell:
+    """No-op context manager to allow indentation of code"""
+    def __init__(self, name=None):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    def __call__(self, func):
+        with self:
+            func()
+
+
 def colorize(items, cmap=None):
     """Given an iterable, yield ``(color, item)`` pairs.
 
     :param cmap:
         if None the color cycle is used, otherwise it is interpreted as a
         colormap to color the individual items.
+
+        Note: ``items`` is fully instantiated during the iteration. For any
+        ``list`` or ``tuple`` item only its first element is used for
+        colomapping.
+
+        This procedure allows for example to colormap a pandas Dataframe
+        grouped on a number column::
+
+            for c, (_, g) in colorize(df.groupby("g"), cmap="viridis"):
+                ...
     """
     if cmap is None:
         cycle = get_color_cycle()
@@ -279,7 +371,16 @@ def colorize(items, cmap=None):
 
     else:
         items = list(items)
-        return zip(colormap(items, cmap=cmap), items)
+
+        if not items:
+            return iter(())
+
+        keys = [
+            item[0] if isinstance(item, (tuple, list)) else item
+            for item in items
+        ]
+
+        return zip(colormap(keys, cmap=cmap), items)
 
 
 def get_color_cycle(n=None):
@@ -302,33 +403,6 @@ def get_color_cycle(n=None):
         return it.cycle(cycle)
 
     return list(it.islice(it.cycle(cycle), n))
-
-
-class mpl_axis:
-    def __init__(self, ax=None, **kwargs):
-        self.ax = ax
-        self._prev_ax = None
-        self.kwargs = kwargs
-
-    def __enter__(self):
-        import matplotlib.pyplot as plt
-
-        if plt.get_fignums():
-            self._prev_ax = plt.gca()
-
-        if self.ax is None:
-            _, self.ax = plt.subplots()
-
-        plt.sca(self.ax)
-        return self.ax
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        import matplotlib.pyplot as plt
-
-        mpl_set(**self.kwargs)
-
-        if self._prev_ax is not None:
-            plt.sca(self._prev_ax)
 
 
 def mpl_set(
@@ -489,6 +563,54 @@ def mpl_set(
             axis = "off"
 
         plt.axis(axis)
+
+
+class mpl_axis:
+    def __init__(self, ax=None, **kwargs):
+        self.ax = ax
+        self._prev_ax = None
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        import matplotlib.pyplot as plt
+
+        if plt.get_fignums():
+            self._prev_ax = plt.gca()
+
+        if self.ax is None:
+            _, self.ax = plt.subplots()
+
+        plt.sca(self.ax)
+        return self.ax
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        import matplotlib.pyplot as plt
+
+        mpl_set(**self.kwargs)
+
+        if self._prev_ax is not None:
+            plt.sca(self._prev_ax)
+
+
+# fake the mpl_axis signature ...
+# TODO: make this a general utility function?
+@define
+def _():
+    import collections
+    import inspect
+
+    wrapper_signature = inspect.signature(mpl_axis)
+    base_signature = inspect.signature(mpl_set)
+
+    parameters = collections.OrderedDict()
+    parameters['ax'] =(
+        wrapper_signature
+        .parameters['ax']
+        .replace(kind=inspect.Parameter.POSITIONAL_ONLY)
+    )
+    parameters.update(base_signature.parameters)
+
+    mpl_axis.__signature__ = wrapper_signature.replace(parameters=parameters.values())
 
 
 def diagonal(**kwargs):
