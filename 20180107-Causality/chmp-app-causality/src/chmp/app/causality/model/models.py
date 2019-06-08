@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import sklearn.pipeline
 import sklearn.ensemble
-import tensorflow as tf
 
 from chmp.ds import (
     FuncTransformer,
@@ -12,8 +11,6 @@ from chmp.ds import (
     find_categorical_columns,
     Loop,
 )
-from chmp.ml import PickableTFModel
-from chmp.ml.layers import factorized
 
 from .util import CategoricalMeanTargetEncoder, CategoricalIndexEncoder
 
@@ -236,154 +233,3 @@ class DoublyRobustClassifierPolicy:
         values = np.stack(values).T
 
         return self.action_est.predict_proba(df), values
-
-
-# TODO: fix (by allowing to bind to a session?)
-class BinaryOutcomeFactorizationPolicy(RegressionPolicy, PickableTFModel):
-    def __init__(
-        self,
-        features,
-        action_column="action",
-        target_column="outcome",
-        epochs=10,
-        batch_size=10,
-    ):
-        super().__init__()
-
-        self.features = features
-        self.action_column = action_column
-        self.target_column = target_column
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.train_scores = None
-
-        self.preproc_est = sklearn.pipeline.Pipeline(
-            [
-                (
-                    "select",
-                    FuncTransformer(
-                        lambda df: df[self.features + [self.action_column]]
-                    ),
-                ),
-                ("filter", FilterLowFrequencyTransfomer()),
-                ("one-hot", CategoricalIndexEncoder()),
-            ]
-        )
-
-    def fit(self, df, session=None):
-        df = df.reset_index(drop=True)
-        df = self.preproc_est.fit_transform(df, np.asarray(df[self.target_column]))
-
-        self._build(session.graph)
-
-        session.run(tf.global_variables_initializer())
-
-        outer_loop = Loop()
-
-        self.train_scores = []
-        for _ in outer_loop(range(self.epochs)):
-            self.train_scores += self._epoch(outer_loop, session, df)
-            print()
-
-    def predict_value(self, df, session=None):
-        scores = []
-
-        for start in range(0, len(df), self.batch_size):
-            end = start + self.batch_size
-            batch = df.iloc[start:end]
-            score = session.run(self.score_, self._feed_dict(batch))
-
-            scores += [score]
-
-        return np.concatenate(scores, axis=0)
-
-    def _epoch(self, outer_loop, session, df):
-        loop = Loop()
-
-        batch_indices = list(range(0, len(df), self.batch_size))
-        batch_indices = list(zip(batch_indices[:-1], batch_indices[1:]))
-
-        df = df.sample(frac=1).reset_index(drop=True)
-
-        losses = []
-        for start, end in loop(batch_indices):
-            batch = df.iloc[start:end]
-            loss, _ = session.run([self.loss_, self.train_], self._feed_dict(batch))
-            losses += [loss]
-
-            print(f"{outer_loop:[fr} {loop} loss: {loss:.2f}".ljust(120), end="\r")
-
-        return losses
-
-    def _feed_dict(self, df):
-        return {placeholder: df[key] for key, placeholder in self.features.items()}
-
-    def _build(self, df, graph=None):
-        categorical_columns = find_categorical_columns(df)
-        numeric_columns = [col for col in df if not col in categorical_columns]
-        self.category_count = {col: df[col].max() + 1 for col in categorical_columns}
-
-        with self.valid_graph(graph):
-
-            self.features = {
-                "outcome": tf.placeholder(tf.float32, shape=[None]),
-                "action": tf.placeholder(tf.float32, shape=[None]),
-                "weight": tf.placeholder(tf.float32, shape=[None]),
-            }
-            self.features.update(
-                {
-                    key: tf.placeholder(tf.float32, shape=[None])
-                    for key in numeric_columns
-                }
-            )
-            self.features.update(
-                {
-                    key: tf.placeholder(tf.int32, shape=[None])
-                    for key in categorical_columns
-                }
-            )
-
-            feature_columns = (
-                [tf.feature_column.numeric_column("action")]
-                + [tf.feature_column.numeric_column(key) for key in numeric_columns]
-                + [
-                    tf.feature_column.indicator_column(
-                        tf.feature_column.categorical_column_with_identity(
-                            key, self.category_count[key]
-                        )
-                    )
-                    for key in categorical_columns
-                ]
-            )
-
-            inputs_ = tf.feature_column.input_layer(self.features, feature_columns)
-
-            # TODO: implement advantage functions ...
-            x_ = inputs_
-            x_ = tf.concat(
-                [
-                    inputs_,
-                    tf.layers.dense(x_, 30, activation=tf.nn.elu),
-                    factorized(x_, 30),
-                ],
-                axis=1,
-            )
-            x_ = tf.concat(
-                [
-                    inputs_,
-                    tf.layers.dense(x_, 30, activation=tf.nn.elu),
-                    factorized(x_, 30),
-                ],
-                axis=1,
-            )
-            x_ = tf.layers.dense(x_, units=1, activation=None)
-
-            self.score_ = tf.sigmoid(x_)
-
-            self.loss_ = tf.losses.sigmoid_cross_entropy(
-                tf.reshape(self.features["outcome"], [-1, 1]),
-                x_,
-                reduction=tf.losses.Reduction.MEAN,
-            )
-
-            self.train_ = tf.train.AdamOptimizer(5e-4).minimize(self.loss_)

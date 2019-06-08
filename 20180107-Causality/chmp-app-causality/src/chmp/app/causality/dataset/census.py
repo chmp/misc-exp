@@ -67,7 +67,7 @@ columns = [
     ("target", "category"),
 ]
 
-features = [name for name, _ in columns]
+features = [name for name, _ in columns if name != 'target']
 
 
 def create(data_path):
