@@ -1350,6 +1350,38 @@ class SApplyError(Exception):
     pass
 
 
+def json_numpy_default(obj):
+    """A default implementation for ``json.dump`` that deals with numpy datatypes.
+    """
+    import numpy as np
+
+    int_types = (
+        np.int0,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.uint0,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+    )
+
+    float_types = (np.float16, np.float32, np.float64, np.float128)
+
+    if isinstance(obj, int_types):
+        return int(obj)
+
+    elif isinstance(obj, float_types):
+        return float(obj)
+
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+
+    raise TypeError(f"Cannot convert type of {type(obj).__name__}")
+
+
 def piecewise_linear(x, y, xi):
     return _piecewise(_linear_interpolator, x, y, xi)
 

@@ -49,7 +49,7 @@ Log a parameter under the current run, creating a run if necessary.
 
 
 ### `chmp.experiment.log_metric`
-`chmp.experiment.log_metric(key, value)`
+`chmp.experiment.log_metric(key, value, step=None)`
 
 Log a metric under the current run, creating a run if necessary.
 
@@ -59,6 +59,8 @@ Log a metric under the current run, creating a run if necessary.
   Metric name (string).
 * **value** (*any*):
   Metric value (float).
+* **step** (*any*):
+  Metric step (int). Defaults to zero if unspecified.
 
 
 ### `chmp.experiment.set_tag`

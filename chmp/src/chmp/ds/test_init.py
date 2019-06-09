@@ -1,3 +1,6 @@
+import json
+
+import numpy as np
 import pytest
 
 from chmp.ds import (
@@ -7,6 +10,7 @@ from chmp.ds import (
     piecewise_linear,
     piecewise_logarithmic,
     szip,
+    json_numpy_default,
 )
 
 
@@ -98,3 +102,32 @@ def test_szip_with_schema():
     assert actual == {"a": [1, 4], "b": ([2, 5], [3, 6])}
 
     assert schema == {"a": None, "b": (None, None)}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.int0(1),
+        np.int8(-2),
+        np.int16(-5),
+        np.int32(+32),
+        np.int64(120),
+        np.uint0(1),
+        np.uint8(2),
+        np.uint16(5),
+        np.uint32(+32),
+        np.uint64(120),
+        np.float16(-2.0),
+        np.float32(-2.0),
+        np.float64(-2.0),
+        np.float128(-2.0),
+        np.array(2.0),
+        np.array([1, 2, 3]),
+        np.array([[1], [2], [3]]),
+    ],
+)
+def test_json_nump_default__roundtrip(value):
+    actual = json.loads(json.dumps(value, default=json_numpy_default))
+
+    assert np.shape(actual) == np.shape(value)
+    np.testing.assert_allclose(actual, value)

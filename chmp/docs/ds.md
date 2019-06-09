@@ -406,6 +406,12 @@ A structured version of map.
 The structure is taken from the first arguments.
 
 
+### `chmp.ds.json_numpy_default`
+`chmp.ds.json_numpy_default(obj)`
+
+A default implementation for `json.dump` that deals with numpy datatypes.
+
+
 ### `chmp.ds.bgloop`
 `chmp.ds.bgloop(tag, *iterables, runner=None)`
 
