@@ -2,7 +2,7 @@
 
 To symlink the extension in development mode use:
 
-```python
+```bash
 jupyter nbextension install --sys-prefix --python --symlink chmp.widgets
 ```
 

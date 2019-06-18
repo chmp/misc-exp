@@ -20,7 +20,14 @@ def _jupyter_nbextension_paths():
 
 
 class FocusCell(DOMWidget):
-    """A widget to hide all other cells, but the one containing this widget"""
+    """A widget to hide all other cells, but the one containing this widget.
+
+    Usage::
+
+        # in a notebook cell
+        widget = FocusCell()
+        widget
+    """
 
     _view_name = Unicode("FocusCell").tag(sync=True)
     _view_module = Unicode("nbextensions/chmp-widgets/widgets").tag(sync=True)
@@ -28,6 +35,20 @@ class FocusCell(DOMWidget):
 
 
 class WidgetRegistry:
+    """Register an retrieve widgets by name.
+
+    Usage::
+
+        registry = WidgetRegistry()
+
+        widget = HBox([
+            registry("label", Label()),
+        ])
+
+        registry.label.value = "Hello World"
+
+    """
+
     def __init__(self):
         self.widgets = {}
 
@@ -48,9 +69,38 @@ class WidgetRegistry:
 
 class PersistentDatasets:
     """Helper to keep data between the front and backend consistent with VegaWidget.
+
+    Usage::
+
+        # construct the datasets object
+        datasets = PersistentDatasets()
+
+        # notify the widget of any changes in the timeseries dataset
+        datasets.bind(widget, ["timeseries"])
+
+        # update the dataset
+        datasets.update(
+            "timeseries",
+            # insert new data points
+            insert=[
+                {"date": "2019-05-03", "value": 2.0},
+                {"date": "2019-05-04", "value": 4.0},
+            ],
+            # specify a JS expression, it will be rewritten into python and
+            # also run in the kernel.
+            remove="datum.date <  '2019-04-01'",
+        )
+
+        # get the current python state of the dataset
+        datasets.get("timeseries")
+
+        # clear a single (or all datasets)
+        datasets.clear("timeseries")
+        datasets.clear_all()
+
     """
 
-    def __init__(self, datasets=None, widget=None):
+    def __init__(self, datasets=None):
         if datasets is None:
             datasets = {}
 
