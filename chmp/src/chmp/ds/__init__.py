@@ -22,6 +22,7 @@ import math
 import os.path
 import pathlib
 import pickle
+import re
 import sys
 import threading
 import time
@@ -1572,36 +1573,6 @@ def _get_caller_logger(depth=2):
     return logging.getLogger(name)
 
 
-def cast_types(numeric=None, categorical=None):
-    """Build a transform to cast numerical / categorical columns.
-
-    All non-cast columns are stripped for the dataframe.
-
-    """
-    return transform(_cast_types, numeric=numeric, categorical=categorical)
-
-
-def _cast_types(df, numeric, categorical):
-    numeric = set() if numeric is None else set(numeric)
-    categorical = set() if categorical is None else set(categorical)
-
-    for col in numeric:
-        try:
-            df = df.assign(**{col: df[col].astype(float)})
-
-        except Exception as e:
-            raise RuntimeError(f"could not cast {col} to numeric") from e
-
-    for col in categorical:
-        try:
-            df = df.assign(**{col: df[col].astype("category")})
-
-        except Exception as e:
-            raise RuntimeError(f"could not cast {col} to categorical") from e
-
-    return df[sorted({*categorical, *numeric})]
-
-
 def find_categorical_columns(df):
     """Find all categorical columns in the given dataframe.
     """
@@ -2296,6 +2267,64 @@ def read_json(p, *, lines=False, compression=None, json=json):
             return [json.loads(l) for l in fobj]
 
 
+# ######################################################################################## #
+#                                     Pandas IO methods                                    #
+# ######################################################################################## #
+
+# TODO: allow to read-in all sections
+# TODO: allow to autodetect the columns
+def read_markdown_list(
+    fobj_or_path, *, section, columns, dtype=None, parse_dates=None, compression=None
+):
+    """Read a markdown file as a DataFrame."""
+    import pandas as pd
+
+    parse_dates = set(parse_dates if parse_dates is not None else ())
+    dtype = dict(dtype if dtype is not None else {})
+
+    column_data = [[] for _ in columns]
+
+    current_section = None
+    found_section = False
+
+    # TODO: handle line continuations
+    with magic_open(fobj_or_path, "rt", compression=compression) as fobj:
+        for line in fobj:
+            if line.startswith("#"):
+                current_section = line.lstrip("#").strip()
+                found_section = found_section or (current_section == section)
+
+            elif current_section != section:
+                continue
+
+            elif line.startswith("- "):
+                line = line[2:].strip()
+
+                line_data = re.split(r"\s+", line, len(columns) - 1)
+
+                if len(line_data) > len(columns):
+                    raise RuntimeError("unexpected behavior")
+
+                line_data = [*line_data] + [None] * (len(columns) - len(line_data))
+
+                for target, col, val in zip(column_data, columns, line_data):
+                    if col in parse_dates:
+                        val = pd.to_datetime(val)
+
+                    target.append(val)
+
+    if not found_section:
+        raise RuntimeError("Could not find section")
+
+    result = collections.OrderedDict(
+        [
+            (col, pd.Series(data, name=col, dtype=dtype.get(col)))
+            for col, data in zip(columns, column_data)
+        ]
+    )
+    return pd.DataFrame(result)
+
+
 # ########################################################################## #
 #                               Looping                                      #
 # ########################################################################## #
@@ -2621,10 +2650,18 @@ class LoopFrame:
 
 
 def tdformat(time_delta):
-    """Format a timedelta given in seconds.
+    """Format a timedelta given in seconds or as a ``datetime.timedelta``.
     """
     if time_delta is None:
         return "?"
+
+    if hasattr(time_delta, "total_seconds"):
+        time_delta = time_delta.total_seconds()
+
+    time_delta = float(time_delta)
+
+    if not math.isfinite(time_delta):
+        return repr(time_delta)
 
     # TODO: handle negative differences?
     time_delta = abs(time_delta)

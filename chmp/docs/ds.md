@@ -443,14 +443,6 @@ with timed():
   the time taken.
 
 
-### `chmp.ds.cast_types`
-`chmp.ds.cast_types(numeric=None, categorical=None)`
-
-Build a transform to cast numerical / categorical columns.
-
-All non-cast columns are stripped for the dataframe.
-
-
 ### `chmp.ds.find_categorical_columns`
 `chmp.ds.find_categorical_columns(df)`
 
@@ -635,6 +627,12 @@ def update_display(value):
 Capture the current matplotlib figure.
 
 
+### `chmp.ds.read_markdown_list`
+`chmp.ds.read_markdown_list(fobj_or_path, *, section, columns, dtype=None, parse_dates=None, compression=None)`
+
+Read a markdown file as a DataFrame.
+
+
 ### `chmp.ds.loop_over`
 `chmp.ds.loop_over(iterable, label=None, keep=False)`
 
@@ -708,7 +706,7 @@ Check whether the print invocation will be debounced.
 ### `chmp.ds.tdformat`
 `chmp.ds.tdformat(time_delta)`
 
-Format a timedelta given in seconds.
+Format a timedelta given in seconds or as a `datetime.timedelta`.
 
 
 ### `chmp.ds.ascii_bar`

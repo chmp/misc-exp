@@ -1,10 +1,12 @@
 import collections
+import io
+import textwrap
 
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
 
-from chmp.ds import fix_categories, find_high_frequency_categories
+from chmp.ds import fix_categories, find_high_frequency_categories, read_markdown_list
 
 
 def callargs(*args, **kwargs):
@@ -106,3 +108,65 @@ def test_find_high_frequency_categories_n_max():
     expected = ["a"]
 
     assert actual == expected
+
+
+def test_read_markdown_list__example():
+    source = textwrap.dedent(
+        """
+        # hello
+        - 1 2 3 foo
+        - 4 5 6 bar
+        - 7 8 9 baz
+    """
+    )
+
+    with io.StringIO(source) as fobj:
+        actual = read_markdown_list(
+            fobj,
+            section="hello",
+            columns=["a", "b", "c", "d"],
+            dtype={"a": int, "b": int, "c": int, "d": object},
+        )
+
+    expected = collections.OrderedDict(
+        [
+            ("a", pd.Series([1, 4, 7], dtype=int)),
+            ("b", pd.Series([2, 5, 8], dtype=int)),
+            ("c", pd.Series([3, 6, 9], dtype=int)),
+            ("d", pd.Series(["foo", "bar", "baz"], dtype=object)),
+        ]
+    )
+    expected = pd.DataFrame(expected)
+    pdt.assert_frame_equal(actual, expected)
+
+
+def test_read_markdown_list__missing_values():
+    source = textwrap.dedent(
+        """
+        # hello
+        - 1 2 3 foo
+        - 4 5 6 bar
+        - 7 8
+        - 1 2 3
+    """
+    )
+
+    with io.StringIO(source) as fobj:
+        actual = read_markdown_list(
+            fobj,
+            section="hello",
+            columns=["a", "b", "c", "d"],
+            dtype={"a": int, "b": int, "c": float, "d": object},
+        )
+
+    expected = collections.OrderedDict(
+        [
+            ("a", pd.Series([1, 4, 7, 1], dtype=int)),
+            ("b", pd.Series([2, 5, 8, 2], dtype=int)),
+            ("c", pd.Series([3, 6, float("nan"), 3], dtype=float)),
+            ("d", pd.Series(["foo", "bar", None, None], dtype=object)),
+        ]
+    )
+    expected = pd.DataFrame(expected)
+
+    pdt.assert_frame_equal(actual, expected)
