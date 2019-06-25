@@ -423,7 +423,11 @@ def make_data_loader(dataset, mode="fit", **kwargs):
 
 class NumpyDataset(torch.utils.data.Dataset):
     def __init__(self, data, dtype=None):
-        self.index, self.data = flatten_with_index(data)
+        index, data = flatten_with_index(data)
+        data = [np.asarray(v) for v in data]
+
+        self.index = index
+        self.data = data
         self.dtype = dtype
         self.length = self._guess_length()
 

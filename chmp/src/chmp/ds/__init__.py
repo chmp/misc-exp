@@ -2471,11 +2471,16 @@ class Loop:
         file=None,
         flush=False,
         force=False,
+        lab=False,
     ):
         if callable(str):
             str = str()
 
-        print(str.ljust(width)[:width], end=end, file=file, flush=flush)
+        if lab is True and end == "\r":
+            print(end + str.ljust(width)[:width], end="", file=file, flush=flush)
+
+        else:
+            print(str.ljust(width)[:width], end=end, file=file, flush=flush)
 
     def _print(
         self, str: str, width=120, end="\r", file=None, flush=False, force=False

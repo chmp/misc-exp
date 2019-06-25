@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 
 from chmp.torch_utils import (
@@ -7,6 +8,8 @@ from chmp.torch_utils import (
     linear,
     DiagonalScaleShift,
     call_torch,
+    t2n,
+    NumpyDataset,
 )
 
 
@@ -67,3 +70,14 @@ def test_call_torch_batched():
         call_torch(torch.sqrt, np.arange(1024).astype("float"), batch_size=128),
         np.arange(1024) ** 0.5,
     )
+
+
+def test_t2n_examples():
+    t2n(torch.zeros(10))
+    t2n((torch.zeros(10, 2), torch.zeros(10)))
+
+
+def test_numpy_dataset():
+    ds = NumpyDataset(pd.DataFrame({"a": np.zeros(10), "b": np.zeros(10)}))
+    assert len(ds) == 10
+    ds[0]

@@ -119,15 +119,12 @@ class ProgressBar(SubclassHandler):
         ProgressBar().attach(engine)
     """
 
-    def __init__(self, formatter=None, display=None):
+    def __init__(self, formatter=None, lab=False):
         if formatter is None:
             formatter = ProgressBar.default_formatter
 
-        if display is None:
-            display = LoopDisplay(self)
-
         self.formatter = formatter
-        self.display = display
+        self.lab = lab
 
         self.loop = None
         self.outer_frame = None
@@ -167,22 +164,17 @@ class ProgressBar(SubclassHandler):
             return
 
         self.loop.debouncer.invoked()
-        self.display.update(self.formatter(self.loop, engine.state))
+        self.update(self.formatter(self.loop, engine.state))
+
+    def update(self, value):
+        if self.loop is None:
+            return
+
+        self.loop._static_print(value, lab=self.lab)
 
     @staticmethod
     def default_formatter(loop, state):
         return f'{loop} [{state.epoch} / {state.max_epochs}] {nested_format(state.output, ".3g")}'
-
-
-class LoopDisplay:
-    def __init__(self, handler):
-        self.handler = handler
-
-    def update(self, value):
-        if self.handler.loop is None:
-            return
-
-        self.handler.loop._static_print(value)
 
 
 def nested_to_float(obj):
