@@ -251,6 +251,8 @@ def first(parser, *parsers):
 @parameters("parser")
 def repeat(parser, *parsers, flatten=True):
     """Match 0 or more occurrences.
+
+    If multiple parsers are given, they are combined with ``sequential``.
     """
     if parsers:
         parser = sequential(parser, *parsers)
@@ -296,6 +298,22 @@ def ignore(parser):
     return ignore_parser
 
 
+@parameters("parser", "default")
+def optional(parser, default=()):
+    """If the parser matches return its result, otherwise the default.
+    """
+
+    def optional_parser(tokens, offset):
+        rest, result, d = parser(tokens, offset)
+
+        if result is not None:
+            return rest, result, _ok(offset, d.get("consumed", 0), children=[d])
+
+        return tokens, default, _ok(offset, 0)
+
+    return optional_parser
+
+
 @parameters("needle")
 def sequence_eq(needle):
     n = len(needle)
@@ -327,6 +345,8 @@ def no_match(parser):
 
 @parameters("transform", "parser")
 def apply(transform, parser):
+    """Apply a transformation to the full result of the given parser."""
+
     def apply_parser(tokens, offset):
         rest, result, d = parser(tokens, offset)
 
@@ -363,6 +383,15 @@ def end_of_sequence():
 
 @parameters("pattern")
 def regex(pattern, flags=0):
+    """Match a single token against the regext.
+
+    If successful, the result of this parse will be the groupdict of the match.
+    Therefore, groups of interested should be named::
+
+        >>> p.parse(p.regex(r"(?P<number>\\d+)"), ["123"])
+        [{'number': '123'}] 
+
+    """
     pattern = re.compile(pattern, flags=flags)
 
     def _match_regex(lines, offset):
