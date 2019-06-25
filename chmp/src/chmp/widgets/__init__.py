@@ -34,6 +34,46 @@ class FocusCell(DOMWidget):
     _view_module_version = Unicode("0.1.0").tag(sync=True)
 
 
+class CommandInput(DOMWidget):
+    """A entry line of a command-line like application.
+
+    When the user preses enter, the current value is sent passed to the
+    ``on_command`` callback and the input is cleared.
+
+    Usage::
+
+        widget = CommandInput(on_command=print)
+
+        @widget.on_command
+        def handler(value):
+            print(value)
+
+        display(widget)
+
+    """
+
+    _view_name = Unicode("CommandInput").tag(sync=True)
+    _view_module = Unicode("nbextensions/chmp-widgets/widgets").tag(sync=True)
+    _view_module_version = Unicode("0.1.0").tag(sync=True)
+
+    def __init__(self, on_command=None):
+        super().__init__()
+        self._on_command = on_command
+        self.on_msg(self._on_msg)
+
+    def on_command(self, callback):
+        self._on_command = callback
+
+    def _on_msg(self, _, ev, __):
+        if ev.get("type") != "command":
+            return
+
+        if self._on_command is None:
+            return
+
+        self._on_command(ev["value"])
+
+
 class WidgetRegistry:
     """Register an retrieve widgets by name.
 
@@ -156,6 +196,118 @@ class PersistentDatasets:
             data = data + list(insert)
 
         self.datasets[key] = data
+
+
+def run_thread(func=None, *, key=None, registry=None, interval=None, wake_interval=0.1):
+    """A decorator to run function a background thread.
+
+    This function is designed to be run in a notebook and will modify the
+    ``__main__`` module per default, i.e., global namespace.
+
+    The function is passed a context object, whose ``running`` attribute will
+    be set to false, when the function should stop executing::
+
+        @run_thread
+        def func(ctx):
+            while ctx.running:
+                ...
+
+    To execute a function in regular intervals, set the ``interval`` argument of
+    the decorator. For example to excecute every 5 seconds, use::
+
+        @run_thread(interval=5)
+        def func(ctx):
+            ...
+
+    Any function started with ``run_thread`` can be stopped via
+    ``stop_thread``.
+    """
+
+    def decorator(func):
+        if interval is not None:
+            func = _make_loop(func=func, interval=interval, wake_interval=wake_interval)
+
+        _run_thread_primitive(func=func, key=key, registry=registry)
+        return func
+
+    return decorator if func is None else decorator(func)
+
+
+def stop_thread(func_or_key, *, registry=None):
+    """Stop a thread started with ``run_thread``.
+
+    The argument can either be the function started or the key used when
+    starting it::
+
+        stop_thread(func)
+        stop_thread("key")
+
+    The main thread will block until the function has stopped executing.
+    """
+    registry = ensure_thread_registry(registry)
+    key = func_or_key if isinstance(func_or_key, str) else func_or_key.__name__
+
+    _stop_thread_primitive(registry, key)
+
+
+def _make_loop(func, interval, wake_interval):
+    import time
+
+    @ft.wraps(func)
+    def loop(ctx):
+        next_update = time.time()
+        while ctx.running:
+            if time.time() >= next_update:
+                func(ctx)
+                next_update = time.time() + interval
+
+            time.sleep(wake_interval)
+
+    return loop
+
+
+def _run_thread_primitive(*, func, key=None, registry=None):
+    registry = ensure_thread_registry(registry)
+
+    if key is None:
+        key = func.__name__
+
+    _stop_thread_primitive(registry, key)
+
+    registry[key] = Context()
+    registry[key].running = True
+    registry[key].thread = threading.Thread(target=func, args=(registry[key],))
+    registry[key].thread.start()
+
+
+def ensure_thread_registry(registry=None):
+    if registry is not None:
+        return registry
+
+    import __main__
+
+    if not hasattr(__main__, "_bg_threads"):
+        __main__._bg_threads = {}
+
+    return __main__._bg_threads
+
+
+def _stop_thread_primitive(registry, key):
+    if key in registry and registry[key].running:
+        registry[key].running = False
+        registry[key].thread.join()
+
+    if key in registry:
+        del registry[key]
+
+
+class Context:
+    def __init__(self, running=False, thread=None):
+        self.running = running
+        self.thread = thread
+
+    def __repr__(self):
+        return f"Context(running={self.running}, thread={self.thread!r})"
 
 
 class JSExpr:

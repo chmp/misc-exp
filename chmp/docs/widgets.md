@@ -25,6 +25,27 @@ widget
 Public constructor
 
 
+### `chmp.widgets.CommandInput`
+`chmp.widgets.CommandInput(on_command=None)`
+
+A entry line of a command-line like application.
+
+When the user preses enter, the current value is sent passed to the
+`on_command` callback and the input is cleared.
+
+Usage:
+
+```
+widget = CommandInput(on_command=print)
+
+@widget.on_command
+def handler(value):
+    print(value)
+
+display(widget)
+```
+
+
 ### `chmp.widgets.WidgetRegistry`
 `chmp.widgets.WidgetRegistry()`
 
