@@ -16,7 +16,7 @@ A widget to hide all other cells, but the one containing this widget.
 
 Usage:
 
-```
+```python
 # in a notebook cell
 widget = FocusCell()
 widget
@@ -35,7 +35,7 @@ When the user preses enter, the current value is sent passed to the
 
 Usage:
 
-```
+```python
 widget = CommandInput(on_command=print)
 
 @widget.on_command
@@ -53,7 +53,7 @@ Register an retrieve widgets by name.
 
 Usage:
 
-```
+```python
 registry = WidgetRegistry()
 
 widget = HBox([
@@ -71,7 +71,7 @@ Helper to keep data between the front and backend consistent with VegaWidget.
 
 Usage:
 
-```
+```python
 # construct the datasets object
 datasets = PersistentDatasets()
 
@@ -111,7 +111,7 @@ This function is designed to be run in a notebook and will modify the
 The function is passed a context object, whose `running` attribute will
 be set to false, when the function should stop executing:
 
-```
+```python
 @run_thread
 def func(ctx):
     while ctx.running:
@@ -121,7 +121,7 @@ def func(ctx):
 To execute a function in regular intervals, set the `interval` argument of
 the decorator. For example to excecute every 5 seconds, use:
 
-```
+```python
 @run_thread(interval=5)
 def func(ctx):
     ...
@@ -139,7 +139,7 @@ Stop a thread started with `run_thread`.
 The argument can either be the function started or the key used when
 starting it:
 
-```
+```python
 stop_thread(func)
 stop_thread("key")
 ```

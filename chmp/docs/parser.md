@@ -58,7 +58,7 @@ Match a single token against the regext.
 If successful, the result of this parse will be the groupdict of the match.
 Therefore, groups of interested should be named:
 
-```
+```python
 >>> p.parse(p.regex(r"(?P<number>\d+)"), ["123"])
 [{'number': '123'}]
 ```

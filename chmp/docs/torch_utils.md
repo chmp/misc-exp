@@ -28,7 +28,7 @@ with `optimized``are returned as parameters. When arg is not one of
 
 Usage:
 
-```
+```python
 class MyModule(torch.nn.Module):
     def __init__(self, a, b):
         super().__init__()
@@ -132,7 +132,7 @@ Helper to define a lookup function incl. its gradient.
 
 Usage:
 
-```
+```python
 import scipy.special
 
 x = np.linspace(0, 10, 100).astype('float32')

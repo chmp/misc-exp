@@ -39,7 +39,7 @@ When the resulting object is called with a single argument, the passed
 object is transformed by passing it through all given functions.
 For example:
 
-```
+```python
 a = chained(
     math.sqrt,
     math.log,
@@ -49,7 +49,7 @@ a = chained(
 
 is equivalent to:
 
-```
+```python
 a = 5.0
 a = math.sqrt(a)
 a = math.log(a)

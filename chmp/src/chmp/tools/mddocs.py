@@ -437,7 +437,7 @@ class MarkdownWriter(Writer):
         yield "\n\n"
 
     def _translate_literal_block(self, node):
-        yield "```\n"
+        yield "```python\n"
         yield node.astext()
         yield "\n"
         yield "```\n"

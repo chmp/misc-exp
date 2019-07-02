@@ -16,7 +16,7 @@ notebooks.
 
 Usage:
 
-```
+```python
 @define
 def foo():
     return 42
@@ -43,7 +43,7 @@ Similar to `define`, but cache to a file.
 
 Usage:
 
-```
+```python
 @cached('./cache/result')
 def dataset():
     ...
@@ -52,7 +52,7 @@ def dataset():
 
 or:
 
-```
+```python
 @cached('./cache/result', validate=True)
 def model(result=None):
     if result is not None:
@@ -132,7 +132,7 @@ Given an iterable, yield `(color, item)` pairs.
   This procedure allows for example to colormap a pandas Dataframe
   grouped on a number column:
   
-  ```
+  ```python
   for c, (_, g) in colorize(df.groupby("g"), cmap="viridis"):
       ...
   ```
@@ -151,7 +151,7 @@ Return the matplotlib color cycle.
 
 Usage:
 
-```
+```python
 blue, green, red = get_color_cycle(3)
 ```
 
@@ -191,7 +191,7 @@ Wrapper around [daft.PGM](http://daft-pgm.org/api/#daft.PGM) to allow fluid call
 
 Usage:
 
-```
+```python
 (
     pgm(observed_style="inner", ax=ax1)
     .node("z", r"$Z$", 1.5, 2)
@@ -206,14 +206,14 @@ Usage:
 
 To annotate a node use:
 
-```
+```python
 .annotate(node_name, annotation_text)
 ```
 
 Nodes can also be created without explicit lables (in which case the node
 name is used):
 
-```
+```python
 .node("z", 1, 1)
 node("z", "label", 1, 1)
 ```
@@ -260,7 +260,7 @@ Create edges for use with pcolor.
 
 Usage:
 
-```
+```python
 assert x.size == v.shape[1]
 assert y.size == v.shape[0]
 pcolor(edges(x), edges(y), v)
@@ -298,7 +298,7 @@ Add a text in axes coordinates (similar `figtext`).
 
 Usage:
 
-```
+```python
 axtext(0, 0, 'text')
 ```
 
@@ -431,7 +431,7 @@ Time a codeblock and log the result.
 
 Usage:
 
-```
+```python
 with timed():
     long_running_operation()
 ```
@@ -456,7 +456,7 @@ Build a transformer to filter low frequency categories.
 
 Usage:
 
-```
+```python
 pipeline = build_pipeline[
     categories=filter_low_frequency_categories(),
     predict=lgb.LGBMClassifier(),
@@ -471,7 +471,7 @@ Build a transformer for a list of columns.
 
 Usage:
 
-```
+```python
 pipeline = build_pipeline(
     transform=column_transform(['a', 'b'], np.abs),
     classifier=sk_ensemble.GradientBoostingClassifier(),
@@ -480,7 +480,7 @@ pipeline = build_pipeline(
 
 Or:
 
-```
+```python
 pipeline = build_pipeline(
     transform=column_transform(
         a=np.abs,
@@ -501,7 +501,7 @@ requires python `>= 3.6`.
 
 Usage:
 
-```
+```python
 pipeline = build_pipeline(
     transform=...,
     predict=...,
@@ -516,7 +516,7 @@ Build a function transformer with args / kwargs bound.
 
 Usage:
 
-```
+```python
 pipeline = build_pipeline(
     transform=transform(np.abs)),
     classifier=sk_ensemble.GradientBoostingClassifier()),
@@ -554,7 +554,7 @@ Plot a waterfall chart.
 
 Usage:
 
-```
+```python
 series.pipe(waterfall, annot='top', fmt='+.1f', total=True)
 ```
 
@@ -566,7 +566,7 @@ Lighweight POYO templating.
 
 Any callable in the tree will be called with params. Example:
 
-```
+```python
 template = {
     "key": lambda params: params['value'],
 }
@@ -595,7 +595,7 @@ Construct a dash callback using function annotations.
 
 Consider the following dash callback:
 
-```
+```python
 @app.callback(dash.dependencies.Output('display', 'children'),
               [dash.dependencies.Input('dropdown', 'value')])
 def update_display(value):
@@ -604,7 +604,7 @@ def update_display(value):
 
 With dashcb, it can be written as:
 
-```
+```python
 @dashcb(app, 'display:children', 'dropdown:value')
 def update_display(value):
     return 'Selected: "{}"'.format(value)
@@ -613,7 +613,7 @@ def update_display(value):
 To use dash with matplotlib figure, define an `html.Img` element. For
 example with id `my_image`. Then the plot can be updated via:
 
-```
+```python
 @dashcb(app, 'my_image:src', 'dropdown:value', figure=True)
 def update_display(value):
     plt.plot([1, 2, 3])
