@@ -7,6 +7,8 @@
 [Support](#support)
 | [Getting started](#getting-started)
 
+[View on nbviewer](https://nbviewer.jupyter.org/github/chmp/misc-exp/tree/master/)
+
 ## Prototyping to tested code
 
 [slides](https://htmlpreview.github.io/?https://github.com/chmp/misc-exp/blob/master/20181026-TestingInJupyter/resources/IPyTestIntro.slides.html#/) |
