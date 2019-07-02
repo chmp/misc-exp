@@ -100,6 +100,53 @@ datasets.clear_all()
 ```
 
 
+### `chmp.widgets.run_thread`
+`chmp.widgets.run_thread(func=None, *, key=None, registry=None, interval=None, wake_interval=0.1)`
+
+A decorator to run function a background thread.
+
+This function is designed to be run in a notebook and will modify the
+`__main__` module per default, i.e., global namespace.
+
+The function is passed a context object, whose `running` attribute will
+be set to false, when the function should stop executing:
+
+```
+@run_thread
+def func(ctx):
+    while ctx.running:
+        ...
+```
+
+To execute a function in regular intervals, set the `interval` argument of
+the decorator. For example to excecute every 5 seconds, use:
+
+```
+@run_thread(interval=5)
+def func(ctx):
+    ...
+```
+
+Any function started with `run_thread` can be stopped via
+`stop_thread`.
+
+
+### `chmp.widgets.stop_thread`
+`chmp.widgets.stop_thread(func_or_key, *, registry=None)`
+
+Stop a thread started with `run_thread`.
+
+The argument can either be the function started or the key used when
+starting it:
+
+```
+stop_thread(func)
+stop_thread("key")
+```
+
+The main thread will block until the function has stopped executing.
+
+
 ### `chmp.widgets.JSExpr`
 `chmp.widgets.JSExpr(argnames, expr)`
 

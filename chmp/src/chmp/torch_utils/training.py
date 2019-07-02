@@ -182,7 +182,20 @@ def nested_to_float(obj):
 
 
 def nested_format(obj, fmt):
-    return sapply(format, obj, fmt)
+    if isinstance(obj, tuple):
+        return "(" + ", ".join(nested_format(child, fmt) for child in obj) + ")"
+
+    elif isinstance(obj, dict):
+        return (
+            "{"
+            + ", ".join(
+                "{!r}: {!s}".format(k, nested_format(v, fmt)) for k, v in obj.items()
+            )
+            + "}"
+        )
+
+    else:
+        return format(obj, fmt)
 
 
 class TrainHistory(SubclassHandler):
