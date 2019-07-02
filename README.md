@@ -6,8 +6,7 @@
 
 [Support](#support)
 | [Getting started](#getting-started)
-
-[View on nbviewer](https://nbviewer.jupyter.org/github/chmp/misc-exp/tree/master/)
+| [View on nbviewer](https://nbviewer.jupyter.org/github/chmp/misc-exp/tree/master/)
 
 ## Prototyping to tested code
 
