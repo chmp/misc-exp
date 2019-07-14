@@ -31,6 +31,7 @@ lightgbm = "*"
 pytorch-ignite = "*"
 vega = "*"
 jupytext = "*"
+pytest-asyncio = "*"
 
 [dev-packages]
 pytest = "*"
