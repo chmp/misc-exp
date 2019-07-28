@@ -42,6 +42,15 @@ def docs(c):
         *["chmp/docs/src", "chmp/docs"],
     )
 
+    self_path = pathlib.Path(__file__).parent.resolve()
+
+    for p in self_path.glob("*/Post.ipynb"):
+        run(
+            c,
+            *["python", "-m", "chmp.tools", "blog"],
+            *[str(p), str(p.with_suffix(".md"))],
+        )
+
 
 @task
 def format(c):

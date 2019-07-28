@@ -1,12 +1,23 @@
 # Various Experiments, possibly ML related
 
-[Prototyping to tested code](#prototyping-to-tested-code)
+[asyncio testing in notebooks](#asyncio-testing-in-notebooks)
+| [Prototyping to tested code](#prototyping-to-tested-code)
 | [Causality and function approximations](#causality-and-function-approximations)
 | [Keyword detection from scratch](#keyword-detection-from-scratch)
 
 [Support](#support)
 | [Getting started](#getting-started)
 | [View on nbviewer](https://nbviewer.jupyter.org/github/chmp/misc-exp/tree/master/)
+
+## asyncio testing in notebooks
+
+[blog post](https://cprohm.de/article/asyncio-testing-inside-notebooks.html)
+[source](./004-AsyncTestingInNotebooks)
+
+How can you test asyncio code inside notebooks? This blog post sketches how
+to test asyncio code using pytest inside nobteooks. The post also discusses
+how threading can help to run multiple asyncio event loops inside the same
+interpreter.
 
 ## Prototyping to tested code
 

@@ -21,7 +21,7 @@ import json
 import logging
 import os.path
 
-from ipywidgets import DOMWidget, Button, Text, HBox, VBox, jslink
+from ipywidgets import DOMWidget, Button, Text, HBox, VBox, jslink, register
 from IPython.display import display_javascript, Javascript
 from traitlets import Unicode, Float
 
@@ -517,6 +517,7 @@ def annotate_bounding_boxes(images):
     return widget, annotations
 
 
+@register
 class BoundingBoxer(DOMWidget):
     """Allow to annotate an image with bounding boxes."""
 
@@ -543,6 +544,7 @@ class BoundingBoxer(DOMWidget):
         self._annotations = json.dumps(value)
 
 
+@register
 class AnnotationDisplay(DOMWidget):
     """Widget to show and manipulate bounding box annotations."""
 
@@ -578,33 +580,33 @@ require.undef('de/cprohm/label/boundingBoxer');
 
 define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widgets) {
     "use strict";
-    
+
     const BoundingBoxer = widgets.DOMWidgetView.extend({
         render: function() {
             // hidden element to load the image
             this.img = document.createElement('img');
             this.img.style = 'display: none';
             this.el.appendChild(this.img);
-            
+
             this.canvas = document.createElement('canvas');
             this.canvas.style = 'border: 1px solid black;'
             // make sure key events are fired
             // TODO: forward key events of the canvas to python
             this.canvas.tabIndex = 100;
-            
+
             this.canvas.addEventListener('click', this.onCanvasClick.bind(this), false);
             this.canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this), false);
             this.canvas.addEventListener('keydown', this.onCanvasKeyDown.bind(this), false);
-            
+
             this.el.appendChild(this.canvas);
-            
+
             this.model.on('change:_annotations', this.updateClient.bind(this));
             this.model.on('change:url', this.updateClient.bind(this));
             this.model.on('change:scale', this.updateClient.bind(this));
-            
+
             this.updateClient();
         },
-        
+
         updateServer: logerr(function() {
             console.log('update', JSON.stringify(this.annotations));
             this.model.set(
@@ -619,15 +621,15 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
             );
             this.url = this.model.get('url');
             this.scale = this.model.get('scale');
-            
+
             // TODO: is this operation really synchronous?
             this.img.src = this.url || '';
-            
+
             this.canvas.width = this.scale * this.img.width;
             this.canvas.height = this.scale * this.img.height;
-            
+
             this.nextId = Math.max(0, ...this.annotations.map(a => a.id + 1));
-            
+
             this.redraw();
         }),
         redraw: logerr(function(ctx) {
@@ -635,24 +637,24 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
                 ctx = this.canvas.getContext('2d');
             }
             ctx.drawImage(
-                this.img, 
+                this.img,
                 0, 0, this.img.width, this.img.height,
-                0, 0, 
-                this.scale * this.img.width, 
+                0, 0,
+                this.scale * this.img.width,
                 this.scale * this.img.height,
             );
-            
+
             for(const annotation of this.annotations) {
                 ctx.strokeStyle = 'red';
                 ctx.strokeRect(
-                    annotation.x, annotation.y, 
+                    annotation.x, annotation.y,
                     annotation.w, annotation.h,
                 );
 
                 ctx.fillStyle = 'red';
                 ctx.font = '12px sans-serif';
                 ctx.fillText(
-                    annotation.id + ':' + annotation.label, 
+                    annotation.id + ':' + annotation.label,
                     annotation.x, annotation.y + annotation.h,
                 );
             }
@@ -670,9 +672,9 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
                 const h = ~~Math.abs(this.pos.y - pos.y);
                 const label = this.model.get('current_tag');
                 const id = this.nextId++;
-                
-                this.pos = null;   
-                
+
+                this.pos = null;
+
                 this.annotations.push({id, label, x, y, w, h});
                 this.updateServer();
             }
@@ -705,7 +707,7 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
             };
         },
     });
-    
+
     const Annotations = widgets.DOMWidgetView.extend({
         render: function() {
             this.model.on('change:_annotations', this.redraw.bind(this));
@@ -720,12 +722,12 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
         redraw: logerr(function() {
             // keep the array around for bidrectional updates
             this.annotations = JSON.parse(this.model.get('_annotations'));
-            
+
             // clear the element
             while(this.el.firstChild) {
                 this.el.removeChild(this.el.firstChild);
             }
-            
+
             // add new annotations
             for(const annotation of this.annotations) {
                 this.el.appendChild(
@@ -744,7 +746,7 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
                     ),
                 );
             }
-            
+
             const self = this;
             function div(...children) {
                 const el = document.createElement('div');
@@ -753,15 +755,15 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
                 }
                 return el;
             }
-            
+
             function text(s) {
                 return document.createTextNode(s);
             }
-            
+
             function synced(obj, key) {
                 const el = document.createElement('input');
                 el.value = obj[key];
-                
+
                 const update = () => {
                     obj[key] = el.value;
                     self.updateServer();
@@ -777,16 +779,16 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
 
                 return el;
             }
-            
+
             function removeButton(obj) {
                 const button = document.createElement('button');
                 button.innerHTML = 'x';
-                
+
                 button.addEventListener('click', () => {
                     const row = button.parentNode;
                     const el = row.parentNode;
                     el.removeChild(row);
-                    
+
                     self.annotations = self.annotations.filter(
                         o => o.id != obj.id
                     );
@@ -797,7 +799,7 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
             }
         }),
     })
-    
+
     function logerr(func) {
         return function() {
             try {
@@ -809,7 +811,7 @@ define('de/cprohm/label/boundingBoxer', ["@jupyter-widgets/base"], function(widg
             }
         }
     }
-    
+
     return {BoundingBoxer, Annotations};
 });
 """

@@ -86,6 +86,15 @@ def paper(source_path, target_path, yes=False):
     sort_non_arxiv_papers(non_arxiv_source_path, target_path)
 
 
+@main.command()
+@click.argument("source-path", type=click.Path(exists=True))
+@click.argument("target-path", type=click.Path(), required=False)
+def blog(source_path, target_path=None):
+    from chmp.tools.blog import main
+
+    main(source_path, target_path)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     main()

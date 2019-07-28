@@ -12,7 +12,7 @@ Get the currently active `Run`, or None if no such run exists.
 ### `chmp.experiment.log_artifact`
 `chmp.experiment.log_artifact(local_path, artifact_path=None)`
 
-Log a local file or directory as an artifact of the currently active run.
+Log a local file as an artifact of the currently active run.
 
 #### Parameters
 
@@ -58,7 +58,9 @@ Log a metric under the current run, creating a run if necessary.
 * **key** (*any*):
   Metric name (string).
 * **value** (*any*):
-  Metric value (float).
+  Metric value (float). Note that some special values such as +/- Infinity may be
+  replaced by other values depending on the store. For example, sFor example, the
+  SQLAlchemy store replaces +/- Inf with max / min float values.
 * **step** (*any*):
   Metric step (int). Defaults to zero if unspecified.
 

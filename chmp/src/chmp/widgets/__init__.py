@@ -3,7 +3,7 @@ import ast
 import functools as ft
 import uuid
 
-from ipywidgets import DOMWidget
+from ipywidgets import DOMWidget, register
 from traitlets import Unicode
 
 
@@ -19,6 +19,7 @@ def _jupyter_nbextension_paths():
     ]
 
 
+@register
 class FocusCell(DOMWidget):
     """A widget to hide all other cells, but the one containing this widget.
 
@@ -34,6 +35,7 @@ class FocusCell(DOMWidget):
     _view_module_version = Unicode("0.1.0").tag(sync=True)
 
 
+@register
 class CommandInput(DOMWidget):
     """A entry line of a command-line like application.
 
