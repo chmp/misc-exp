@@ -14,7 +14,7 @@ then to refactor the result into python packages.
 In this blog post, I would like to show how to combine asyncio and pytest inside notebooks. 
 IPython has had an [excellent async support](https://blog.jupyter.org/ipython-7-0-async-repl-a35ce050f7f7) 
 for quite some while now. However, running async tests inside IPython requires a bit of 
-care. Below I describe what changes in [`ipytest`](github.com/chmp/ipytest) we necessary.
+care. Below I describe what changes in [`ipytest`](github.com/chmp/ipytest) were necessary.
 
 But first, I would like to explore a bit how IPython's async support helps you to directly
 call async code in the notebook. For example, the following piece of code will directly work 
@@ -36,7 +36,7 @@ level async code.
 
 The integration of asynchronous code into [`pytest`](https://docs.pytest.org) is also pretty 
 straightforward thanks to the excellent [`pytest-asyncio`](https://github.com/pytest-dev/pytest-asyncio)
-plugin. First install `pip install pytest pytest-asyncio`. Then, writing tests for asyncio 
+plugin. First install the packages via `pip install pytest pytest-asyncio`. Then, writing tests for asyncio 
 code is as simple as:
 
 ```python
