@@ -44,6 +44,7 @@ invoke = "*"
 notebook = "*"
 ipykernel = "*"
 cookiecutter = "*"
+pytest-asyncio = "*"
 
 [requires]
 python_version = "3.7"
