@@ -1,7 +1,8 @@
-import weakref
 import ast
 import functools as ft
+import threading
 import uuid
+import weakref
 
 from ipywidgets import DOMWidget, register
 from traitlets import Unicode

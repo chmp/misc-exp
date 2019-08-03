@@ -65,6 +65,10 @@ else:
     _HAS_DAFT = True
 
 
+default_sequences = (tuple,)
+default_mappings = (dict,)
+
+
 def reload(*modules_or_module_names: Union[str, ModuleType]) -> Optional[ModuleType]:
     mod = None
     for module_or_module_name in modules_or_module_names:
@@ -1243,12 +1247,15 @@ def setdefaultattr(obj, name, value):
 
 
 # keep for backwards compat
-def sapply(func, obj, sequences=(tuple,), mappings=(dict,)):
+def sapply(func, obj, sequences=default_sequences, mappings=default_mappings):
     return smap(func, obj, sequences=sequences, mappings=mappings)
 
 
 def szip(
-    iterable_of_objects, sequences=(tuple,), mappings=(dict,), return_schema=False
+    iterable_of_objects,
+    sequences=default_sequences,
+    mappings=default_mappings,
+    return_schema=False,
 ):
     """Zip but for deeply nested objects.
 
@@ -1281,7 +1288,7 @@ def szip(
     return target if return_schema is False else (target, schema)
 
 
-def flatten_with_index(obj, sequences=(tuple,), mappings=(dict,)):
+def flatten_with_index(obj, sequences=default_sequences, mappings=default_mappings):
     counter = iter(it.count())
     flat = []
 
@@ -1293,12 +1300,12 @@ def flatten_with_index(obj, sequences=(tuple,), mappings=(dict,)):
     return index, flat
 
 
-def unflatten(index, obj, sequences=(tuple,), mappings=(dict,)):
+def unflatten(index, obj, sequences=default_sequences, mappings=default_mappings):
     obj = list(obj)
     return smap(lambda idx: obj[idx], index, sequences=sequences, mappings=mappings)
 
 
-def smap(func, arg, *args, sequences=(tuple,), mappings=(dict,)):
+def smap(func, arg, *args, sequences=default_sequences, mappings=default_mappings):
     """A structured version of map.
 
     The structure is taken from the first arguments.
@@ -1306,7 +1313,9 @@ def smap(func, arg, *args, sequences=(tuple,), mappings=(dict,)):
     return _smap(func, arg, *args, path="$", sequences=sequences, mappings=mappings)
 
 
-def _smap(func, arg, *args, path, sequences=(tuple,), mappings=(dict,)):
+def _smap(
+    func, arg, *args, path, sequences=default_sequences, mappings=default_mappings
+):
     try:
         if isinstance(arg, sequences):
             return type(arg)(
@@ -1345,6 +1354,46 @@ def _smap(func, arg, *args, path, sequences=(tuple,), mappings=(dict,)):
 
     except Exception as e:
         raise SApplyError(f"Error in sappend at {path}: {e}") from e
+
+
+def copy_structure(
+    template, obj, sequences=default_sequences, mappings=default_mappings
+):
+    """Arrange ``obj`` into the structure of ``template``.
+
+    :param template:
+        the object of which top copy the structure
+    :param obj:
+        the object which to arrange into the structure. If it is
+        already structured, the template structure and its structure
+        must be the same or a value error is raised
+    """
+
+    template_schema = smap(
+        lambda _: None, template, sequences=sequences, mappings=mappings
+    )
+    obj_schema = smap(lambda _: None, obj, sequences=sequences, mappings=mappings)
+
+    if obj_schema is not None:
+        if obj_schema != template_schema:
+            raise ValueError("Misaligned structures")
+
+        return obj
+
+    return smap(lambda _: obj, template_schema, sequences=sequences, mappings=mappings)
+
+
+def assert_has_schema(
+    nested_obj, expected_schema, sequences=default_sequences, mappings=default_mappings
+):
+    actual_schema = smap(
+        lambda _: None, nested_obj, sequences=sequences, mappings=mappings
+    )
+
+    if actual_schema != expected_schema:
+        raise AssertionError(
+            f"Schemas do not match: {actual_schema} != {expected_schema}"
+        )
 
 
 class SApplyError(Exception):

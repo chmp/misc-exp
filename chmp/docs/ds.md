@@ -406,6 +406,21 @@ A structured version of map.
 The structure is taken from the first arguments.
 
 
+### `chmp.ds.copy_structure`
+`chmp.ds.copy_structure(template, obj, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
+
+Arrange `obj` into the structure of `template`.
+
+#### Parameters
+
+* **template** (*any*):
+  the object of which top copy the structure
+* **obj** (*any*):
+  the object which to arrange into the structure. If it is
+  already structured, the template structure and its structure
+  must be the same or a value error is raised
+
+
 ### `chmp.ds.json_numpy_default`
 `chmp.ds.json_numpy_default(obj)`
 

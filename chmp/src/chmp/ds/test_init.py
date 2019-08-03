@@ -10,6 +10,7 @@ from chmp.ds import (
     piecewise_linear,
     piecewise_logarithmic,
     szip,
+    copy_structure,
     json_numpy_default,
 )
 
@@ -131,3 +132,29 @@ def test_json_nump_default__roundtrip(value):
 
     assert np.shape(actual) == np.shape(value)
     np.testing.assert_allclose(actual, value)
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        ((1, 2, 3), ("", "", "")),
+        (((1, 2), 3), (("", ""), "")),
+        ({"k": (1, 2)}, {"k": ("", "")}),
+    ],
+)
+def test_copy_structure_examples(input, expected):
+    assert copy_structure(input, "") == expected
+
+
+@pytest.mark.parametrize("input", [(1, 2, 3), ((1, 2), 3), {"k": (1, 2)}])
+def test_copy_structure__keep_structure(input):
+    assert copy_structure(input, input) == input
+
+
+@pytest.mark.parametrize(
+    "template, obj",
+    [((1, 2, 3), ("",)), (((1, 2), 3), ("", "")), ({"k": (1, 2)}, {"": ""})],
+)
+def test_copy_structure__mismatch(template, obj):
+    with pytest.raises(ValueError):
+        copy_structure(template, obj)
