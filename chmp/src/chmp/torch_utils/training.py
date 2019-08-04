@@ -9,6 +9,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan, ModelCheckpoint
 
 from chmp.ds import Debouncer, Loop, sapply, setdefaultattr, singledispatch_on
+from . import default_call_model, n2t, t2n
 
 _logger = logging.getLogger(__name__)
 
@@ -37,6 +38,91 @@ def attach_all(engine, *handlers):
         attach(engine, handler)
 
     return engine
+
+
+def continue_run(engine, data_loader, max_epochs=1):
+    """Helper to continue running an ignite engine."""
+    if engine.has_event_handler(restore_engine_state, Events.STARTED):
+        engine.remove_event_handler(restore_engine_state, Events.STARTED)
+
+    state_vars = vars(engine.state) if engine.state is not None else {}
+    engine.add_event_handler(Events.STARTED, restore_engine_state, state_vars)
+
+    engine.run(data_loader, max_epochs=max_epochs)
+
+
+def restore_engine_state(engine, state_vars):
+    ignored_attrs = {"max_epochs", "dataloader"}
+
+    for k, v in state_vars.items():
+        if k.startswith("_") or k in ignored_attrs:
+            continue
+
+        setattr(engine.state, k, v)
+
+
+def make_train_func(
+    model,
+    loss_func,
+    optimizer,
+    dtype=None,
+    device=None,
+    call_model=None,
+    get_train_loss=None,
+):
+    """Create a train func for ``ignite``.
+
+    This function assumes that each batch is of the form ``(x, y)`` with no assumptions placed on ``x`` or ``y``.
+    Each batch will be transformed into a ``torch.Tensor``.
+
+    :param model:
+        the model to optimize, it will be called with the features
+    :param loss_func:
+        the loss function to optimize, it will be called with the
+        model output and the targets. The return value of the loss
+        function must be compatible with ``get_train_loss``.
+    :param optimizer:
+        the optimizer to use
+    :param dtype:
+        the dtype of the batch, can be a structured object, e.g., a tuple of dtypes
+    :param device:
+        the device to assign to the batch, can be a structured object, e.g.,
+        a tuple of devices
+    :param call_model:
+        instead of calling the model directly, ``call_model(model, x)`` it will be used.
+        If not given a default implementation is used, that passes ``x`` as varargs if it is a tuple,
+        as keyword args if it is a dict and directly otherwise.
+    :param get_train_loss:
+        The output of ``loss_func`` will be passed through ``get_train_loss`` before calling backward.
+        If not given a default implementation is used that takes the first item of the loss if it is a tuple
+        and the loss directly otherwise.
+    """
+
+    def default_get_train_loss(loss):
+        return loss[0] if isinstance(loss, tuple) else loss
+
+    if call_model is None:
+        call_model = default_call_model
+
+    if get_train_loss is None:
+        get_train_loss = default_get_train_loss
+
+    def train_func(engine, batch):
+        x, y = n2t(batch, dtype=dtype, device=device)
+
+        optimizer.zero_grad()
+
+        pred = call_model(model, x)
+        loss = loss_func(pred, y)
+
+        train_loss = get_train_loss(loss)
+        train_loss.backward()
+
+        optimizer.step()
+
+        return t2n(loss)
+
+    return train_func
 
 
 @singledispatch_on(1)
@@ -130,6 +216,11 @@ class ProgressBar(SubclassHandler):
         self.outer_frame = None
         self.inner_frame = None
 
+    def on_started(self, engine):
+        self.loop = None
+        self.outer_frame = None
+        self.inner_frame = None
+
     def on_epoch_started(self, engine):
         if self.loop is None:
             self.loop = Loop()
@@ -147,14 +238,18 @@ class ProgressBar(SubclassHandler):
         self.print_status(engine)
 
     def on_epoch_completed(self, engine):
-        self.loop.pop(self.inner_frame)
+        if self.loop is not None:
+            self.loop.pop(self.inner_frame)
+
         self.inner_frame = None
 
         self.outer_frame.finish_item()
         self.print_status(engine)
 
     def on_completed(self, engine: Engine):
-        self.loop.pop(self.outer_frame)
+        if self.loop is not None:
+            self.loop.pop(self.outer_frame)
+
         self.outer_frame = None
         self.inner_frame = None
         self.loop = None

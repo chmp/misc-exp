@@ -1,6 +1,7 @@
 """Helper to construct models with pytorch."""
 import collections
 import enum
+import functools as ft
 import itertools as it
 import operator as op
 
@@ -9,7 +10,15 @@ import torch
 import torch.nn.functional as F
 import torch.utils.data
 
-from chmp.ds import smap, szip, flatten_with_index, unflatten
+from chmp.ds import (
+    smap,
+    szip,
+    flatten_with_index,
+    unflatten,
+    copy_structure,
+    default_sequences,
+    default_mappings,
+)
 
 
 default_batch_size = 32
@@ -84,20 +93,60 @@ def has_kl(type_p, type_q):
     return (type_p, type_q) in torch.distributions.kl._KL_REGISTRY
 
 
-def t2n(obj, dtype=None):
-    """Torch to numpy."""
-    return smap(lambda obj: np.asarray(obj.detach().cpu(), dtype=dtype), obj)
-
-
-def n2t(obj, dtype=None, device=None):
+def n2t(
+    obj, dtype=None, device=None, sequences=default_sequences, mappings=default_mappings
+):
     """Numpy to torch."""
-    if isinstance(dtype, str):
-        dtype = getattr(torch, dtype)
 
-    if isinstance(device, str):
-        device = torch.device(device)
+    def scalar_n2t(obj, dtype, device):
+        if isinstance(dtype, str):
+            dtype = getattr(torch, dtype)
 
-    return smap(lambda obj: torch.as_tensor(obj, dtype=dtype, device=device), obj)
+        if isinstance(device, str):
+            device = torch.device(device)
+
+        return torch.as_tensor(obj, dtype=dtype, device=device)
+
+    dtype = copy_structure(obj, dtype, sequences=sequences, mappings=mappings)
+    device = copy_structure(obj, device, sequences=sequences, mappings=mappings)
+
+    return smap(scalar_n2t, obj, dtype, device, sequences=sequences, mappings=mappings)
+
+
+def t2n(obj, dtype=None, sequences=default_sequences, mappings=default_mappings):
+    """Torch to numpy."""
+
+    def scalar_t2n(obj, dtype):
+        return np.asarray(obj.detach().cpu(), dtype=dtype)
+
+    dtype = copy_structure(obj, dtype, sequences=sequences, mappings=mappings)
+    return smap(scalar_t2n, obj, dtype, sequences=sequences, mappings=mappings)
+
+
+def wrap_torch(func=None, *, dtype=None, device=None, batch_size=64):
+    """Wrap a torch function to accept numpy arrays."""
+
+    def decorator(func):
+        return TorchWrapper(func, dtype=dtype, device=device, batch_size=batch_size)
+
+    return decorator if func is None else decorator(func)
+
+
+class TorchWrapper:
+    def __init__(self, func, dtype=None, device=None, batch_size=64):
+        self.func = func
+        self.dtype = dtype
+        self.device = device
+        self.batch_size = batch_size
+
+    def __call__(self, *args):
+        return call_torch(
+            self.func,
+            *args,
+            dtype=self.dtype,
+            device=self.device,
+            batch_size=self.batch_size,
+        )
 
 
 def call_torch(func, arg, *args, dtype=None, device=None, batch_size=64):
@@ -122,6 +171,54 @@ def call_torch(func, arg, *args, dtype=None, device=None, batch_size=64):
     result, schema = szip(result_batches, return_schema=True)
     result = smap(lambda _, r: np.concatenate(r, axis=0), schema, result)
     return result
+
+
+def call_torch_loader(
+    module, dataloader, dtype=None, device=None, call_model=None, has_label=False
+):
+    """Call a torch function repeatedly with the result from a dataloader and return numpy objects.
+
+    :param dtype:
+        the datatype to apply to each batch
+    :param device:
+        the device to assign each item to
+    :param has_label:
+        If ``True``, the dataload should return a tuple for each batch.
+        Only the first item in the tuple will be passed to the model,
+        the remaining items will be returned as-is.
+        If ``False``, the full batch of the dataloader will be passed to
+        the model
+    """
+    if call_model is None:
+        call_model = default_call_model
+
+    results = []
+
+    for batch in dataloader:
+        batch = n2t(batch, dtype=dtype, device=device)
+
+        if has_label:
+            x, *y = batch
+            result = (call_model(module, x), *y)
+
+        else:
+            result = call_model(module, batch)
+
+        results += [t2n(result)]
+
+    results = szip(results)
+    return smap(lambda batch: np.concatenate(batch, axis=0), results)
+
+
+def default_call_model(model, x):
+    if isinstance(x, tuple):
+        return model(*x)
+
+    elif isinstance(x, dict):
+        return model(**x)
+
+    else:
+        return model(x)
 
 
 def optimizer_step(optimizer, func):
@@ -408,10 +505,10 @@ def build_mlp(
 
 
 def make_data_loader(dataset, mode="fit", **kwargs):
-    if mode == "fit":
+    if mode in {"fit", "train"}:
         default_kwargs = dict(shuffle=True, drop_last=True)
 
-    elif mode == "predict":
+    elif mode in {"predict", "test"}:
         default_kwargs = dict(shuffle=False, drop_last=False)
 
     else:
@@ -458,6 +555,19 @@ class NumpyDataset(torch.utils.data.Dataset):
             ]
 
         return unflatten(self.index, res)
+
+
+class TransformedDataset(torch.utils.data.Dataset):
+    def __init__(self, func, base):
+        super().__init__()
+        self.func = func
+        self.base = base
+
+    def __len__(self):
+        return len(self.base)
+
+    def __getitem__(self, idx):
+        return self.func(self.base[idx])
 
 
 class Transformer(torch.nn.Module):
@@ -593,3 +703,38 @@ def kl_divergence__gamma__log_normal(p, q):
         + torch.exp(p.loc + 0.5 * p.scale ** 2) / q.rate
         - 0.5 * (torch.log(p.scale ** 2.0) + 1 + np.log(2 * np.pi))
     )
+
+
+def padded_collate_fn(batch):
+    """Pad and concatenate a batch of items with different shapes.
+    """
+    if len(batch) == 0:
+        raise ValueError("Cannot collated empty batch")
+
+    zipped_batch = szip(batch)
+    index, flattened_batch = flatten_with_index(zipped_batch)
+
+    padded_batch = []
+
+    def merge_max_shape(a, b):
+        return tuple(max(i, j) for i, j in zip(a, b))
+
+    for list_of_arrays in flattened_batch:
+        batch_items = [np.asarray(item) for item in list_of_arrays]
+        batch_shapes = [item.shape for item in batch_items]
+
+        merged_dtype = np.find_common_type([item.dtype for item in batch_items], [])
+
+        max_shape = ft.reduce(merge_max_shape, batch_shapes)
+        merged_shape = (len(list_of_arrays), *max_shape)
+
+        merged_item = np.zeros(merged_shape, dtype=merged_dtype)
+
+        for idx, item in enumerate(batch_items):
+            valid_sel = (idx, *(slice(s) for s in item.shape))
+            merged_item[valid_sel] = item
+
+        padded_batch.append(merged_item)
+
+    result = unflatten(index, padded_batch)
+    return result

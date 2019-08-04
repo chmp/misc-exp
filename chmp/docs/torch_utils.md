@@ -41,22 +41,47 @@ class MyModule(torch.nn.Module):
 ```
 
 
+### `chmp.torch_utils.n2t`
+`chmp.torch_utils.n2t(obj, dtype=None, device=None, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
+
+Numpy to torch.
+
+
 ### `chmp.torch_utils.t2n`
-`chmp.torch_utils.t2n(obj, dtype=None)`
+`chmp.torch_utils.t2n(obj, dtype=None, sequences=(<class 'tuple'>,), mappings=(<class 'dict'>,))`
 
 Torch to numpy.
 
 
-### `chmp.torch_utils.n2t`
-`chmp.torch_utils.n2t(obj, dtype=None, device=None)`
+### `chmp.torch_utils.wrap_torch`
+`chmp.torch_utils.wrap_torch(func=None, *, dtype=None, device=None, batch_size=64)`
 
-Numpy to torch.
+Wrap a torch function to accept numpy arrays.
 
 
 ### `chmp.torch_utils.call_torch`
 `chmp.torch_utils.call_torch(func, arg, *args, dtype=None, device=None, batch_size=64)`
 
 Call a torch function with numpy arguments and numpy results.
+
+
+### `chmp.torch_utils.call_torch_loader`
+`chmp.torch_utils.call_torch_loader(module, dataloader, dtype=None, device=None, call_model=None, has_label=False)`
+
+Call a torch function repeatedly with the result from a dataloader and return numpy objects.
+
+#### Parameters
+
+* **dtype** (*any*):
+  the datatype to apply to each batch
+* **device** (*any*):
+  the device to assign each item to
+* **has_label** (*any*):
+  If `True`, the dataload should return a tuple for each batch.
+  Only the first item in the tuple will be passed to the model,
+  the remaining items will be returned as-is.
+  If `False`, the full batch of the dataloader will be passed to
+  the model
 
 
 ### `chmp.torch_utils.linear`
@@ -169,4 +194,10 @@ Compute the kl divergence with a Gamma prior and LogNormal approximation.
 
 Taken from C. Louizos, K. Ullrich, M. Welling "Bayesian Compression for Deep Learning"
 https://arxiv.org/abs/1705.08665
+
+
+### `chmp.torch_utils.padded_collate_fn`
+`chmp.torch_utils.padded_collate_fn(batch)`
+
+Pad and concatenate a batch of items with different shapes.
 

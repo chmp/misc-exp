@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
+from chmp.ds import assert_has_schema
 from chmp.torch_utils import (
     factorized_quadratic,
     masked_softmax,
@@ -10,6 +12,7 @@ from chmp.torch_utils import (
     call_torch,
     t2n,
     NumpyDataset,
+    padded_collate_fn,
 )
 
 
@@ -81,3 +84,113 @@ def test_numpy_dataset():
     ds = NumpyDataset(pd.DataFrame({"a": np.zeros(10), "b": np.zeros(10)}))
     assert len(ds) == 10
     ds[0]
+
+
+def test_padded_collate_fn__empty_item():
+    batch = [(), ()]
+    assert padded_collate_fn(batch) == ()
+
+
+def test_padded_collate_fn__empty_batch():
+    with pytest.raises(ValueError):
+        padded_collate_fn([])
+
+
+def test_padded_collate_fn__example_scalars():
+    batch = [1, 2, 3]
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, None)
+    np.testing.assert_allclose(actual, [1, 2, 3])
+
+
+def test_padded_collate_fn__example_sequences():
+    batch = [[1, 2, 3], [4, 5], [6]]
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, None)
+    np.testing.assert_allclose(actual, [[1, 2, 3], [4, 5, 0], [6, 0, 0]])
+
+
+def test_padded_collate_fn__example_matrices():
+    batch = [[[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 2]], [[3], [4], [5]]]
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, None)
+    np.testing.assert_allclose(
+        actual,
+        [
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [[1, 2, 0], [0, 0, 0], [0, 0, 0]],
+            [[3, 0, 0], [4, 0, 0], [5, 0, 0]],
+        ],
+    )
+
+
+def test_padded_collate_fn__example_mixed_flat():
+    batch = [
+        (1, [1, 2, 3], [[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        (2, [4, 5], [[1, 2]]),
+        (3, [6], [[3], [4], [5]]),
+    ]
+
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, (None, None, None))
+
+    np.testing.assert_allclose(actual[0], [1, 2, 3])
+    np.testing.assert_allclose(actual[1], [[1, 2, 3], [4, 5, 0], [6, 0, 0]])
+    np.testing.assert_allclose(
+        actual[2],
+        [
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [[1, 2, 0], [0, 0, 0], [0, 0, 0]],
+            [[3, 0, 0], [4, 0, 0], [5, 0, 0]],
+        ],
+    )
+
+
+def test_padded_collate_fn__example_mixed_nested():
+    batch = [
+        ((1, [1, 2, 3]), [[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        ((2, [4, 5]), [[1, 2]]),
+        ((3, [6]), [[3], [4], [5]]),
+    ]
+
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, ((None, None), None))
+
+    np.testing.assert_allclose(actual[0][0], [1, 2, 3])
+    np.testing.assert_allclose(actual[0][1], [[1, 2, 3], [4, 5, 0], [6, 0, 0]])
+    np.testing.assert_allclose(
+        actual[1],
+        [
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [[1, 2, 0], [0, 0, 0], [0, 0, 0]],
+            [[3, 0, 0], [4, 0, 0], [5, 0, 0]],
+        ],
+    )
+
+
+def test_padded_collate_fn__example_mixed_dict():
+    batch = [
+        ({"s": 1, "a": [1, 2, 3]}, [[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        ({"s": 2, "a": [4, 5]}, [[1, 2]]),
+        ({"s": 3, "a": [6]}, [[3], [4], [5]]),
+    ]
+
+    actual = padded_collate_fn(batch)
+
+    assert_has_schema(actual, ({"s": None, "a": None}, None))
+
+    np.testing.assert_allclose(actual[0]["s"], [1, 2, 3])
+    np.testing.assert_allclose(actual[0]["a"], [[1, 2, 3], [4, 5, 0], [6, 0, 0]])
+    np.testing.assert_allclose(
+        actual[1],
+        [
+            [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            [[1, 2, 0], [0, 0, 0], [0, 0, 0]],
+            [[3, 0, 0], [4, 0, 0], [5, 0, 0]],
+        ],
+    )
