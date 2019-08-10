@@ -565,6 +565,9 @@ class MarkdownWriter(Writer):
     def _translate_title_reference(self, node):
         yield from self._translate_children(node)
 
+    def _translate_target(slef, node):
+        return ()
+
     def _translate_note(self, node):
         return self._util_translate_admonition("Note", node)
 
