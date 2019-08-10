@@ -1,3 +1,4 @@
+import inspect
 import json
 
 import numpy as np
@@ -12,6 +13,7 @@ from chmp.ds import (
     szip,
     copy_structure,
     json_numpy_default,
+    update_kwargs_signature,
 )
 
 
@@ -158,3 +160,31 @@ def test_copy_structure__keep_structure(input):
 def test_copy_structure__mismatch(template, obj):
     with pytest.raises(ValueError):
         copy_structure(template, obj)
+
+
+def test_update_kwargs_signature__classes():
+    class Bar:
+        def __init__(self, d=1, e=2, f=3, **kwargs):
+            super().__init__(**kwargs)
+
+    class Baz:
+        def __init__(self, g=4, h=3, **kwargs):
+            super().__init__(**kwargs)
+
+    @update_kwargs_signature()
+    class Foo(Bar, Baz):
+        def __init__(self, a=1, b=2, c=3, **kwargs):
+            super().__init__(**kwargs)
+
+    assert [*inspect.signature(Foo.__init__).parameters] == [
+        "self",
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+    ]
+    Foo()

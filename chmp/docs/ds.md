@@ -68,6 +68,28 @@ def model(result=None):
 Dictionary-like namespace object.
 
 
+### `chmp.ds.update_kwargs_signature`
+`chmp.ds.update_kwargs_signature(*parents, remove_kwargs=True, kwargs_name='kwargs')`
+
+Replace kwargs with the parameters from parents.
+
+If no parents are given, this function assumes the decorated object
+is a class and takes the bases of the class as the parents.
+
+For classes, the init function is updated.
+
+Usage:
+
+```python
+@update_kwargs_signature()
+class MyObject(Base1, Base2, Base2):
+    def __init__(self, arg1, arg2, **kwargs):
+        super().__init__(**kwargs)
+```
+
+Inspired by https://www.fast.ai/2019/08/06/delegation/
+
+
 ### `chmp.ds.daterange`
 `chmp.ds.daterange(start, end, step=None)`
 

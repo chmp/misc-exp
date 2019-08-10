@@ -205,6 +205,73 @@ class Object:
         return not (self == other)
 
 
+def update_kwargs_signature(*parents, remove_kwargs=True, kwargs_name="kwargs"):
+    """Replace kwargs with the parameters from parents.
+
+    If no parents are given, this function assumes the decorated object
+    is a class and takes the bases of the class as the parents.
+
+    For classes, the init function is updated.
+
+    Usage::
+
+        @update_kwargs_signature()
+        class MyObject(Base1, Base2, Base2):
+            def __init__(self, arg1, arg2, **kwargs):
+                super().__init__(**kwargs)
+
+    Inspired by `<https://www.fast.ai/2019/08/06/delegation/>`_
+    """
+
+    def decorator(child, parents=parents):
+        if not parents:
+            assert inspect.isclass(child)
+            parents = child.__bases__
+
+        parents = [
+            parent.__init__ if inspect.isclass(parent) else parent for parent in parents
+        ]
+
+        _update_kwargs_signature(
+            parents=parents,
+            child=child.__init__ if inspect.isclass(child) else child,
+            remove_kwargs=remove_kwargs,
+            kwargs_name=kwargs_name,
+        )
+
+        return child
+
+    return decorator
+
+
+def _update_kwargs_signature(parents, child, *, remove_kwargs, kwargs_name):
+    """Update the child new signature with parameters from parent / child merged."""
+
+    def is_kw_like(desc):
+        # assume any parameter with a default / or kw-only is "keyword-like"
+        return (
+            desc.default != inspect.Signature.empty
+            or desc.kind == inspect.Parameter.KEYWORD_ONLY
+        )
+
+    merged_parameters = inspect.signature(child).parameters.copy()
+
+    for parent in parents:
+        additional_parameters = {
+            name: desc
+            for name, desc in inspect.signature(parent).parameters.items()
+            if name not in merged_parameters and is_kw_like(desc)
+        }
+        merged_parameters.update(additional_parameters)
+
+    if remove_kwargs:
+        merged_parameters.pop(kwargs_name)
+
+    child.__signature__ = inspect.signature(child).replace(
+        parameters=merged_parameters.values()
+    )
+
+
 class daterange:
     """A range of dates."""
 
